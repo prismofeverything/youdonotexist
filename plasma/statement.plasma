@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>You Do Not Exist</title>
+    <script src="prototype.js" type="text/javascript"></script>
+    <script src="youdonotexist.js" type="text/javascript"></script>
+    <link href="youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div id="interaction">
+      <div id="question">What is your best explanation of what you are, as a thing in this universe?</div>
+      <div id="important">(this is important)</div>
+      <div id="help"><a class="tiny" href="/help/">(help)</a></div>
+      <div id="statement">
+        <form id="statement_form" method="post" action="/statement/">
+          <input id="statement_input" type="text" name="statement" />
+          <input id="accept" type="image" src="monolith.png" />
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
+
+

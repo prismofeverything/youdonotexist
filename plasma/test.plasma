@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <title>You Do Not Exist</title>
+    <script src="/prototype.js" type="text/javascript"></script>
+    <script src="/vector.js" type="text/javascript"></script>
+    <link href="/youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <a id="youdonotexist" href="#">You</a>
+    <div id="mousevector"></div>
+  </body>
+</html>
+
+<script type="text/javascript">
+  var v = vector({x: 12, y: 13});
+  var w = vector({x: -1, y: 5});
+</script>
+

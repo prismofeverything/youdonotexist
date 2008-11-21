@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>Help</title>
+    <script src="prototype.js" type="text/javascript"></script>
+    <script src="youdonotexist.js" type="text/javascript"></script>
+    <link href="youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="youdonotexist">
+      <div>This is possibly the most important thing you have ever done.</div>
+      <div id="help_back"><a class="tiny" href="/statement/">       (back)</a></div>
+    </div>
+  </body>
+</html>
+
+
