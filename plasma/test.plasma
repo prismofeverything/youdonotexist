@@ -12,7 +12,6 @@
 </html>
 
 <script type="text/javascript">
-  var v = vector({x: 12, y: 13});
-  var w = vector({x: -1, y: 5});
+  vectortest();
 </script>
 

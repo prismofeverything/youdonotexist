@@ -5,21 +5,21 @@ var evader = function(spec) {
 	that.over = spec.over
 	that.out = spec.out
 
-	that.origin = vector({x: 500, y: 300});
+	that.origin = vector2d({x: 500, y: 300});
 	that.threshhold = 100;
 	that.spriteliness = 2000.0;
 	that.intervalFactor = 100;
 	that.approachFactor = 1000;
 
-	that.now = vector({x: 0, y: 0});
-	that.before = vector({x: 0, y: 0});
-	that.motion = vector({x: 0, y: 0});
-	that.offset = vector({x: -25, y: -20});
+	that.now = vector2d({x: 0, y: 0});
+	that.before = vector2d({x: 0, y: 0});
+	that.motion = vector2d({x: 0, y: 0});
+	that.offset = vector2d({x: -25, y: -20});
 	that.approached = false;
 	that.accepted = false;
 	that.rejected = false;
 
-	that.evading = vector({x: 0, y: 0});
+	that.evading = vector2d({x: 0, y: 0});
 
 	that.applyMotion = function() {
 		that.orient();
@@ -36,7 +36,7 @@ var evader = function(spec) {
 
 	that.track = function(event) {
 		that.before = that.now;
-		that.now = vector({x: event.pageX, y: event.pageY}).sum(that.offset);
+		that.now = vector2d({x: event.pageX, y: event.pageY}).sum(that.offset);
 		that.applyMotion();
 	};
 
