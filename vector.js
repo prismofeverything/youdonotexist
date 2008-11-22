@@ -28,9 +28,9 @@ var vector = function(spec) {
 
     var that = {};
 
-    that.dim = spec.dim || spec.elements.size() || 0;
-    that.elements = spec.elements || $R(0, that.dim).map(function(el){return 0});
     that.zero = spec.zero || 0;
+    that.dim = spec.dim || spec.elements.size() || 0;
+    that.elements = spec.elements || $R(0, that.dim).map(function(el){return that.zero});
 
     that.toString = function() {
         return that.elements.join('|');
@@ -48,9 +48,15 @@ var vector = function(spec) {
         })});
     };
 
+	that.magnitude = function() {
+		return that.elements.map(function(el) {
+			return el.square();
+		}).inject(that.zero, function(s, el) {return s.add(el)}).root(2);
+	};
+
     that.sum = function() {
         return that.elements.inject(that.zero, function(s, el) {return s.add(el)});
-    }
+    };
 
     that.ply = function(other, f) {
         return vector({elements: that.elements.zip(other.elements).map(function(el) {
@@ -73,16 +79,9 @@ var vector = function(spec) {
     };
 
     that.distance = function(other) {
-		var plied = that.ply(other, function(a, b) {
-			var diff = a.subtract(b)
-			var squared = diff.square();
-			return squared;
-		});
-
-		var summed = plied.sum();
-		var rooted = summed.root(2);
-		
-		return rooted;
+		return that.ply(other, function(a, b) {
+			return a.subtract(b).square();
+		}).sum().root(2);
     };
 
     that.normalize = function() {
@@ -98,6 +97,12 @@ var vector = function(spec) {
 		})});
     };
 
+	that.dot = function(other) {
+		return that.ply(other, function(a, b) {
+			return a.multiply(b);
+		}).sum();
+	};
+
     return that;
 };
 
@@ -112,7 +117,12 @@ var vectortest = function(){
 			ya.invert(),
 			ya.distance(yo),
 			yo.normalize(),
-			yo.scale(33)];
+			yo.scale(33),
+		    yo.dot(ya),
+			yo.magnitude(),
+		    ya.magnitude(),
+			yo.dot(yo),
+		    yo.magnitude().square()];
 
 	alert(test.join(' --- '))
 };
