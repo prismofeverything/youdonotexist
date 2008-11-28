@@ -1,36 +1,34 @@
 var lawOfCosines = function(a, b, c) {
-    var num = square(b) + square(c) - square(a);
+	var num = square(b) + square(c) - square(a);
     var den = 2 * b * c;
 
     return (den == 0) ? 0 : (Math.acos(num / den) - (Math.PI / 2));
 };
 
-Object.prototype.is_array = function(value) {
-    return value && 
+Object.prototype.isArray = function(value) {
+    return value &&
         typeof value === 'object' &&
         typeof value.length === 'number' &&
         typeof value.splice === 'function' &&
         !(value.propertyIsEnumerable('length'));
 }
 
-Number.prototype.add = function(other) { return this + other; }
-Number.prototype.subtract = function(other) { return this - other; }
-Number.prototype.multiply = function(other) { return this * other; }
-Number.prototype.divide = function(other) { return this / other; }
-Number.prototype.invert = function() { return this * -1; }
-Number.prototype.copy = function() { return this; }
-Number.prototype.root = function(degree) { return Math.sqrt(this) }
-Number.prototype.square = function() { return this * this };
+Number.prototype.add = function(other) { return this + other; };
+Number.prototype.subtract = function(other) { return this - other; };
+Number.prototype.multiply = function(other) { return this * other; };
+Number.prototype.divide = function(other) { return this / other; };
+Number.prototype.invert = function() { return this * -1; };
+Number.prototype.copy = function() { return this; };
+Number.prototype.root = function(degree) { return Math.sqrt(this); };
+Number.prototype.square = function() { return this * this; };
 Number.prototype.zero = 0;
 
 var vector = function(spec) {
-    spec = spec || {dim: 0, elements: [], zero: 0};
-
     var that = {};
 
     that.zero = spec.zero || 0;
     that.dim = spec.dim || spec.elements.size() || 0;
-    that.elements = spec.elements || $R(0, that.dim).map(function(el){return that.zero});
+    that.elements = spec.elements || $R(0, that.dim).map(function(el){return that.zero;});
 
     that.toString = function() {
         return that.elements.join('|');
@@ -51,11 +49,11 @@ var vector = function(spec) {
 	that.magnitude = function() {
 		return that.elements.map(function(el) {
 			return el.square();
-		}).inject(that.zero, function(s, el) {return s.add(el)}).root(2);
+		}).inject(that.zero, function(s, el) {return s.add(el);}).root(2);
 	};
 
     that.sum = function() {
-        return that.elements.inject(that.zero, function(s, el) {return s.add(el)});
+        return that.elements.inject(that.zero, function(s, el) {return s.add(el);});
     };
 
     that.ply = function(other, f) {
@@ -65,13 +63,13 @@ var vector = function(spec) {
     };
 
     that.add = function(other) {
-        return that.ply(other, function(a, b) {return a.add(b)});
+        return that.ply(other, function(a, b) {return a.add(b);});
     };
 
     that.subtract = function(other) {
-        return that.ply(other, function(a, b) {return a.subtract(b)});
+        return that.ply(other, function(a, b) {return a.subtract(b);});
     };
-    
+
     that.invert = function() {
         return vector({elements: that.elements.map(function(el) {
             return el.invert();
@@ -85,7 +83,7 @@ var vector = function(spec) {
     };
 
     that.normalize = function() {
-        distance = that.distance(vector({dim: that.dim}));
+        var distance = that.distance(vector({dim: that.dim}));
 		return vector({elements: that.elements.map(function(el) {
 			return el.divide(distance);
 		})});
@@ -108,21 +106,26 @@ var vector = function(spec) {
 
 
 var vectortest = function(){
-	var ya = vector({elements: [3, 5, 2]})
-	var yo = vector({elements: [7, 7, 6]})
+	var ya = vector({elements: [3, 5, 2]});
+	var yo = vector({elements: [7, 7, 6]});
 
-	test = [ya.sum(),
-			ya.add(yo),
-			ya.subtract(yo),
-			ya.invert(),
-			ya.distance(yo),
-			yo.normalize(),
-			yo.scale(33),
-		    yo.dot(ya),
-			yo.magnitude(),
-		    ya.magnitude(),
-			yo.dot(yo),
-		    yo.magnitude().square()];
+	var basicTest = [ya.sum(),
+					 ya.add(yo),
+					 ya.subtract(yo),
+					 ya.invert(),
+					 ya.distance(yo),
+					 yo.normalize(),
+					 yo.scale(33),
+					 yo.dot(ya),
+					 yo.magnitude(),
+					 ya.magnitude(),
+					 yo.dot(yo),
+					 yo.magnitude().square()];
 
-	alert(test.join(' --- '))
+	var ik = vector({elements: [vector({elements: [3, 2, 8]}), vector({elements: [-2, 3, -1]}), vector({elements: [4, 4, -8]})]});
+	var ok = vector({elements: [vector({elements: [1, -4, 12]}), vector({elements: [3, 3, 3]}), vector({elements: [-1, -4, -13]})]});
+
+	var furtherTest = [ik.multiply(ok)];
+
+	alert(furtherTest.join(' --- '));
 };

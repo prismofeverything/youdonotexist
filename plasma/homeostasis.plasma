@@ -1,0 +1,20 @@
+<html>
+  <head>
+    <title>Homeostasis</title>
+    <script src="/prototype.js" type="text/javascript"></script>
+    <script src="/sylvester.js" type="text/javascript"></script>
+    <script src="/flux.js" type="text/javascript"></script>
+    <script src="/homeostasis.js" type="text/javascript"></script>
+    <link href="/youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div id="shell">
+	  <h1>Homeostatic Laboratory</h1>
+	  <canvas id="homeostasis"></canvas>
+	</div>
+  </body>
+</html>
+
+<script type="text/javascript">
+  window.onload = homeostasis("homeostasis").init;
+</script>
