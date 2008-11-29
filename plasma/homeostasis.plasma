@@ -9,7 +9,6 @@
   </head>
   <body>
     <div id="shell">
-	  <h1>Homeostatic Laboratory</h1>
 	  <canvas id="homeostasis"></canvas>
 	</div>
   </body>

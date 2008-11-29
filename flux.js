@@ -45,10 +45,12 @@ var mote = function(spec) {
 };
 
 var flux = function(spec) {
-	var canvas, context, now, before, interval,
-		browser = {};
-
 	var that = {};
+
+	var canvas, context;
+	var now, before, interval;
+	var	browser = {};
+
 	that.motes = spec.motes || [];
 	that.id = spec.id || '';
 
