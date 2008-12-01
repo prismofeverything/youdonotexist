@@ -1,10 +1,3 @@
-var lawOfCosines = function(a, b, c) {
-	var num = square(b) + square(c) - square(a);
-    var den = 2 * b * c;
-
-    return (den == 0) ? 0 : (Math.acos(num / den) - (Math.PI / 2));
-};
-
 Object.prototype.isArray = function(value) {
     return value &&
         typeof value === 'object' &&
@@ -70,6 +63,10 @@ var vector = function(spec) {
         return that.ply(other, function(a, b) {return a.subtract(b);});
     };
 
+    that.multiply = function(other) {
+        return that.ply(other, function(a, b) {return a.multiply(b);});
+    };
+
     that.invert = function() {
         return vector({elements: that.elements.map(function(el) {
             return el.invert();
@@ -125,7 +122,7 @@ var vectortest = function(){
 	var ik = vector({elements: [vector({elements: [3, 2, 8]}), vector({elements: [-2, 3, -1]}), vector({elements: [4, 4, -8]})]});
 	var ok = vector({elements: [vector({elements: [1, -4, 12]}), vector({elements: [3, 3, 3]}), vector({elements: [-1, -4, -13]})]});
 
-	var furtherTest = [ik.multiply(ok)];
+	var furtherTest = [ik.dot(ok)];
 
 	alert(furtherTest.join(' --- '));
 };
