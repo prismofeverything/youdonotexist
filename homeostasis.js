@@ -1,10 +1,18 @@
 var homeostasis = function(id) {
 	var receptor = function(spec) {
-		var spec = {};
-		spec.color = $V([30, 40, 170, 1]);
+		var that = {};
 
-		spec.perceive = function() {
-			
+		that.color = spec.color || $V([30, 40, 170, 1]);
+		that.shape = spec.shape || [{method: 'arc',    point: $V([230, 50]), args: [50, 0, Math.PI*2, true]},
+									{method: 'lineTo', point: $V([100, 100])},
+									{method: 'lineTo', point: $V([200, -10])},
+									{method: 'arc',    point: $V([230, 50]), args: [50, 0, Math.PI*2, true]},
+									{method: 'lineTo', point: $V([280, -100])},
+									{method: 'lineTo', point: $V([240, -50])}];
+
+
+		that.perceive = function() {
+
 		};
 	};
 
