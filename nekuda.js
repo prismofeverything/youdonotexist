@@ -1,13 +1,4 @@
-var homeostasis = function(id) {
-	var receptor = function(spec) {
-		var spec = {};
-		spec.color = $V([30, 40, 170, 1]);
-
-		spec.perceive = function() {
-			
-		};
-	};
-
+var nekuda = function(id) {
 	spec = {
 		id: id,
 		motes: [mote({color: $V([100, 200, 120, 1]),

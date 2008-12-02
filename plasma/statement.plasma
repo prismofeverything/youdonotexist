@@ -7,7 +7,7 @@
   </head>
   <body>
     <div id="interaction">
-      <div id="question">What is your best explanation of what you are, as a thing in this universe?</div>
+      <div id="question">What is your best explanation of what you are as a thing in this universe?</div>
       <div id="important">(this is important)</div>
       <div id="help"><a class="tiny" href="/help/">(help)</a></div>
       <div id="statement">
