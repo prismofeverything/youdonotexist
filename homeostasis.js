@@ -76,6 +76,15 @@ var homeostasis = function(id) {
 		that.attractants = [];
 		that.repellents = [];
 
+		that.perceive = function(env) {
+			that.attractants.concat(repellents).each(function(ligand) {
+				ligand.future.append(function(l) {
+					var distance = l.pos.distanceFrom(that.pos);
+					l.velocity = l.velocity.add(that.pos.subtract(l.pos).multiply(1/(distance*distance)));
+				});
+			});
+		};
+
 		return that;
 	};
 

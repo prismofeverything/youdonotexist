@@ -91,6 +91,7 @@ var mote = function(spec) {
 	that.scale = spec.scale || $V([1, 1]);
 	that.fill = spec.fill || 'fill';
 
+	that.future = [];
 	that.neighbors = [];
 
 	// construct a simple bounding box to tell if further bounds checking is necessary
@@ -148,6 +149,12 @@ var mote = function(spec) {
 		that.orientation += that.rotation;
 		that.velocity = that.velocity.add(that.acceleration);
 		that.pos = that.pos.add(that.velocity);
+
+		that.future.each(function(moment) {
+			moment(that);
+		});
+
+		that.future = [];
 	};
 
 	that.draw = function(context) {
@@ -192,7 +199,7 @@ var flux = function(spec) {
 	};
 
 	that.triangulate = function() {
-		
+
 	};
 
 	var mouse = {
