@@ -1,11 +1,11 @@
 var nekuda = function(id) {
-	spec = {
+	var spec = {
 		id: id,
 		motes: [mote({color: $V([100, 200, 120, 1]),
-					  pos: $V([300, 200]),
+					  pos: $V([500, 500]),
 					  adjust: function() {
-						  this.shape.first().point.elements[1] -= 0.4;
-						  this.shape[4].point.elements[0] -= 0.7;
+						  this.shape.first().pos.elements[1] -= 0.4;
+						  this.shape[4].pos.elements[0] -= 0.7;
 						  this.pos.elements[0] += 0.2;
 					  }})],
 

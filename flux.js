@@ -4,20 +4,94 @@ Vector.prototype.o = function(i) {
 
 Array.prototype.append = function(el) {
 	this[this.length] = el;
+	return this;
+};
+
+// provide objects to represent atomic drawing operations
+var op = {
+	base: function(spec) {
+		var that = {};
+
+		that.method = spec.method || 'lineTo';
+		that.pos = spec.pos || $V([0, 0]);
+
+		that.applyPoint = spec.applyPoint || function(point) {
+			return that.pos.add(point).elements;
+		};
+
+		that.args = spec.args || function() {
+			return that.pos.elements;
+		};
+
+		return that;
+	},
+
+	line: function(spec) {
+		return this.base(spec);
+	},
+
+	move: function(spec) {
+		spec.method = 'moveTo';
+
+		return this.base(spec);
+	},
+
+	arc: function(spec) {
+		spec.method = 'arc';
+
+		var that = this.base(spec);
+
+		that.radius = spec.radius || 10;
+		that.arc = spec.arc || $V([0, Math.PI*2]);
+		that.clockwise = spec.clockwise || true;
+
+		that.args = function() {
+			return that.pos.elements.concat([that.radius].concat(that.arc.elements).append(that.clockwise));
+		};
+
+		that.applyPoint = function(point) {
+			return that.pos.add(point).elements.concat([that.radius].concat(that.arc.elements).append(that.clockwise));
+		};
+
+		return that;
+	},
+
+	bezier: function(spec) {
+		spec.method = 'bezierCurveTo';
+		spec.pos = spec.pos || $V([10, 10]);
+
+		var that = this.base(spec);
+
+		that.control1 = spec.control1 || $V([5, 0]);
+		that.control2 = spec.control2 || $V([10, 5]);
+
+		that.args = function() {
+			return that.control1.elements.concat(that.control2.elements).concat(that.pos.elements);
+		};
+
+		that.applyPoint = function(point) {
+			return that.control1.add(point).elements.concat(that.control2.add(point).elements).concat(that.pos.add(point).elements);
+		};
+
+		return that;
+	}
 };
 
 var mote = function(spec) {
 	var that = {};
 
 	that.pos = spec.pos || $V([0, 0]);
-	that.shape = spec.shape || [{method: 'lineTo', point: $V([0, 0])},
-								{method: 'lineTo', point: $V([100, 100])},
-								{method: 'lineTo', point: $V([200, -10])},
-								{method: 'arc',    point: $V([230, 50]), args: [50, 0, Math.PI*2, true]},
-								{method: 'lineTo', point: $V([280, -100])},
-								{method: 'lineTo', point: $V([240, -50])}];
+	that.shape = spec.shape || [op.line({pos: $V([0, 0])}),
+								op.line({pos: $V([100, 100])}),
+								op.line({pos: $V([200, -10])}),
+								op.arc({pos: $V([230, 50]), radius: 50, arc: $V([0, Math.PI*2])}),
+								op.line({pos: $V([280, -100])}),
+								op.line({pos: $V([240, -50])})
+							   ];
+
 	that.color = spec.color || $V([0, 0, 0, 1]);
-	that.rotation = spec.rotation || 0;
+	that.rotation = (spec.rotation === undefined) ? Math.random()*2*Math.PI : spec.rotation;
+	that.scale = spec.rotation || $V([1, 1]);
 	that.fill = spec.fill || 'fill';
 
 	// construct a simple bounding box to tell if further bounds checking is necessary
@@ -27,15 +101,15 @@ var mote = function(spec) {
 
 		that.shape.each(function(vertex) {
 			if(vertex.method == 'arc') {
-				xrange[0] = (vertex.point.o(0) - vertex.args[0] < xrange[0]) ? vertex.point.o(0) - vertex.args[0] : xrange[0];
-				xrange[1] = (vertex.point.o(0) + vertex.args[0] > xrange[1]) ? vertex.point.o(0) + vertex.args[0] : xrange[1];
-				yrange[0] = (vertex.point.o(1) - vertex.args[0] < yrange[0]) ? vertex.point.o(1) - vertex.args[0] : yrange[0];
-				yrange[1] = (vertex.point.o(1) + vertex.args[0] > yrange[1]) ? vertex.point.o(1) + vertex.args[0] : yrange[1];
+				xrange[0] = (vertex.pos.o(0) - vertex.radius < xrange[0]) ? vertex.pos.o(0) - vertex.radius : xrange[0];
+				xrange[1] = (vertex.pos.o(0) + vertex.radius > xrange[1]) ? vertex.pos.o(0) + vertex.radius : xrange[1];
+				yrange[0] = (vertex.pos.o(1) - vertex.radius < yrange[0]) ? vertex.pos.o(1) - vertex.radius : yrange[0];
+				yrange[1] = (vertex.pos.o(1) + vertex.radius > yrange[1]) ? vertex.pos.o(1) + vertex.radius : yrange[1];
 			} else {
-				xrange[0] = (vertex.point.o(0) < xrange[0]) ? vertex.point.o(0) : xrange[0];
-				xrange[1] = (vertex.point.o(0) > xrange[1]) ? vertex.point.o(0) : xrange[1];
-				yrange[0] = (vertex.point.o(1) < yrange[0]) ? vertex.point.o(1) : yrange[0];
-				yrange[1] = (vertex.point.o(1) > yrange[1]) ? vertex.point.o(1) : yrange[1];
+				xrange[0] = (vertex.pos.o(0) < xrange[0]) ? vertex.pos.o(0) : xrange[0];
+				xrange[1] = (vertex.pos.o(0) > xrange[1]) ? vertex.pos.o(0) : xrange[1];
+				yrange[0] = (vertex.pos.o(1) < yrange[0]) ? vertex.pos.o(1) : yrange[0];
+				yrange[1] = (vertex.pos.o(1) > yrange[1]) ? vertex.pos.o(1) : yrange[1];
 			}
 		});
 
@@ -48,10 +122,10 @@ var mote = function(spec) {
 	that.box = that.findBox();
 
 	that.boxContains = function(point) {
-		return (point.o(0) > that.box.x[0] &&
-				point.o(0) < that.box.x[1] &&
-				point.o(1) > that.box.y[0] &&
-				point.o(1) < that.box.y[1]);
+		return (point.o(0) > that.box.x[0]+that.pos.o(0) &&
+				point.o(0) < that.box.x[1]+that.pos.o(0) &&
+				point.o(1) > that.box.y[0]+that.pos.o(1) &&
+				point.o(1) < that.box.y[1]+that.pos.o(1));
 	};
 
 	that.color_spec = function() {
@@ -73,13 +147,15 @@ var mote = function(spec) {
 	that.draw = function(context) {
 		context.save();
 		context[that.fill + "Style"] = that.color_spec();
+		context.translate(that.pos.o(0), that.pos.o(1));
+		context.rotate(that.rotation);
+		context.scale(that.scale.o(0), that.scale.o(1));
 
 		context.beginPath();
 		context.moveTo.apply(context, that.pos.elements);
 
  		that.shape.each(function(vertex) {
-			var point = vertex.point.add(that.pos).elements;
- 			context[vertex.method].apply(context, point.concat(vertex.args));
+ 			context[vertex.method].apply(context, vertex.args());
  		});
 
 		context.closePath();
@@ -151,8 +227,8 @@ var flux = function(spec) {
 
 		mouse.prev = mouse.pos;
 
-		x = e.clientX - canvas.offsetLeft + scrollX;
-		y = e.clientY - canvas.offsetTop + scrollY;
+		var x = e.clientX - canvas.offsetLeft + scrollX;
+		var y = e.clientY - canvas.offsetTop + scrollY;
 
 		mouse.pos = $V([x, y]);
 
