@@ -2,6 +2,16 @@ Vector.prototype.o = function(i) {
 	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
 };
 
+Vector.prototype.magnitude = function() {
+	return Math.sqrt(this.elements.inject(0, function(sum, element) {
+		return sum + element * element;
+	}));
+};
+
+Vector.prototype.scaleTo = function(magnitude) {
+	return this.toUnitVector().x(magnitude);
+}
+
 Array.prototype.append = function(el) {
 	this[this.length] = el;
 	return this;
@@ -85,7 +95,6 @@ var mote = function(spec) {
 	that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
 	that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
 	that.velocity = spec.velocity || $V([0, 0]);
-	that.acceleration = spec.acceleration || $V([0, 0]);
 
 	that.color = spec.color || $V([200, 200, 200, 1]);
 	that.scale = spec.scale || $V([1, 1]);
@@ -147,7 +156,6 @@ var mote = function(spec) {
 
 	that.adjust = spec.adjust || function() {
 		that.orientation += that.rotation;
-		that.velocity = that.velocity.add(that.acceleration);
 		that.pos = that.pos.add(that.velocity);
 
 		that.future.each(function(moment) {
@@ -155,6 +163,31 @@ var mote = function(spec) {
 		});
 
 		that.future = [];
+	};
+
+	that.findClosest = function(others, predicate) {
+		var closestMote = null;
+		var closestDistance = null;
+
+		for (var i = 0; i < others.length; i++) {
+			var other = others[i];
+//		others.each(function(other) {
+			if (predicate(other) === true) {
+				if (closestMote === null) {
+					closestMote = other;
+					closestDistance = other.pos.distanceFrom(that.pos);
+				} else {
+					var newDistance = other.pos.distanceFrom(that.pos);
+					if (newDistance < closestDistance) {
+						closestMote = other;
+						closestDistance = newDistance;
+					}
+				}
+			}
+//		});
+		}
+
+		return closestMote;
 	};
 
 	that.draw = function(context) {
@@ -174,7 +207,15 @@ var mote = function(spec) {
 		context.closePath();
 		context[that.fill]();
 
+		that.subdraws().each(function(subdraw) {
+			subdraw.draw(context);
+		});
+
 		context.restore();
+	};
+
+	that.subdraws = function() {
+		return [];
 	};
 
 	return that;
