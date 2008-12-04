@@ -10,7 +10,13 @@ Vector.prototype.magnitude = function() {
 
 Vector.prototype.scaleTo = function(magnitude) {
 	return this.toUnitVector().x(magnitude);
-}
+};
+
+Vector.prototype.inverse = function() {
+	return $V(this.elements.map(function(el) {
+		return 0 - el;
+	}));
+};
 
 Array.prototype.append = function(el) {
 	this[this.length] = el;
@@ -87,6 +93,26 @@ var op = {
 	}
 };
 
+var tween = function(spec) {
+	var that = {};
+
+	that.obj = spec.obj || null;
+	that.property = spec.property || 'this';
+	that.target = spec.target || function() {return that.obj[that.property] === 0;};
+	that.step = spec.step || function() {that.obj[that.property] -= 1;};
+
+	that.cycle = function() {
+		if (that.target()) {
+			return false;
+		} else {
+			that.step();
+			return true;
+		}
+	};
+
+	return that;
+};
+
 var mote = function(spec) {
 	var that = {};
 
@@ -99,6 +125,8 @@ var mote = function(spec) {
 	that.color = spec.color || $V([200, 200, 200, 1]);
 	that.scale = spec.scale || $V([1, 1]);
 	that.fill = spec.fill || 'fill';
+
+	that.tweens = [];
 
 	that.future = [];
 	that.neighbors = [];
@@ -144,6 +172,11 @@ var mote = function(spec) {
 		return "rgba(" + inner + ")";
 	};
 
+	that.addTween = function(spec) {
+		spec.obj = that;
+		that.tweens.append(tween(spec));
+	};
+
 // 	that.contains = function(point) {
 // 		return Math.pointWithin(point, that.shape.map(function(vertex) {
 // 			return vertex.add(that.pos);
@@ -152,6 +185,10 @@ var mote = function(spec) {
 
 	that.perceive = spec.perceive || function(env) {
 		return null;
+
+		that.submotes().each(function(submote) {
+			submote.perceive(env);
+		});
 	};
 
 	that.adjust = spec.adjust || function() {
@@ -161,18 +198,23 @@ var mote = function(spec) {
 		that.future.each(function(moment) {
 			moment(that);
 		});
-
 		that.future = [];
+
+		that.tweens = that.tweens.select(function(tween) {
+			return tween.cycle();
+		});
+
+		that.submotes().each(function(submote) {
+			submote.adjust();
+		});
 	};
 
 	that.findClosest = function(others, predicate) {
 		var closestMote = null;
 		var closestDistance = null;
 
-		for (var i = 0; i < others.length; i++) {
-			var other = others[i];
-//		others.each(function(other) {
-			if (predicate(other) === true) {
+		others.each(function(other) {
+			if (predicate(other)) {
 				if (closestMote === null) {
 					closestMote = other;
 					closestDistance = other.pos.distanceFrom(that.pos);
@@ -184,8 +226,7 @@ var mote = function(spec) {
 					}
 				}
 			}
-//		});
-		}
+		});
 
 		return closestMote;
 	};
@@ -207,14 +248,14 @@ var mote = function(spec) {
 		context.closePath();
 		context[that.fill]();
 
-		that.subdraws().each(function(subdraw) {
-			subdraw.draw(context);
+		that.submotes().each(function(submote) {
+			submote.draw(context);
 		});
 
 		context.restore();
 	};
 
-	that.subdraws = function() {
+	that.submotes = function() {
 		return [];
 	};
 

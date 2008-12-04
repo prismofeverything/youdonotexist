@@ -38,7 +38,7 @@ var homeostasis = function(id) {
 
 	var inside = bounds(0, 880, 320, 1500);
 	var outside = bounds(0, 800, 0, 250);
-	var offscreen = bounds(-50, 1000, -50, 0);
+	var offscreen = bounds(-50, 800, -50, 0);
 
 	var receptorGrip = 0.996;
 	var attractantRepellentRatio = 1;
@@ -59,6 +59,7 @@ var homeostasis = function(id) {
 
 	var ligand = function(spec) {
 		var that = mote(spec);
+		var velocityScale = 0.9;
 
 		that.closestReceptor = null;
 		that.unattached = true;
@@ -81,7 +82,7 @@ var homeostasis = function(id) {
 					   var mag = that.pos.magnitude();
 
 					   if (distance > 1) {
-						   that.velocity = that.velocity.add(that.closestReceptor.pos.subtract(that.pos).x(0.2/(distance))).scaleTo(1);
+						   that.velocity = that.velocity.add(that.closestReceptor.pos.subtract(that.pos).x(0.2/(distance))).scaleTo(velocityScale);
 					   } else {
 						   that.velocity = $V([0, 0]);
 						   that.rotation = 0;
@@ -105,7 +106,7 @@ var homeostasis = function(id) {
 					that.closestReceptor = null;
 				}
 			} else if (that.detached) {
-				if (that.pos.o(0) < 0 || that.pos.o(1) < 0) {
+				if (that.pos.o(0) < -10 || that.pos.o(1) < -10) {
 					that.pos = randomPos(offscreen);
 					that.detached = false;
 					that.unattached = true;
@@ -156,7 +157,6 @@ var homeostasis = function(id) {
 									op.bezier({to: $V([800, 300]), control1: $V([870, 325]), control2: $V([845, 300])}),
 									op.line({to: $V([0, 300])})
 								   ];
-
 
 		var that = mote(spec);
 		return that;
@@ -211,7 +211,7 @@ var homeostasis = function(id) {
 			}
 		};
 
-		that.subdraws = function() {
+		that.submotes = function() {
 			return [that.cheW].concat(that.receptors);
 		};
 
@@ -241,7 +241,8 @@ var homeostasis = function(id) {
 			that.column.level -= that.bound.polarity;
 
 			that.bound = null;
-			that.detached = 15;
+			that.taken = false;
+			that.detached = 150;
 		};
 
 		that.perceive = function(env) {
@@ -259,6 +260,7 @@ var homeostasis = function(id) {
 	var cheW = function(spec) {
 		var activeColor = spec.activeColor || $V([210, 220, 130, 1]);
 		var inactiveColor = spec.inactiveColor || $V([40, 40, 40, 1]);
+		var colorStep = activeColor.subtract(inactiveColor).scaleTo(5);
 
 		spec.color = spec.color || inactiveColor;
 		spec.shape = spec.shape || [op.move({to: $V([-30, 0])}),
@@ -273,11 +275,37 @@ var homeostasis = function(id) {
 		that.activate = function() {
 			that.active = true;
 			that.color = activeColor;
+
+// 			that.tweens = [];
+// 			that.tweens.append(tween({property: 'color',
+// 						   target: function() {
+// 							   return that.color.o(0) < activeColor.o(0) ||
+// 								   that.color.o(1) < activeColor.o(1) ||
+// 								   that.color.o(2) < activeColor.o(2);
+// 						   },
+// 						   step: function() {
+// 							   that.color = that.color.add(colorStep);
+// 						   }
+// 						  }));
+
+
 		};
 
 		that.deactivate = function() {
 			that.active = false;
 			that.color = inactiveColor;
+
+// 			that.tweens = [];
+// 			that.tweens.append(tween({property: 'color',
+// 						   target: function() {
+// 							   return that.color.o(0) > inactiveColor.o(0) ||
+// 								   that.color.o(1) > inactiveColor.o(1) ||
+// 								   that.color.o(2) > inactiveColor.o(2);
+// 						   },
+// 						   step: function() {
+// 							   that.color = that.color.add(colorStep.inverse());
+// 						   }
+// 						  }));
 		};
 
 		return that;
