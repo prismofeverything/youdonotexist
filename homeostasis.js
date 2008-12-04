@@ -384,20 +384,20 @@ var homeostasis = function(id) {
 		return that;
 	};
 
-// 	var attractants = [attractant({pos: $V([80, 60])}),
-// 					   attractant({pos: $V([50, 100])}),
-// 					   attractant({pos: $V([120, 110])}),
-// 					   attractant({pos: $V([300, 80])}),
-// 					   attractant({pos: $V([220, 50])})];
-// 	var repellents = [repellent({pos: $V([450, 20])}),
-// 					  repellent({pos: $V([400, 110])}),
-// 					  repellent({pos: $V([590, 40])}),
-// 					  repellent({pos: $V([480, 70])}),
-// 					  repellent({pos: $V([350, 50])})];
+	var attractants = [attractant({pos: $V([80, 60])}),
+					   attractant({pos: $V([50, 100])}),
+					   attractant({pos: $V([120, 110])}),
+					   attractant({pos: $V([300, 80])}),
+					   attractant({pos: $V([220, 50])})];
+	var repellents = [repellent({pos: $V([450, 20])}),
+					  repellent({pos: $V([400, 110])}),
+					  repellent({pos: $V([590, 40])}),
+					  repellent({pos: $V([480, 70])}),
+					  repellent({pos: $V([350, 50])})];
 
-	var ligands = $R(0, 20).map(function(index) {
-		return randomLigand();
-	});
+// 	var ligands = $R(0, 20).map(function(index) {
+// 		return randomLigand();
+// 	});
 
 	var membranes = [membrane({pos: $V([0, 0]), orientation: 0})];
 
@@ -439,9 +439,9 @@ var homeostasis = function(id) {
 		id: id,
 		motes: membranes
 			.concat(columns)
-			.concat(ligands)
-// 			.concat(attractants)
-// 			.concat(repellents)
+//			.concat(ligands)
+			.concat(attractants)
+			.concat(repellents)
 			.concat(phosphates)
 			.concat(methyls)
 			.concat(cheYs)
