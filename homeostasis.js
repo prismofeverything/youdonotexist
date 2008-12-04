@@ -40,7 +40,7 @@ var homeostasis = function(id) {
 	var outside = bounds(0, 800, 0, 250);
 	var offscreen = bounds(-50, 1000, -50, 0);
 
-	var receptorGrip = 0.995;
+	var receptorGrip = 0.996;
 	var attractantRepellentRatio = 1;
 
 	var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
