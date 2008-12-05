@@ -287,8 +287,6 @@ var homeostasis = function(id) {
 // 							   that.color = that.color.add(colorStep);
 // 						   }
 // 						  }));
-
-
 		};
 
 		that.deactivate = function() {
