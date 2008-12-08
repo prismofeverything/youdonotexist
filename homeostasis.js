@@ -519,7 +519,7 @@ var homeostasis = function(id) {
 	};
 
 	var cheB = function(spec) {
-		var activeColor = spec.activeColor || $V([140, 120, 185, 1]);
+		var activeColor = spec.activeColor || $V([140, 140, 230, 1]);
 		var inactiveColor = spec.inactiveColor || $V([80, 80, 90, 1]);
 		var velocityScale = 0.9;
 
