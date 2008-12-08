@@ -1,47 +1,10 @@
 var homeostasis = function(id) {
-	var bounds = function(xlow, xhigh, ylow, yhigh) {
-		var that = {
-			x: [xlow, xhigh],
-			y: [ylow, yhigh],
-
-			low: function() {
-				return [xlow, ylow];
-			},
-
-			high: function() {
-				return [xhigh, yhigh];
-			},
-
-			width: function() {
-				return xhigh - xlow;
-			},
-
-			height: function() {
-				return yhigh - ylow;
-			},
-
-			randomX: function() {
-				return Math.random()*this.width()+this.x[0];
-			},
-
-			randomY: function() {
-				return Math.random()*this.height()+this.y[0];
-			},
-
-			randomPoint: function() {
-				return [this.randomX(), this.randomY()];
-			}
-		};
-
-		return that;
-	};
-
-	var inside = bounds(0, 880, 320, 1500);
+	var inside = bounds(20, 800, 320, 1000);
 	var outside = bounds(0, 800, 0, 250);
 	var offscreen = bounds(-50, 800, -50, 0);
 
 	var receptorGrip = 0.996;
-	var attractantRepellentRatio = 1;
+	var attractantRepellentRatio = 0.7;
 
 	var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -49,12 +12,16 @@ var homeostasis = function(id) {
 		return $V(box.randomPoint());
 	};
 
-	var randomLigand = function() {
+	var randomLigand = function(box) {
 		if (Math.random() * (attractantRepellentRatio + 1) < attractantRepellentRatio) {
-			return attractant({pos: randomPos(outside)});
+			return attractant({pos: randomPos(box)});
 		} else {
-			return repellent({pos: randomPos(outside)});
+			return repellent({pos: randomPos(box)});
 		}
+	};
+
+	var randomMote = function(type, box) {
+		return type({pos: randomPos(box), bounds: box});
 	};
 
 	var ligand = function(spec) {
@@ -77,21 +44,22 @@ var homeostasis = function(id) {
 				}
 
 				if (!(that.closestReceptor === null)) {
-					that.future.append(function(self) {
-					   var distance = that.closestReceptor.pos.distanceFrom(that.pos);
-					   var mag = that.pos.magnitude();
+					var distance = that.closestReceptor.distance(that);
 
-					   if (distance > 1) {
-						   that.velocity = that.velocity.add(that.closestReceptor.pos.subtract(that.pos).x(0.2/(distance))).scaleTo(velocityScale);
-					   } else {
-						   that.velocity = $V([0, 0]);
-						   that.rotation = 0;
+					if (distance > 1) {
+						that.future.append(function(self) {
+							that.velocity = that.velocity.add(that.to(that.closestReceptor).x(0.2/(distance))).scaleTo(velocityScale);
+						});
+					} else {
+						that.future.append(function(self) {
+							that.velocity = $V([0, 0]);
+							that.rotation = 0;
+						});
 
-						   that.closestReceptor.take(that);
-						   that.unattached = false;
-						   that.attached = true;
-					   }
-					});
+						that.closestReceptor.take(that);
+						that.unattached = false;
+						that.attached = true;
+					}
 				} else {
 					that.velocity = $V([Math.random()-0.5, Math.random()-1]);
 				}
@@ -180,12 +148,12 @@ var homeostasis = function(id) {
 
 		var that = mote(spec);
 
-		that.receptors = [receptor({pos: $V([0, -18]).add(that.pos), column: that}),
-						  receptor({pos: $V([-25, -42]).add(that.pos), column: that}),
-						  receptor({pos: $V([-17, -26]).add(that.pos), column: that}),
-						  receptor({pos: $V([17, -26]).add(that.pos), column: that}),
-						  receptor({pos: $V([25, -42]).add(that.pos), column: that})];
-		that.cheW = cheW({pos: $V([0, 100]), orientation: 0, column: that});
+		that.receptors = [receptor({supermote: that, pos: $V([0, -18]), column: that}),
+						  receptor({supermote: that, pos: $V([-25, -42]), column: that}),
+						  receptor({supermote: that, pos: $V([-17, -26]), column: that}),
+						  receptor({supermote: that, pos: $V([17, -26]), column: that}),
+						  receptor({supermote: that, pos: $V([25, -42]), column: that})];
+		that.cheW = cheW({supermote: that, pos: $V([0, 100]), orientation: 0, column: that});
 
 		that.level = 0;
 
@@ -211,9 +179,7 @@ var homeostasis = function(id) {
 			}
 		};
 
-		that.submotes = function() {
-			return [that.cheW].concat(that.receptors);
-		};
+		that.submotes = [that.cheW].concat(that.receptors);
 
 		return that;
 	};
@@ -260,9 +226,8 @@ var homeostasis = function(id) {
 	var cheW = function(spec) {
 		var activeColor = spec.activeColor || $V([210, 220, 130, 1]);
 		var inactiveColor = spec.inactiveColor || $V([40, 40, 40, 1]);
-		var colorStep = activeColor.subtract(inactiveColor).scaleTo(5);
 
-		spec.color = spec.color || inactiveColor;
+		spec.color = spec.color || inactiveColor.dup();
 		spec.shape = spec.shape || [op.move({to: $V([-30, 0])}),
 									op.bezier({to: $V([30, 0]), control1: $V([30, 30]), control2: $V([-30, 30])}),
 									op.bezier({to: $V([-30, 0]), control1: $V([-30, -30]), control2: $V([30, -30])})
@@ -274,36 +239,34 @@ var homeostasis = function(id) {
 
 		that.activate = function() {
 			that.active = true;
-			that.color = activeColor;
 
-// 			that.tweens = [];
-// 			that.tweens.append(tween({property: 'color',
-// 						   target: function() {
-// 							   return that.color.o(0) < activeColor.o(0) ||
-// 								   that.color.o(1) < activeColor.o(1) ||
-// 								   that.color.o(2) < activeColor.o(2);
-// 						   },
-// 						   step: function() {
-// 							   that.color = that.color.add(colorStep);
-// 						   }
-// 						  }));
+			that.tweens = [];
+			that.tweens.append(tweenV({
+				obj: that,
+				property: 'color',
+				to: activeColor,
+				cycles: 20
+			}));
+
+			cheWSeekers.each(function(seeker) {
+				if (seeker.activeCheW) {
+					if (seeker.distance(seeker.activeCheW) > seeker.distance(that)) {
+						seeker.activeCheW = that;
+					}
+				}
+			});
 		};
 
 		that.deactivate = function() {
 			that.active = false;
-			that.color = inactiveColor;
 
-// 			that.tweens = [];
-// 			that.tweens.append(tween({property: 'color',
-// 						   target: function() {
-// 							   return that.color.o(0) > inactiveColor.o(0) ||
-// 								   that.color.o(1) > inactiveColor.o(1) ||
-// 								   that.color.o(2) > inactiveColor.o(2);
-// 						   },
-// 						   step: function() {
-// 							   that.color = that.color.add(colorStep.inverse());
-// 						   }
-// 						  }));
+			that.tweens = [];
+			that.tweens.append(tweenV({
+				obj: that,
+				property: 'color',
+				to: inactiveColor,
+				cycles: 20
+			}));
 		};
 
 		return that;
@@ -320,7 +283,12 @@ var homeostasis = function(id) {
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = cheWSeeker(spec);
+
+		that.phosphorylated = function() {
+
+		};
+
 		return that;
 	};
 
@@ -341,22 +309,194 @@ var homeostasis = function(id) {
 		return that;
 	};
 
+	var cheWSeeker = function(spec) {
+		var that = mote(spec);
+
+		var velocityScale = 0.9;
+
+		that.nearestPhosphate = null;
+		that.phosphate = null;
+		that.activeCheW = null;
+
+		that.outsideCheW = function() {};
+		that.nearCheW = function() {};
+		that.tooCloseCheW = function() {};
+		that.offCheW = function() {};
+		that.phosphorylated = function() {};
+
+		that.perceive = function(env) {
+			var switchedOff = false;
+
+			if (!(that.phosphate === null)) {
+				that.phosphorylated();
+			} else {
+				if (that.activeCheW === null || !that.activeCheW.active) {
+					if (that.activeCheW && !that.activeCheW.active) {
+						switchedOff = true;
+					}
+
+					that.activeCheW = that.findClosest(cheWs, function(cheW) {
+						return cheW.active;
+					});
+				}
+
+				if (!(that.activeCheW === null)) {
+					var distance = that.distance(that.activeCheW);
+					var turning = that.to(that.activeCheW).x(0.2/(distance));
+
+					if (distance < 300) {
+						if (distance > 50) {
+							that.future.append(function(self) {
+								that.velocity = that.velocity.add(turning).scaleTo(velocityScale);
+							});
+							that.near = false;
+
+							that.outsideCheW();
+						} else if (distance > 20) {
+							that.future.append(function(self) {
+								that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
+							});
+							that.near = true;
+
+							that.nearCheW();
+						} else {
+							that.future.append(function(self) {
+								that.velocity = that.velocity.scaleTo(distance / 50);
+							});
+							that.near = true;
+
+							that.tooCloseCheW();
+						}
+					} else {
+						that.future.append(function(self) {
+							that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
+						});
+						that.near = false;
+					}
+				} else if (switchedOff) {
+					that.future.append(function(self) {
+						that.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+					});
+					that.offCheW();
+				} else {
+
+				}
+			}
+		};
+
+		return that;
+	};
+
 	var cheY = function(spec) {
-		spec.color = spec.color || $V([150, 180, 190, 1]);
+		var velocityScale = 0.9;
+
+		var activeColor = spec.activeColor || $V([150, 180, 190, 1]);
+		var inactiveColor = spec.inactiveColor || $V([40, 58, 64, 1]);
+
+		spec.color = spec.color || inactiveColor.dup();
 		spec.shape = spec.shape || [op.move({to: $V([-20, 3])}),
 									op.line({to: $V([0, 3])}),
-									op.line({to: $V([10, 20])}),
-									op.line({to: $V([15, 17])}),
+									op.line({to: $V([25, 9])}),
+									op.line({to: $V([30, 6])}),
 									op.line({to: $V([6, 0])}),
-									op.line({to: $V([15, -17])}),
-									op.line({to: $V([10, -20])}),
+									op.line({to: $V([30, -6])}),
+									op.line({to: $V([25, -9])}),
 									op.line({to: $V([0, -3])}),
 									op.line({to: $V([-20, -3])})
 								   ];
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = cheWSeeker(spec);
+
+		that.nearCheW = function() {
+			var switchedOff = false;
+
+			if (that.nearestPhosphate === null || that.nearestPhosphate.attached) {
+				if (that.nearestPhosphate && that.nearestPhosphate.attached) {
+					switchedOff = true;
+				}
+
+				that.nearestPhosphate = that.findClosest(phosphates, function(phosphate) {
+					return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
+				});
+			}
+
+			if (!(that.nearestPhosphate === null)) {
+				var distance = that.distance(that.nearestPhosphate);
+
+				if (distance < 20) {
+					that.phosphate = that.nearestPhosphate;
+					that.attach(that.phosphate);
+
+					that.tweens.append(tweenV({
+						obj: that,
+						property: 'color',
+						to: activeColor,
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[2],
+						property: 'to',
+						to: $V([10, 20]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[3],
+						property: 'to',
+						to: $V([15, 17]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[5],
+						property: 'to',
+						to: $V([15, -17]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[6],
+						property: 'to',
+						to: $V([10, -20]),
+						cycles: 40
+					}));
+
+					that.phosphate.tweens.append(tweenV({
+						obj: that.phosphate,
+						property: 'pos',
+						to: $V([-5, 5]),
+						cycles: 40
+					}));
+
+					that.phosphate.tweens.append(tweenN({
+						obj: that.phosphate,
+						property: 'orientation',
+						to: Math.PI*0.5,
+						cycles: 80,
+						test: (that.phosphate.orientation < Math.PI*0.5) ? tweenN.greater : tweenN.less
+					}));
+
+					that.phosphate.future = [];
+					that.phosphate.rotation = 0;
+					that.phosphate.attached = true;
+					that.phosphate.phosphate = that;
+
+					world.motes = world.motes.without(that.phosphate);
+
+					that.future.append(function(self) {
+						self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
+					});
+				} else {
+					that.nearestPhosphate.future.append(function(self) {
+						self.velocity = self.velocity.add(self.to(that).scaleTo(0.1));
+					});
+				}
+			}
+		};
+
 		return that;
 	};
 
@@ -379,7 +519,11 @@ var homeostasis = function(id) {
 	};
 
 	var cheB = function(spec) {
-		spec.color = spec.color || $V([100, 100, 100, 1]);
+		var activeColor = spec.activeColor || $V([140, 120, 185, 1]);
+		var inactiveColor = spec.inactiveColor || $V([80, 80, 90, 1]);
+		var velocityScale = 0.9;
+
+		spec.color = spec.color || inactiveColor.dup();
 		spec.shape = spec.shape || [op.move({to: $V([-15, -15])}),
 									op.line({to: $V([15, -15])}),
 									op.line({to: $V([15, -10])}),
@@ -389,7 +533,117 @@ var homeostasis = function(id) {
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = cheWSeeker(spec);
+
+		that.nearCheW = function() {
+			var switchedOff = false;
+
+			if (that.nearestPhosphate === null || that.nearestPhosphate.attached) {
+				if (that.nearestPhosphate && that.nearestPhosphate.attached) {
+					switchedOff = true;
+				}
+
+				that.nearestPhosphate = that.findClosest(phosphates, function(phosphate) {
+					return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
+				});
+			}
+
+			if (!(that.nearestPhosphate === null)) {
+				var distance = that.distance(that.nearestPhosphate);
+
+				if (distance < 20) {
+					that.phosphate = that.nearestPhosphate;
+					that.attach(that.phosphate);
+
+					that.tweens.append(tweenV({
+						obj: that,
+						property: 'color',
+						to: activeColor,
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[2],
+						property: 'to',
+						to: $V([15, 60]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[3],
+						property: 'control1',
+						to: $V([15, 0]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[3],
+						property: 'control2',
+						to: $V([10, 0]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[3],
+						property: 'to',
+						to: $V([0, 0]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[4],
+						property: 'control1',
+						to: $V([-10, 0]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[4],
+						property: 'control2',
+						to: $V([-15, 0]),
+						cycles: 40
+					}));
+
+					that.tweens.append(tweenV({
+						obj: that.shape[4],
+						property: 'to',
+						to: $V([-15, 60]),
+						cycles: 40
+					}));
+
+					that.phosphate.tweens.append(tweenV({
+						obj: that.phosphate,
+						property: 'pos',
+						to: $V([-5, 5]),
+						cycles: 40
+					}));
+
+					that.phosphate.tweens.append(tweenN({
+						obj: that.phosphate,
+						property: 'orientation',
+						to: Math.PI*0.5,
+						cycles: 80,
+						test: (that.phosphate.orientation < Math.PI*0.5) ? tweenN.greater : tweenN.less
+					}));
+
+					that.phosphate.future = [];
+					that.phosphate.rotation = 0;
+					that.phosphate.attached = true;
+					that.phosphate.phosphate = that;
+
+					world.motes = world.motes.without(that.phosphate);
+
+					that.future.append(function(self) {
+						self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
+					});
+				} else {
+					that.nearestPhosphate.future.append(function(self) {
+						self.velocity = self.velocity.add(self.to(that).scaleTo(0.1));
+					});
+				}
+			}
+		};
+
 		return that;
 	};
 
@@ -410,79 +664,64 @@ var homeostasis = function(id) {
 		return that;
 	};
 
-	var attractants = [attractant({pos: $V([80, 60])}),
-					   attractant({pos: $V([50, 100])}),
-					   attractant({pos: $V([120, 110])}),
-					   attractant({pos: $V([300, 80])}),
-					   attractant({pos: $V([220, 50])})];
-	var repellents = [repellent({pos: $V([450, 20])}),
-					  repellent({pos: $V([400, 110])}),
-					  repellent({pos: $V([590, 40])}),
-					  repellent({pos: $V([480, 70])}),
-					  repellent({pos: $V([350, 50])})];
-
-// 	var ligands = $R(0, 20).map(function(index) {
-// 		return randomLigand();
-// 	});
+	var ligands = $R(0, 20).map(function(index) {
+		return randomLigand(outside);
+	});
 
 	var membranes = [membrane({pos: $V([0, 0]), orientation: 0})];
 
 	var columns = [column({pos: $V([300, 250]), orientation: 0}),
 				   column({pos: $V([140, 250]), orientation: 0}),
 				   column({pos: $V([600, 250]), orientation: 0})];
+
+	// receptors and cheWs are part of columns, but we make a reference for them here
 	var receptors = columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
 	var cheWs = columns.map(function(column) {return column.cheW;});
 
-	var phosphates = [phosphate({pos: $V([400, 400])}),
-					  phosphate({pos: $V([570, 420])}),
-					  phosphate({pos: $V([480, 390])})];
-	var methyls = [methyl({pos: $V([200, 460])}),
-				   methyl({pos: $V([180, 420])}),
-				   methyl({pos: $V([270, 490])})];
+	var phosphates = $R(0, 20).map(function(index) {
+		return randomMote(phosphate, inside);
+	});
+	var methyls = $R(0, 20).map(function(index) {
+		return randomMote(methyl, inside);
+	});
 
-	var cheYs = [cheY({pos: $V([400, 550])}),
-				 cheY({pos: $V([420, 580])}),
-				 cheY({pos: $V([480, 500])}),
-				 cheY({pos: $V([340, 540])}),
-				 cheY({pos: $V([280, 570])})];
-	var cheZs = [cheZ({pos: $V([600, 520])}),
-				 cheZ({pos: $V([620, 580])}),
-				 cheZ({pos: $V([680, 550])}),
-				 cheZ({pos: $V([540, 530])}),
-				 cheZ({pos: $V([480, 570])})];
-	var cheBs = [cheB({pos: $V([150, 580])}),
-				 cheB({pos: $V([120, 530])}),
-				 cheB({pos: $V([180, 520])})];
-	var cheRs = [cheR({pos: $V([50, 510])}),
-				 cheR({pos: $V([20, 540])}),
-				 cheR({pos: $V([80, 580])})];
+	var cheYs = $R(0, 10).map(function(index) {
+		return randomMote(cheY, inside);
+	});
+
+	var cheBs = $R(0, 10).map(function(index) {
+		return randomMote(cheB, inside);
+	});
+
+	var cheZs = $R(0, 10).map(function(index) {
+		return randomMote(cheZ, inside);
+	});
+
+	var cheRs = $R(0, 10).map(function(index) {
+		return randomMote(cheR, inside);
+	});
+
+	var cheWSeekers = cheYs.concat(cheBs).concat(phosphates);
 
 	receptors.each(function(receptor, index) {
 		receptor.cheW = cheWs[index];
 	});
 
+	var motes = membranes
+		.concat(columns)
+		.concat(ligands)
+		.concat(phosphates)
+		.concat(methyls)
+		.concat(cheYs)
+		.concat(cheZs)
+		.concat(cheBs)
+		.concat(cheRs);
+
 	var spec = {
 		id: id,
-		motes: membranes
-			.concat(columns)
-//			.concat(ligands)
-			.concat(attractants)
-			.concat(repellents)
-			.concat(phosphates)
-			.concat(methyls)
-			.concat(cheYs)
-			.concat(cheZs)
-			.concat(cheBs)
-			.concat(cheRs),
-
-		down: function(mouse) {
-			this.motes.each(function(mote) {
-				if (mote.boxContains(mouse.pos)) {
-					mote.color = $V([Math.random()*255, Math.random()*255, Math.random()*255, 1]);
-				};
-			});
-		}
+		motes: motes
 	};
 
-	return flux(spec);
+	var world = flux(spec);
+	return world;
 };
