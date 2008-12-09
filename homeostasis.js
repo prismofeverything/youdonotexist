@@ -8,6 +8,18 @@ var homeostasis = function(id) {
 
 	var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
+	var molecule = function(spec) {
+		var that = mote(spec);
+
+		that.tweenShape = function(shape, cycles) {
+			that.shape.each(function(vertex, index) {
+				that.tweens = that.tweens.concat(vertex.tweensBetween(shape[index], cycles));
+			});
+		};
+
+		return that;
+	};
+
 	var randomPos = function(box) {
 		return $V(box.randomPoint());
 	};
@@ -25,62 +37,63 @@ var homeostasis = function(id) {
 	};
 
 	var ligand = function(spec) {
-		var that = mote(spec);
+		var that = molecule(spec);
 		var velocityScale = 0.9;
 
 		that.closestReceptor = null;
-		that.unattached = true;
 		that.attached = false;
 		that.detached = false;
 
 		that.polarity = -1;
 
-		that.perceive = function(env) {
-			if (that.unattached) {
-				if (that.closestReceptor === null || that.closestReceptor.taken) {
-					that.closestReceptor = that.findClosest(receptors, function(receptor) {
-						return receptor.taken === false;
+		that.unattached = function(env) {
+			if (that.closestReceptor === null || that.closestReceptor.taken) {
+				that.closestReceptor = that.findClosest(receptors, function(receptor) {
+					return receptor.taken === false;
+				});
+			}
+
+			if (!(that.closestReceptor === null)) {
+				var distance = that.closestReceptor.distance(that);
+
+				if (distance > 1) {
+					that.future.append(function(self) {
+						that.velocity = that.velocity.add(that.to(that.closestReceptor).x(0.2/(distance))).scaleTo(velocityScale);
 					});
-				}
-
-				if (!(that.closestReceptor === null)) {
-					var distance = that.closestReceptor.distance(that);
-
-					if (distance > 1) {
-						that.future.append(function(self) {
-							that.velocity = that.velocity.add(that.to(that.closestReceptor).x(0.2/(distance))).scaleTo(velocityScale);
-						});
-					} else {
-						that.future.append(function(self) {
-							that.velocity = $V([0, 0]);
-							that.rotation = 0;
-						});
-
-						that.closestReceptor.take(that);
-						that.unattached = false;
-						that.attached = true;
-					}
 				} else {
-					that.velocity = $V([Math.random()-0.5, Math.random()-1]);
-				}
-			} else if (that.attached) {
-				if (Math.random() > receptorGrip) {
-					that.velocity = $V([Math.random()-0.5, Math.random()-1]);
-					that.rotation = defaultRotation();
+					that.future.append(function(self) {
+						that.velocity = $V([0, 0]);
+						that.rotation = 0;
+					});
 
-					that.attached = false;
-					that.detached = true;
-					that.closestReceptor.release();
-					that.closestReceptor = null;
+					that.closestReceptor.take(that);
+					that.perceive = that.attached;
 				}
-			} else if (that.detached) {
-				if (that.pos.o(0) < -10 || that.pos.o(1) < -10) {
-					that.pos = randomPos(offscreen);
-					that.detached = false;
-					that.unattached = true;
-				}
+			} else {
+				that.velocity = $V([Math.random()-0.5, Math.random()-1]);
 			}
 		};
+
+		that.attached = function(env) {
+			if (Math.random() > receptorGrip) {
+				that.velocity = $V([Math.random()-0.5, Math.random()-1]);
+				that.rotation = defaultRotation();
+
+				that.perceive = that.detached;
+				that.closestReceptor.release();
+				that.closestReceptor = null;
+			}
+		};
+
+		that.detached = function(env) {
+			if (that.pos.o(0) < -10 || that.pos.o(1) < -10) {
+				that.pos = randomPos(offscreen);
+				that.perceive = that.unattached;
+			}
+		};
+
+		that.default = that.unattached;
+		that.perceive = that.default;
 
 		return that;
 	};
@@ -126,7 +139,7 @@ var homeostasis = function(id) {
 									op.line({to: $V([0, 300])})
 								   ];
 
-		var that = mote(spec);
+		var that = molecule(spec);
 		return that;
 	};
 
@@ -146,7 +159,7 @@ var homeostasis = function(id) {
 			return null;
 		};
 
-		var that = mote(spec);
+		var that = molecule(spec);
 
 		that.receptors = [receptor({supermote: that, pos: $V([0, -18]), column: that}),
 						  receptor({supermote: that, pos: $V([-25, -42]), column: that}),
@@ -157,28 +170,29 @@ var homeostasis = function(id) {
 
 		that.level = 0;
 
+		that.active = function(env) {
+			if (that.level <= 0) {
+				that.deactivate();
+			}
+		};
+
+		that.inactive = function(env) {
+			if (that.level > 0) {
+				that.activate();
+			}
+		};
+
 		that.activate = function() {
-			that.active = true;
+			that.perceive = that.active;
 			that.cheW.activate();
 		};
 
 		that.deactivate = function() {
-			that.active = false;
+			that.perceive = that.inactive;
 			that.cheW.deactivate();
 		};
 
-		that.perceive = function(env) {
-			if (that.active) {
-				if (that.level <= 0) {
-					that.deactivate();
-				}
-			} else {
-				if (that.level > 0) {
-					that.activate();
-				}
-			}
-		};
-
+		that.perceive = that.inactive;
 		that.submotes = [that.cheW].concat(that.receptors);
 
 		return that;
@@ -188,27 +202,48 @@ var homeostasis = function(id) {
 		spec.color = $V([0, 0, 0, 0]);
 		spec.shape = [op.arc({to: $V([0, 0]), radius: 7})];
 
-		var that = mote(spec);
+		var that = molecule(spec);
 
 		that.column = spec.column;
 
 		that.taken = false;
-		that.bound = null;
-		that.detached = 0;
+		that.ligand = null;
+		that.delay = 0;
 
 		that.take = function(ligand) {
 			that.column.level += ligand.polarity;
 
-			that.bound = ligand;
+			that.ligand = ligand;
 			that.taken = true;
+			that.perceive = that.bound;
 		};
 
 		that.release = function() {
-			that.column.level -= that.bound.polarity;
+			that.column.level -= that.ligand.polarity;
 
-			that.bound = null;
+			that.ligand = null;
 			that.taken = false;
-			that.detached = 150;
+			that.delay = 50;
+
+			that.perceive = that.closed;
+		};
+
+		that.open = function(env) {
+
+		};
+
+		that.bound = function(env) {
+
+		};
+
+		that.closed = function(env) {
+			if (that.delay < 1) {
+				that.delay = 0;
+				that.taken = false;
+				that.perceive = that.open;
+			} else {
+				that.delay -= 1;
+			}
 		};
 
 		that.perceive = function(env) {
@@ -233,7 +268,7 @@ var homeostasis = function(id) {
 									op.bezier({to: $V([-30, 0]), control1: $V([-30, -30]), control2: $V([30, -30])})
 								   ];
 
-		var that = mote(spec);
+		var that = molecule(spec);
 
 		that.active = false;
 
@@ -274,11 +309,11 @@ var homeostasis = function(id) {
 
 	var phosphate = function(spec) {
 		spec.color = spec.color || $V([120, 80, 130, 1]);
-		spec.shape = spec.shape || [op.move({to: $V([-5, 0])}),
-									op.line({to: $V([15, 0])}),
-									op.line({to: $V([15, 5])}),
-									op.bezier({to: $V([6, 5]), control1: $V([15, 15]), control2: $V([6, 15])}),
-									op.line({to: $V([-5, 5])})
+		spec.shape = spec.shape || [op.move({to: $V([-10, -5])}),
+									op.line({to: $V([10, -5])}),
+									op.line({to: $V([10, 0])}),
+									op.bezier({to: $V([1, 0]), control1: $V([10, 10]), control2: $V([1, 10])}),
+									op.line({to: $V([-10, 0])})
 								   ];
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
@@ -305,12 +340,12 @@ var homeostasis = function(id) {
 		spec.rotation = defaultRotation()*0.2;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = molecule(spec);
 		return that;
 	};
 
 	var cheWSeeker = function(spec) {
-		var that = mote(spec);
+		var that = molecule(spec);
 
 		var velocityScale = 0.9;
 
@@ -323,6 +358,10 @@ var homeostasis = function(id) {
 		that.tooCloseCheW = function() {};
 		that.offCheW = function() {};
 		that.phosphorylated = function() {};
+
+		that.outside = function(env) {
+
+		};
 
 		that.perceive = function(env) {
 			var switchedOff = false;
@@ -514,7 +553,7 @@ var homeostasis = function(id) {
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = molecule(spec);
 		return that;
 	};
 
@@ -524,16 +563,28 @@ var homeostasis = function(id) {
 		var velocityScale = 0.9;
 
 		spec.color = spec.color || inactiveColor.dup();
-		spec.shape = spec.shape || [op.move({to: $V([-15, -15])}),
-									op.line({to: $V([15, -15])}),
-									op.line({to: $V([15, -10])}),
-									op.bezier({to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])}),
-									op.bezier({to: $V([-15, -5]), control1: $V([0, 15]), control2: $V([-15, 15])})
-								   ];
+
+		var inactiveShape = spec.inactiveShape || [
+			op.move({to: $V([-15, -15])}),
+			op.line({to: $V([15, -15])}),
+			op.line({to: $V([15, -10])}),
+			op.bezier({to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])}),
+			op.bezier({to: $V([-15, -5]), control1: $V([0, 15]), control2: $V([-15, 15])})
+		];
+
+		spec.shape = inactiveShape.map(function(vertex) {return vertex.dup();});
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
 		var that = cheWSeeker(spec);
+
+		that.activeShape = spec.activeShape || [
+			op.move({to: $V([-15, -15])}),
+			op.line({to: $V([0, -30])}),
+			op.line({to: $V([15, -15])}),
+			op.bezier({to: $V([0, 20]), control1: $V([30, -15]), control2: $V([30, 15])}),
+			op.bezier({to: $V([-15, -15]), control1: $V([-30, -15]), control2: $V([-30, 15])})
+		];
 
 		that.nearCheW = function() {
 			var switchedOff = false;
@@ -562,54 +613,56 @@ var homeostasis = function(id) {
 						cycles: 40
 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[2],
-						property: 'to',
-						to: $V([15, 60]),
-						cycles: 40
-					}));
+					that.tweenShape(that.activeShape, 40);
 
-					that.tweens.append(tweenV({
-						obj: that.shape[3],
-						property: 'control1',
-						to: $V([15, 0]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[2],
+// 						property: 'to',
+// 						to: $V([25, 30]),
+// 						cycles: 40
+// 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[3],
-						property: 'control2',
-						to: $V([10, 0]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[3],
+// 						property: 'control1',
+// 						to: $V([15, 0]),
+// 						cycles: 40
+// 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[3],
-						property: 'to',
-						to: $V([0, 0]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[3],
+// 						property: 'control2',
+// 						to: $V([10, 0]),
+// 						cycles: 40
+// 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[4],
-						property: 'control1',
-						to: $V([-10, 0]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[3],
+// 						property: 'to',
+// 						to: $V([0, 0]),
+// 						cycles: 40
+// 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[4],
-						property: 'control2',
-						to: $V([-15, 0]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[4],
+// 						property: 'control1',
+// 						to: $V([-10, 0]),
+// 						cycles: 40
+// 					}));
 
-					that.tweens.append(tweenV({
-						obj: that.shape[4],
-						property: 'to',
-						to: $V([-15, 60]),
-						cycles: 40
-					}));
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[4],
+// 						property: 'control2',
+// 						to: $V([-15, 0]),
+// 						cycles: 40
+// 					}));
+
+// 					that.tweens.append(tweenV({
+// 						obj: that.shape[4],
+// 						property: 'to',
+// 						to: $V([-25, 30]),
+// 						cycles: 40
+// 					}));
 
 					that.phosphate.tweens.append(tweenV({
 						obj: that.phosphate,
@@ -660,7 +713,7 @@ var homeostasis = function(id) {
 		spec.rotation = Math.random()*0.02-0.01;
 		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
-		var that = mote(spec);
+		var that = molecule(spec);
 		return that;
 	};
 
@@ -707,7 +760,7 @@ var homeostasis = function(id) {
 		receptor.cheW = cheWs[index];
 	});
 
-	var motes = membranes
+	var molecules = membranes
 		.concat(columns)
 		.concat(ligands)
 		.concat(phosphates)
@@ -719,7 +772,7 @@ var homeostasis = function(id) {
 
 	var spec = {
 		id: id,
-		motes: motes
+		motes: molecules
 	};
 
 	var world = flux(spec);

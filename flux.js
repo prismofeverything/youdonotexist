@@ -24,52 +24,80 @@ Array.prototype.append = function(el) {
 };
 
 var bounds = function(xlow, xhigh, ylow, yhigh) {
-	var that = {};
+	var that = [];
+	var ops = [Math.min, Math.max];
+
+	that.xlow = xlow;
+	that.xhigh = xhigh;
+	that.ylow = ylow;
+	that.yhigh = yhigh;
 
 	that.x = [xlow, xhigh];
 	that.y = [ylow, yhigh];
+	that[0] = that.x;
+	that[1] = that.y;
 
-	that.unindex = function(index) {
-		if (index === 0) {
-			return that.x;
-		} else {
-			return that.y;
-		}
+	that.extreme = function(tendency) {
+		return [that[0][tendency], that[1][tendency]];
+	};
+
+	that.range = function(axis) {
+		return that[axis][1] - that[axis][0];
 	};
 
 	that.low = function() {
-		return [xlow, ylow];
+		return that.extreme(0);
 	};
 
 	that.high = function() {
-		return [xhigh, yhigh];
+		return that.extreme(1);
 	};
 
 	that.width = function() {
-		return xhigh - xlow;
+		return that.range(0);
 	};
 
 	that.height = function() {
-		return yhigh - ylow;
+		return that.range(1);
 	};
 
-	that.randomX = function() {
-		return Math.random()*that.width()+that.x[0];
-	};
-
-	that.randomY = function() {
-		return Math.random()*that.height()+that.y[0];
+	that.randomValue = function(axis) {
+		return Math.random()*that.range(axis)+that[axis][0];
 	};
 
 	that.randomPoint = function() {
-		return [that.randomX(), that.randomY()];
+		return [0, 1].map(that.randomValue);
+	};
+
+	that.union = function(other) {
+		for (var a = 0; a < 2; a++) {
+			for (var b = 0; b < 2; b++) {
+				that[a][b] = ops[a](that[a][b], other[a][b]);
+			}
+		}
+	};
+
+	that.include = function(point) {
+		for (var a = 0; a < 2; a++) {
+			for (var b = 0; b < 2; b++) {
+				that[a][b] = ops[a](that[a][b], point[a]);
+			}
+		}
+	};
+
+	that.translate = function(point) {
+		for (var a = 0; a < 2; a++) {
+			for (var b = 0; b < 2; b++) {
+				that[a][b] += point[a];
+			}
+		}
 	};
 
 	that.check = function(point) {
 		return point.map(function(a, index) {
-			if (a < that.unindex(index)[0]) {
+			if (a < that[index][0]) {
 				return -1;
-			} else if(a > that.unindex(index)[1]) {
+			} else if(a > that[index][1]) {
 				return 1;
 			} else {
 				return 0;
@@ -87,62 +115,158 @@ var bounds = function(xlow, xhigh, ylow, yhigh) {
 };
 
 // provide objects to represent atomic drawing operations
-var op = {
-	base: function(spec) {
+var op = function() {
+	var result = {};
+
+	result.base = function(spec) {
 		var that = {};
 
 		that.method = spec.method || 'lineTo';
-		that.to = spec.to || $V([0, 0]);
+		that.to = spec.to && spec.to.dup() || $V([0, 0]);
 
 		that.args = spec.args || function() {
 			return that.to.elements;
 		};
 
+		that.prod = spec.prod || function(box) {
+			box.include(that.to);
+		};
+
+		that.dup = function() {
+			return result.base(that);
+		};
+
+		that.tweensBetween = function(other, cycles) {
+			return [tweenV({
+				obj: that,
+				property: 'to',
+				to: other.to,
+				cycles: cycles
+			})];
+		};
+
 		return that;
-	},
+	};
 
-	line: function(spec) {
-		return this.base(spec);
-	},
+	result.line = function(spec) {
+		var that = result.base(spec);
 
-	move: function(spec) {
+		that.dup = function() {
+			return result.line(that);
+		};
+
+		return that;
+	};
+
+	result.move = function(spec) {
 		spec.method = 'moveTo';
 
-		return this.base(spec);
-	},
+		var that = result.base(spec);
 
-	arc: function(spec) {
+		that.dup = function() {
+			return result.move(that);
+		};
+
+		return that;
+	};
+
+	result.arc = function(spec) {
 		spec.method = 'arc';
 
-		var that = this.base(spec);
+		var that = result.base(spec);
 
 		that.radius = spec.radius || 10;
-		that.arc = spec.arc || $V([0, Math.PI*2]);
+		that.arc = spec.arc && spec.arc.dup() || $V([0, Math.PI*2]);
 		that.clockwise = spec.clockwise || true;
 
 		that.args = function() {
 			return that.to.elements.concat([that.radius].concat(that.arc.elements).append(that.clockwise));
 		};
 
+		that.tweensBetween = function(other, cycles) {
+			return [
+				tweenV({
+					obj: that,
+					property: 'to',
+					to: other.to,
+					cycles: cycles}),
+				tweenN({
+					obj: that,
+					property: 'radius',
+					to: other.radius,
+					test: (that.radius < other.radius) ? tweenN.greater : tweenN.less,
+					cycles: cycles}),
+				tweenN({
+					obj: that,
+					property: 'arc',
+					to: other.arc,
+					test: (that.arc < other.arc) ? tweenN.greater : tweenN.less,
+					cycles: cycles})
+			];
+		};
+
+		that.prod = function(box) {
+			box.union(bounds(that.to.o(0) - that.radius,
+							 that.to.o(0) + that.radius,
+							 that.to.o(1) - that.radius,
+							 that.to.o(1) + that.radius));
+		};
+
+		that.dup = function() {
+			return result.arc(that);
+		};
+
 		return that;
-	},
+	};
 
-	bezier: function(spec) {
+	result.bezier = function(spec) {
 		spec.method = 'bezierCurveTo';
-		spec.to = spec.to || $V([10, 10]);
+		spec.to = spec.to.dup() || $V([10, 10]);
 
-		var that = this.base(spec);
+		var that = result.base(spec);
 
-		that.control1 = spec.control1 || $V([5, 0]);
-		that.control2 = spec.control2 || $V([10, 5]);
+		that.control1 = spec.control1 && spec.control1.dup() || $V([5, 0]);
+		that.control2 = spec.control2 && spec.control2.dup() || $V([10, 5]);
 
 		that.args = function() {
 			return that.control1.elements.concat(that.control2.elements).concat(that.to.elements);
 		};
 
+		that.prod = function(box) {
+			box.include(that.to);
+			box.include(that.control1);
+			box.include(that.control2);
+		};
+
+		that.tweensBetween = function(other, cycles) {
+			return [
+				tweenV({
+					obj: that,
+					property: 'to',
+					to: other.to,
+					cycles: cycles}),
+				tweenV({
+					obj: that,
+					property: 'control1',
+					to: other.control1,
+					cycles: cycles}),
+				tweenV({
+					obj: that,
+					property: 'control2',
+					to: other.control2,
+					cycles: cycles})
+			];
+		};
+
+		that.dup = function() {
+			return result.bezier(that);
+		};
+
 		return that;
-	}
-};
+	};
+
+	return result;
+}();
 
 var tween = function(spec) {
 	var that = {};
@@ -248,37 +372,21 @@ var mote = function(spec) {
 
 	// construct a simple bounding box to tell if further bounds checking is necessary
 	that.findBox = function() {
-		var xrange = [0, 0];
-		var yrange = [0, 0];
+		var box = bounds(that.pos.o(0), that.pos.o(0), that.pos.o(1), that.pos.o(1));
 
 		that.shape.each(function(vertex) {
-			if(vertex.method == 'arc') {
-				xrange[0] = (vertex.to.o(0) - vertex.radius < xrange[0]) ? vertex.to.o(0) - vertex.radius : xrange[0];
-				xrange[1] = (vertex.to.o(0) + vertex.radius > xrange[1]) ? vertex.to.o(0) + vertex.radius : xrange[1];
-				yrange[0] = (vertex.to.o(1) - vertex.radius < yrange[0]) ? vertex.to.o(1) - vertex.radius : yrange[0];
-				yrange[1] = (vertex.to.o(1) + vertex.radius > yrange[1]) ? vertex.to.o(1) + vertex.radius : yrange[1];
-			} else {
-				xrange[0] = (vertex.to.o(0) < xrange[0]) ? vertex.to.o(0) : xrange[0];
-				xrange[1] = (vertex.to.o(0) > xrange[1]) ? vertex.to.o(0) : xrange[1];
-				yrange[0] = (vertex.to.o(1) < yrange[0]) ? vertex.to.o(1) : yrange[0];
-				yrange[1] = (vertex.to.o(1) > yrange[1]) ? vertex.to.o(1) : yrange[1];
-			}
+			vertex.prod(box);
 		});
 
-		return {
-			x: xrange,
-			y: yrange
-		};
+		that.submotes.each(function(submote) {
+			box.union(submote.box.dup().translate(that.pos));
+		});
+
+		that.box = box;
+		return box;
 	};
 
-	that.box = that.findBox();
-
-	that.boxContains = function(point) {
-		return (point.o(0) > that.box.x[0]+that.pos.o(0) &&
-				point.o(0) < that.box.x[1]+that.pos.o(0) &&
-				point.o(1) > that.box.y[0]+that.pos.o(1) &&
-				point.o(1) < that.box.y[1]+that.pos.o(1));
-	};
+	that.findBox();
 
 	that.absolute = function() {
 		return that.supermote ? that.pos.add(that.supermote.absolute()) : that.pos;
