@@ -432,6 +432,7 @@ flux.mote = function(spec) {
 
 	that.detach = function(other) {
 		other.pos = other.absolute();
+		other.orientation += that.orientation;
 		other.supermote = null;
 		other.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
@@ -475,7 +476,7 @@ flux.mote = function(spec) {
 
 			check.each(function(result, index) {
 				if (!(result === 0)) {
-					that.velocity.elements[index] = 0-that.velocity.elements[index];
+					that.velocity.elements[index] = -that.velocity.elements[index];
 				}
 			});
 		}

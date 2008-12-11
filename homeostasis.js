@@ -333,7 +333,7 @@ var homeostasis = function(id) {
 				property: 'orientation',
 				to: Math.PI*0.5,
 				cycles: 80,
-				test: (that.orientation < Math.PI*0.5) ? flux.tweenN.greater : flux.tweenN.less
+				test: (that.orientation < (Math.PI*0.5)) ? flux.tweenN.greater : flux.tweenN.less
 			}));
 
 			that.future = [];
