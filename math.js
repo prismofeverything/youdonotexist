@@ -1,10 +1,10 @@
-Object.prototype.isArray = function(value) {
-    return value &&
-        typeof value === 'object' &&
-        typeof value.length === 'number' &&
-        typeof value.splice === 'function' &&
-        !(value.propertyIsEnumerable('length'));
-}
+// Object.prototype.isArray = function(value) {
+//     return value &&
+//         typeof value === 'object' &&
+//         typeof value.length === 'number' &&
+//         typeof value.splice === 'function' &&
+//         !(value.propertyIsEnumerable('length'));
+// }
 
 Math.square = function(n) {
 	return n * n;

@@ -5,34 +5,40 @@ Object.beget = function(o) {
 	return new F();
 };
 
-Vector.prototype.o = function(i) {
-	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
+Function.prototype.method = function(name, func) {
+	if (!this.prototype[name]) {
+		this.prototype[name] = func;
+	}
 };
 
-Vector.prototype.magnitude = function() {
+Vector.method('o', function(i) {
+	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
+});
+
+Vector.method('magnitude', function() {
 	return Math.sqrt(this.elements.inject(0, function(sum, element) {
 		return sum + element * element;
 	}));
-};
+});
 
-Vector.prototype.scaleTo = function(magnitude) {
+Vector.method('scaleTo', function(magnitude) {
 	return this.toUnitVector().x(magnitude);
-};
+});
 
-Vector.prototype.inverse = function() {
+Vector.method('inverse', function() {
 	return $V(this.elements.map(function(el) {
 		return 0 - el;
 	}));
-};
+});
 
-Array.prototype.append = function(el) {
+Array.method('append', function(el) {
 	this[this.length] = el;
 	return this;
-};
+});
 
 var exists = function(value) {
 	return !(value === null || value === undefined);
-}
+};
 
 var flux = {};
 
@@ -149,7 +155,7 @@ flux.op = function() {
 			return result.base(that);
 		};
 
-		that.tweensBetween = function(other, cycles) {
+		that.between = function(other, cycles) {
 			return [flux.tweenV({
 				obj: that,
 				property: 'to',
@@ -198,7 +204,7 @@ flux.op = function() {
 			return that.to.elements.concat([that.radius].concat(that.arc.elements).append(that.clockwise));
 		};
 
-		that.tweensBetween = function(other, cycles) {
+		that.between = function(other, cycles) {
 			return [
 				flux.tweenV({obj: that,
 					property: 'to',
@@ -250,7 +256,7 @@ flux.op = function() {
 			box.include(that.control2);
 		};
 
-		that.tweensBetween = function(other, cycles) {
+		that.between = function(other, cycles) {
 			return [
 				flux.tweenV({
 					obj: that,
@@ -279,6 +285,24 @@ flux.op = function() {
 
 	return result;
 }();
+
+flux.shape = function(spec) {
+	var that = {};
+
+	that.ops = spec.ops || [];
+
+	that.between = function(other, cycles) {
+		return that.ops.inject([], function(tweens, op, index) {
+			return tweens.concat(op.between(other.ops[index], cycles));
+		});
+	};
+
+	that.dup = function() {
+		return flux.shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
+	};
+
+	return that;
+};
 
 // generic base tween object
 flux.tween = function(spec) {
@@ -371,7 +395,7 @@ flux.mote = function(spec) {
 	that.submotes = spec.submotes || [];
 
 	that.pos = spec.pos || $V([0, 0]);
-	that.shape = spec.shape || [flux.op.arc({to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])})];
+	that.shape = spec.shape || flux.shape({ops: [flux.op.arc({to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])})]});
 	that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
 	that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
 	that.velocity = spec.velocity || $V([0, 0]);
@@ -386,11 +410,28 @@ flux.mote = function(spec) {
 	that.future = [];
 	that.neighbors = [];
 
+	that.tweenColor = function(color, cycles) {
+		that.tweens.append(flux.tweenV({
+			obj: that,
+			property: 'color',
+			to: color,
+			cycles: cycles
+		}));
+
+		return that;
+	};
+
+	that.tweenShape = function(shape, cycles) {
+		that.tweens = that.tweens.concat(that.shape.between(shape, cycles));
+
+		return that;
+	};
+
 	// construct a simple bounding box to tell if further bounds checking is necessary
 	that.findBox = function() {
 		var box = flux.bounds(that.pos.o(0), that.pos.o(0), that.pos.o(1), that.pos.o(1));
 
-		that.shape.each(function(vertex) {
+		that.shape.ops.each(function(vertex) {
 			vertex.prod(box);
 		});
 
@@ -531,7 +572,7 @@ flux.mote = function(spec) {
 		context.beginPath();
 		context.moveTo.apply(context, that.pos.elements);
 
- 		that.shape.each(function(vertex) {
+ 		that.shape.ops.each(function(vertex) {
  			context[vertex.method].apply(context, vertex.args());
  		});
 
