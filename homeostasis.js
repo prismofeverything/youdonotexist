@@ -92,8 +92,8 @@ var homeostasis = function(id) {
 			}
 		};
 
-		that.default = that.unattached;
-		that.perceive = that.default;
+		that.rest = that.unattached;
+		that.perceive = that.rest;
 
 		return that;
 	};
