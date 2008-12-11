@@ -53,7 +53,7 @@ var homeostasis = function(id) {
 				});
 			}
 
-			if (!(that.closestReceptor === null)) {
+			if (exists(that.closestReceptor)) {
 				var distance = that.closestReceptor.distance(that);
 
 				if (distance > 1) {
@@ -320,6 +320,28 @@ var homeostasis = function(id) {
 
 		var that = cheWSeeker(spec);
 
+		that.phosphorylate = function(enzyme) {
+			that.tweens.append(flux.tweenV({
+				obj: that,
+				property: 'pos',
+				to: $V([-15, 10]),
+				cycles: 80
+			}));
+
+			that.tweens.append(flux.tweenN({
+				obj: that,
+				property: 'orientation',
+				to: Math.PI*0.5,
+				cycles: 80,
+				test: (that.orientation < Math.PI*0.5) ? flux.tweenN.greater : flux.tweenN.less
+			}));
+
+			that.future = [];
+			that.rotation = 0;
+			that.attached = true;
+			that.phosphate = enzyme;
+		};
+
 		that.phosphorylated = function() {
 
 		};
@@ -366,7 +388,7 @@ var homeostasis = function(id) {
 		that.perceive = function(env) {
 			var switchedOff = false;
 
-			if (!(that.phosphate === null)) {
+			if (exists(that.phosphate)) {
 				that.phosphorylated();
 			} else {
 				if (that.activeCheW === null || !that.activeCheW.active) {
@@ -379,7 +401,7 @@ var homeostasis = function(id) {
 					});
 				}
 
-				if (!(that.activeCheW === null)) {
+				if (exists(that.activeCheW)) {
 					var distance = that.distance(that.activeCheW);
 					var turning = that.to(that.activeCheW).x(0.2/(distance));
 
@@ -475,7 +497,7 @@ var homeostasis = function(id) {
 				});
 			}
 
-			if (!(that.nearestPhosphate === null)) {
+			if (exists(that.nearestPhosphate)) {
 				var distance = that.distance(that.nearestPhosphate);
 
 				if (distance < 20) {
@@ -491,26 +513,7 @@ var homeostasis = function(id) {
 
 					that.tweenShape(activeShape, 40);
 
-					that.phosphate.tweens.append(flux.tweenV({
-						obj: that.phosphate,
-						property: 'pos',
-						to: $V([-5, 5]),
-						cycles: 40
-					}));
-
-					that.phosphate.tweens.append(flux.tweenN({
-						obj: that.phosphate,
-						property: 'orientation',
-						to: Math.PI*0.5,
-						cycles: 80,
-						test: (that.phosphate.orientation < Math.PI*0.5) ? flux.tweenN.greater : flux.tweenN.less
-					}));
-
-					that.phosphate.future = [];
-					that.phosphate.rotation = 0;
-					that.phosphate.attached = true;
-					that.phosphate.phosphate = that;
-
+					that.phosphate.phosphorylate(that);
 					world.motes = world.motes.without(that.phosphate);
 
 					that.future.append(function(self) {
@@ -587,7 +590,7 @@ var homeostasis = function(id) {
 				});
 			}
 
-			if (!(that.nearestPhosphate === null)) {
+			if (exists(that.nearestPhosphate)) {
 				var distance = that.distance(that.nearestPhosphate);
 
 				if (distance < 20) {
@@ -602,75 +605,7 @@ var homeostasis = function(id) {
 					}));
 
 					that.tweenShape(activeShape, 40);
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[2],
-// 						property: 'to',
-// 						to: $V([25, 30]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[3],
-// 						property: 'control1',
-// 						to: $V([15, 0]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[3],
-// 						property: 'control2',
-// 						to: $V([10, 0]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[3],
-// 						property: 'to',
-// 						to: $V([0, 0]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[4],
-// 						property: 'control1',
-// 						to: $V([-10, 0]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[4],
-// 						property: 'control2',
-// 						to: $V([-15, 0]),
-// 						cycles: 40
-// 					}));
-
-// 					that.tweens.append(flux.tweenV({
-// 						obj: that.shape[4],
-// 						property: 'to',
-// 						to: $V([-25, 30]),
-// 						cycles: 40
-// 					}));
-
-					that.phosphate.tweens.append(flux.tweenV({
-						obj: that.phosphate,
-						property: 'pos',
-						to: $V([-5, 5]),
-						cycles: 40
-					}));
-
-					that.phosphate.tweens.append(flux.tweenN({
-						obj: that.phosphate,
-						property: 'orientation',
-						to: Math.PI*0.5,
-						cycles: 80,
-						test: (that.phosphate.orientation < Math.PI*0.5) ? flux.tweenN.greater : flux.tweenN.less
-					}));
-
-					that.phosphate.future = [];
-					that.phosphate.rotation = 0;
-					that.phosphate.attached = true;
-					that.phosphate.phosphate = that;
+					that.phosphate.phosphorylate(that);
 
 					world.motes = world.motes.without(that.phosphate);
 

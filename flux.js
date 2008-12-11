@@ -30,6 +30,10 @@ Array.prototype.append = function(el) {
 	return this;
 };
 
+var exists = function(value) {
+	return !(value === null || value === undefined);
+}
+
 var flux = {};
 
 flux.bounds = function(xlow, xhigh, ylow, yhigh) {
@@ -276,6 +280,7 @@ flux.op = function() {
 	return result;
 }();
 
+// generic base tween object
 flux.tween = function(spec) {
 	var that = {};
 
@@ -300,6 +305,7 @@ flux.tween = function(spec) {
 	return that;
 };
 
+// tween object for numbers
 flux.tweenN = function(spec) {
 	var that = flux.tween(spec);
 	var increment = spec.increment || (spec.cycles ? ((spec.to - spec.obj[spec.property]) / spec.cycles) : 1);
@@ -322,6 +328,7 @@ flux.tweenN = function(spec) {
 flux.tweenN.greater = function(where, to) {return where >= to;};
 flux.tweenN.less = function(where, to) {return where <= to;};
 
+// tween object for vectors
 flux.tweenV = function(spec) {
 	var that = {};
 
@@ -334,7 +341,6 @@ flux.tweenV = function(spec) {
 		return that.obj[that.property];
 	};
 
-//	var differing = that.vector().elements.select(function(el, index) {
 	var differing = $R(0, that.vector().dimensions() - 1).select(function(index) {
 		return !(that.vector().o(index) === that.to.o(index));
 	});
@@ -357,6 +363,7 @@ flux.tweenV = function(spec) {
 	return that;
 };
 
+// representation of individual agents
 flux.mote = function(spec) {
 	var that = {};
 
@@ -415,7 +422,8 @@ flux.mote = function(spec) {
 // 	};
 
 	that.attach = function(other) {
-		other.pos = that.to(other);
+ 		other.pos = that.to(other).rotate(-that.orientation, $V([0, 0]));
+		other.orientation -= that.orientation;
 		other.supermote = that;
 		other.velocity = $V([0, 0]);
 
@@ -441,12 +449,13 @@ flux.mote = function(spec) {
 
 		while (that.orientation > Math.PI) {
 			that.orientation -= Math.PI*2;
-		}
-		while (that.orientation < -Math.PI) {
+		} while (that.orientation < -Math.PI) {
 			that.orientation += Math.PI*2;
 		}
 
-		that.pos = that.pos.add(that.velocity);
+		$R(0, that.pos.dimensions()-1).each(function(index) {
+			that.pos.elements[index] += that.velocity.o(index);
+		});
 
 		that.future.each(function(moment) {
 			moment(that);
@@ -538,6 +547,7 @@ flux.mote = function(spec) {
 	return that;
 };
 
+// managing the canvas for all motes
 flux.canvas = function(spec) {
 	var that = {};
 
