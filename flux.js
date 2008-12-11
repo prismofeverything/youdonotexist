@@ -1,3 +1,10 @@
+Object.beget = function(o) {
+	var F = function() {};
+	F.prototype = o;
+
+	return new F();
+};
+
 Vector.prototype.o = function(i) {
 	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
 };
@@ -23,7 +30,9 @@ Array.prototype.append = function(el) {
 	return this;
 };
 
-var bounds = function(xlow, xhigh, ylow, yhigh) {
+var flux = {};
+
+flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	var that = [];
 	var ops = [Math.min, Math.max];
 
@@ -115,14 +124,14 @@ var bounds = function(xlow, xhigh, ylow, yhigh) {
 };
 
 // provide objects to represent atomic drawing operations
-var op = function() {
+flux.op = function() {
 	var result = {};
 
 	result.base = function(spec) {
 		var that = {};
 
 		that.method = spec.method || 'lineTo';
-		that.to = spec.to && spec.to.dup() || $V([0, 0]);
+		that.to = spec.to || $V([0, 0]);
 
 		that.args = spec.args || function() {
 			return that.to.elements;
@@ -137,7 +146,7 @@ var op = function() {
 		};
 
 		that.tweensBetween = function(other, cycles) {
-			return [tweenV({
+			return [flux.tweenV({
 				obj: that,
 				property: 'to',
 				to: other.to,
@@ -149,6 +158,8 @@ var op = function() {
 	};
 
 	result.line = function(spec) {
+		spec.method = 'lineTo';
+
 		var that = result.base(spec);
 
 		that.dup = function() {
@@ -176,7 +187,7 @@ var op = function() {
 		var that = result.base(spec);
 
 		that.radius = spec.radius || 10;
-		that.arc = spec.arc && spec.arc.dup() || $V([0, Math.PI*2]);
+		that.arc = spec.arc || $V([0, Math.PI*2]);
 		that.clockwise = spec.clockwise || true;
 
 		that.args = function() {
@@ -185,31 +196,28 @@ var op = function() {
 
 		that.tweensBetween = function(other, cycles) {
 			return [
-				tweenV({
-					obj: that,
+				flux.tweenV({obj: that,
 					property: 'to',
 					to: other.to,
 					cycles: cycles}),
-				tweenN({
-					obj: that,
+				flux.tweenN({obj: that,
 					property: 'radius',
 					to: other.radius,
-					test: (that.radius < other.radius) ? tweenN.greater : tweenN.less,
+					test: (that.radius < other.radius) ? flux.tweenN.greater : flux.tweenN.less,
 					cycles: cycles}),
-				tweenN({
-					obj: that,
+				flux.tweenN({obj: that,
 					property: 'arc',
 					to: other.arc,
-					test: (that.arc < other.arc) ? tweenN.greater : tweenN.less,
+					test: (that.arc < other.arc) ? flux.tweenN.greater : flux.tweenN.less,
 					cycles: cycles})
 			];
 		};
 
 		that.prod = function(box) {
-			box.union(bounds(that.to.o(0) - that.radius,
-							 that.to.o(0) + that.radius,
-							 that.to.o(1) - that.radius,
-							 that.to.o(1) + that.radius));
+			box.union(flux.bounds(that.to.o(0) - that.radius,
+								  that.to.o(0) + that.radius,
+								  that.to.o(1) - that.radius,
+								  that.to.o(1) + that.radius));
 		};
 
 		that.dup = function() {
@@ -221,12 +229,12 @@ var op = function() {
 
 	result.bezier = function(spec) {
 		spec.method = 'bezierCurveTo';
-		spec.to = spec.to.dup() || $V([10, 10]);
+		spec.to = spec.to || $V([10, 10]);
 
 		var that = result.base(spec);
 
-		that.control1 = spec.control1 && spec.control1.dup() || $V([5, 0]);
-		that.control2 = spec.control2 && spec.control2.dup() || $V([10, 5]);
+		that.control1 = spec.control1 || $V([0, 0]);
+		that.control2 = spec.control2 || $V([0, 0]);
 
 		that.args = function() {
 			return that.control1.elements.concat(that.control2.elements).concat(that.to.elements);
@@ -240,17 +248,17 @@ var op = function() {
 
 		that.tweensBetween = function(other, cycles) {
 			return [
-				tweenV({
+				flux.tweenV({
 					obj: that,
 					property: 'to',
 					to: other.to,
 					cycles: cycles}),
-				tweenV({
+				flux.tweenV({
 					obj: that,
 					property: 'control1',
 					to: other.control1,
 					cycles: cycles}),
-				tweenV({
+				flux.tweenV({
 					obj: that,
 					property: 'control2',
 					to: other.control2,
@@ -268,11 +276,11 @@ var op = function() {
 	return result;
 }();
 
-var tween = function(spec) {
+flux.tween = function(spec) {
 	var that = {};
 
 	that.obj = spec.obj || spec;
-	that.property = spec.property || spec.property === 0 ? spec.property : 'this';
+	that.property = spec.property || ((spec.property === 0) ? spec.property : 'this');
 	that.target = spec.target || function(value) {return value === 0;};
 	that.step = spec.step || function(value) {return value - 1;};
 
@@ -292,9 +300,9 @@ var tween = function(spec) {
 	return that;
 };
 
-var tweenN = function(spec) {
-	var that = tween(spec);
-	var increment = spec.increment || spec.cycles ? (spec.to - spec.obj[spec.property]) / spec.cycles : 1;
+flux.tweenN = function(spec) {
+	var that = flux.tween(spec);
+	var increment = spec.increment || (spec.cycles ? ((spec.to - spec.obj[spec.property]) / spec.cycles) : 1);
 
 	that.test = spec.test || function(a, b) {return true;};
 	that.to = spec.to || 0;
@@ -311,10 +319,10 @@ var tweenN = function(spec) {
 };
 
 // these are inclusive of the value of 'where'
-tweenN.greater = function(where, to) {return where >= to;};
-tweenN.less = function(where, to) {return where <= to;};
+flux.tweenN.greater = function(where, to) {return where >= to;};
+flux.tweenN.less = function(where, to) {return where <= to;};
 
-var tweenV = function(spec) {
+flux.tweenV = function(spec) {
 	var that = {};
 
 	that.obj = spec.obj || spec;
@@ -326,36 +334,37 @@ var tweenV = function(spec) {
 		return that.obj[that.property];
 	};
 
-	var differing = that.vector().elements.select(function(el, index) {
-		return !(el === that.to.o(index));
+//	var differing = that.vector().elements.select(function(el, index) {
+	var differing = $R(0, that.vector().dimensions() - 1).select(function(index) {
+		return !(that.vector().o(index) === that.to.o(index));
 	});
 
-	var tweens = differing.map(function(el, index) {
-		return tweenN({
+	that.tweens = differing.map(function(index) {
+		return flux.tweenN({
 			obj: that.vector().elements,
 			property: index,
 			to: that.to.o(index),
 			cycles: that.cycles,
-			test: (that.vector().o(index) < that.to.o(index)) ? tweenN.greater : tweenN.less
+			test: (that.vector().o(index) < that.to.o(index)) ? flux.tweenN.greater : flux.tweenN.less
 		});
 	});
 
 	that.cycle = function() {
-		tweens = tweens.select(function(tween) {return tween.cycle();});
-		return tweens.length > 0;
+		that.tweens = that.tweens.select(function(tween) {return tween.cycle();});
+		return that.tweens.length > 0;
 	};
 
 	return that;
 };
 
-var mote = function(spec) {
+flux.mote = function(spec) {
 	var that = {};
 
 	that.supermote = spec.supermote || null;
 	that.submotes = spec.submotes || [];
 
 	that.pos = spec.pos || $V([0, 0]);
-	that.shape = spec.shape || [op.arc({to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])})];
+	that.shape = spec.shape || [flux.op.arc({to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])})];
 	that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
 	that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
 	that.velocity = spec.velocity || $V([0, 0]);
@@ -372,7 +381,7 @@ var mote = function(spec) {
 
 	// construct a simple bounding box to tell if further bounds checking is necessary
 	that.findBox = function() {
-		var box = bounds(that.pos.o(0), that.pos.o(0), that.pos.o(1), that.pos.o(1));
+		var box = flux.bounds(that.pos.o(0), that.pos.o(0), that.pos.o(1), that.pos.o(1));
 
 		that.shape.each(function(vertex) {
 			vertex.prod(box);
@@ -529,7 +538,7 @@ var mote = function(spec) {
 	return that;
 };
 
-var flux = function(spec) {
+flux.canvas = function(spec) {
 	var that = {};
 
 	var canvas, context;
