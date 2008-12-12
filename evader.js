@@ -2,10 +2,10 @@ var evader = function(spec) {
     var that = {};
 
     that.element = $(spec.element);
-    that.over = spec.over
-    that.out = spec.out
+    that.over = spec.over;
+    that.out = spec.out;
 
-    that.origin = vector({elements: [500, 300]});
+    that.origin = vector({elements: [Math.ceil(Math.random()*600)+200, Math.ceil(Math.random()*400)+200]});
     that.threshhold = 100;
     that.spriteliness = 2000.0;
     that.intervalFactor = 100;
@@ -114,8 +114,8 @@ var evader = function(spec) {
     that.applyMotion();
 
     document.observe('mousemove', that.track.bindAsEventListener(that));
-    that.element.observe('mouseover', that.accept.bindAsEventListener(that))
-    that.element.observe('mouseout', that.reject.bindAsEventListener(that))
+    that.element.observe('mouseover', that.accept.bindAsEventListener(that));
+    that.element.observe('mouseout', that.reject.bindAsEventListener(that));
 
 	return that;
 };
