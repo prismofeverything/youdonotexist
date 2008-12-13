@@ -46,11 +46,6 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	var that = [];
 	var ops = [Math.min, Math.max];
 
-	that.xlow = xlow;
-	that.xhigh = xhigh;
-	that.ylow = ylow;
-	that.yhigh = yhigh;
-
 	that.x = [xlow, xhigh];
 	that.y = [ylow, yhigh];
 	that[0] = that.x;
@@ -91,7 +86,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	that.union = function(other) {
 		for (var a = 0; a < 2; a++) {
 			for (var b = 0; b < 2; b++) {
-				that[a][b] = ops[a](that[a][b], other[a][b]);
+				that[a][b] = ops[b](that[a][b], other[a][b]);
 			}
 		}
 	};
@@ -99,7 +94,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	that.include = function(point) {
 		for (var a = 0; a < 2; a++) {
 			for (var b = 0; b < 2; b++) {
-				that[a][b] = ops[a](that[a][b], point[a]);
+				that[a][b] = ops[b](that[a][b], point.o(a));
 			}
 		}
 	};
@@ -107,13 +102,13 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	that.translate = function(point) {
 		for (var a = 0; a < 2; a++) {
 			for (var b = 0; b < 2; b++) {
-				that[a][b] += point[a];
+				that[a][b] += point.o(a);
 			}
 		}
 	};
 
 	that.check = function(point) {
-		return point.map(function(a, index) {
+		return point.elements.map(function(a, index) {
 			if (a < that[index][0]) {
 				return -1;
 			} else if(a > that[index][1]) {
@@ -125,7 +120,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	};
 
 	that.inside = function(point) {
-		return check.inject(true, function(side, a, index) {
+		return that.check(point).inject(true, function(side, a, index) {
 			return side && a === 0;
 		});
 	};
@@ -213,12 +208,10 @@ flux.op = function() {
 				flux.tweenN({obj: that,
 					property: 'radius',
 					to: other.radius,
-					test: (that.radius < other.radius) ? flux.tweenN.greater : flux.tweenN.less,
 					cycles: cycles}),
 				flux.tweenN({obj: that,
 					property: 'arc',
 					to: other.arc,
-					test: (that.arc < other.arc) ? flux.tweenN.greater : flux.tweenN.less,
 					cycles: cycles})
 			];
 		};
@@ -334,8 +327,11 @@ flux.tweenN = function(spec) {
 	var that = flux.tween(spec);
 	var increment = spec.increment || (spec.cycles ? ((spec.to - spec.obj[spec.property]) / spec.cycles) : 1);
 
-	that.test = spec.test || function(a, b) {return true;};
+	var greater = function(where, to) {return where >= to;};
+	var less = function(where, to) {return where <= to;};
+
 	that.to = spec.to || 0;
+	that.test = spec.test || ((that.value() < that.to) ? greater : less);
 
 	that.target = spec.target || function(value) {
 		return that.test(value, that.to);
@@ -347,10 +343,6 @@ flux.tweenN = function(spec) {
 
 	return that;
 };
-
-// these are inclusive of the value of 'where'
-flux.tweenN.greater = function(where, to) {return where >= to;};
-flux.tweenN.less = function(where, to) {return where <= to;};
 
 // tween object for vectors
 flux.tweenV = function(spec) {
@@ -374,8 +366,7 @@ flux.tweenV = function(spec) {
 			obj: that.vector().elements,
 			property: index,
 			to: that.to.o(index),
-			cycles: that.cycles,
-			test: (that.vector().o(index) < that.to.o(index)) ? flux.tweenN.greater : flux.tweenN.less
+			cycles: that.cycles
 		});
 	});
 
@@ -410,6 +401,43 @@ flux.mote = function(spec) {
 	that.future = [];
 	that.neighbors = [];
 
+	that.mouseDown = function(mouse) {};
+	that.mouseUp = function(mouse) {};
+	that.mouseMove = function(mouse) {};
+
+	that.absolute = function() {
+		return that.supermote ? that.pos.add(that.supermote.absolute()) : that.pos;
+	};
+
+	that.contains = function(point) {
+		return that.box.inside(point.subtract(that.absolute()));
+	};
+
+	// construct a simple bounding box to tell if further bounds checking is necessary
+	that.findBox = function() {
+		var box = flux.bounds(0, 0, 0, 0);
+
+		that.shape.ops.each(function(vertex) {
+			vertex.prod(box);
+		});
+
+		that.submotes.each(function(submote) {
+			box.union(submote.box);
+		});
+
+		that.box = box;
+		return box;
+	};
+
+	that.findBox();
+
+	that.color_spec = function() {
+		var inner = that.color.elements.map(function(component) {
+			return Math.floor(component);
+		}).join(', ');
+		return "rgba(" + inner + ")";
+	};
+
 	that.tweenColor = function(color, cycles) {
 		that.tweens.append(flux.tweenV({
 			obj: that,
@@ -425,35 +453,6 @@ flux.mote = function(spec) {
 		that.tweens = that.tweens.concat(that.shape.between(shape, cycles));
 
 		return that;
-	};
-
-	// construct a simple bounding box to tell if further bounds checking is necessary
-	that.findBox = function() {
-		var box = flux.bounds(that.pos.o(0), that.pos.o(0), that.pos.o(1), that.pos.o(1));
-
-		that.shape.ops.each(function(vertex) {
-			vertex.prod(box);
-		});
-
-		that.submotes.each(function(submote) {
-			box.union(submote.box.dup().translate(that.pos));
-		});
-
-		that.box = box;
-		return box;
-	};
-
-	that.findBox();
-
-	that.absolute = function() {
-		return that.supermote ? that.pos.add(that.supermote.absolute()) : that.pos;
-	};
-
-	that.color_spec = function() {
-		var inner = that.color.elements.map(function(component) {
-			return Math.floor(component);
-		}).join(', ');
-		return "rgba(" + inner + ")";
 	};
 
 // 	that.contains = function(point) {
@@ -513,7 +512,7 @@ flux.mote = function(spec) {
 		});
 
 		if (that.bounds) {
-			var check = that.bounds.check(that.pos.elements);
+			var check = that.bounds.check(that.pos);
 
 			check.each(function(result, index) {
 				if (!(result === 0)) {
@@ -651,13 +650,27 @@ flux.canvas = function(spec) {
 		context.restore();
 	};
 
+	var mouseEvent = function(event, mouse) {
+		that.motes.each(function(mote) {
+			if (mote.contains(mouse.pos)) {
+				mote['mouse' + event](mouse);
+			}
+		});
+
+		return that;
+	};
+
 	var mouseDown = function(e) {
 		mouse.down = true;
+		mouseEvent('Down', mouse);
+
 		that.down(mouse);
 	};
 
 	var mouseUp = function(e) {
 		mouse.down = false;
+		mouseEvent('Up', mouse);
+
 		that.up(mouse);
 	};
 
@@ -671,6 +684,7 @@ flux.canvas = function(spec) {
 		var y = e.clientY - canvas.offsetTop + scrollY;
 
 		mouse.pos = $V([x, y]);
+		mouseEvent('Move', mouse);
 
 		that.move(mouse);
 	};

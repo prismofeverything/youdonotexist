@@ -11,6 +11,15 @@ var homeostasis = function(id) {
 
 	var molecule = function(spec) {
 		var that = flux.mote(spec);
+		var mouseInside = false;
+
+		that.mouseDown = function(mouse) {
+			if (!mouseInside) {
+				mouseInside = true;
+				that.tweenColor($V([255, 255, 255, 1]), 20);
+			}
+		};
+
 		return that;
 	};
 
@@ -332,8 +341,7 @@ var homeostasis = function(id) {
 				obj: that,
 				property: 'orientation',
 				to: Math.PI*0.5,
-				cycles: phosphorylationCycles,
-				test: (that.orientation < (Math.PI*0.5)) ? flux.tweenN.greater : flux.tweenN.less
+				cycles: phosphorylationCycles
 			}));
 
 			that.future = [];
