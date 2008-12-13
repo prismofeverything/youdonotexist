@@ -11,13 +11,14 @@ var homeostasis = function(id) {
 
 	var molecule = function(spec) {
 		var that = flux.mote(spec);
-		var mouseInside = false;
 
-		that.mouseDown = function(mouse) {
-			if (!mouseInside) {
-				mouseInside = true;
-				that.tweenColor($V([255, 255, 255, 1]), 20);
-			}
+		that.mouseIn = function(mouse) {
+			that.oldColor = that.color.dup();
+			that.tweenColor($V([255, 255, 255, 1]), 10);
+		};
+
+		that.mouseOut = function(mouse) {
+			that.tweenColor(that.oldColor, 10);
 		};
 
 		return that;

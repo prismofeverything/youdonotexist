@@ -217,10 +217,12 @@ flux.op = function() {
 		};
 
 		that.prod = function(box) {
-			box.union(flux.bounds(that.to.o(0) - that.radius,
-								  that.to.o(0) + that.radius,
-								  that.to.o(1) - that.radius,
-								  that.to.o(1) + that.radius));
+			box.union(flux.bounds(
+				that.to.o(0) - that.radius,
+				that.to.o(0) + that.radius,
+				that.to.o(1) - that.radius,
+				that.to.o(1) + that.radius
+			));
 		};
 
 		that.dup = function() {
@@ -403,6 +405,8 @@ flux.mote = function(spec) {
 
 	that.mouseDown = function(mouse) {};
 	that.mouseUp = function(mouse) {};
+	that.mouseIn = function(mouse) {};
+	that.mouseOut = function(mouse) {};
 	that.mouseMove = function(mouse) {};
 
 	that.absolute = function() {
@@ -619,6 +623,7 @@ flux.canvas = function(spec) {
 		pos: $V([0, 0]),
 		prev: $V([0, 0]),
 		down: false,
+		inside: [],
 
 		diff: function() {
 			pos.subtract(prev);
@@ -684,7 +689,30 @@ flux.canvas = function(spec) {
 		var y = e.clientY - canvas.offsetTop + scrollY;
 
 		mouse.pos = $V([x, y]);
-		mouseEvent('Move', mouse);
+
+		// sort out which motes are no longer under the mouse
+		// and which still contain it
+		if (mouse.inside.length > 0) {
+			var motion = mouse.inside.partition(function(mote) {
+				return mote.contains(mouse.pos);
+			});
+
+			mouse.inside = motion[0];
+			mouse.inside.each(function(mote) {
+				mote.mouseMove(mouse);
+			});
+			motion[1].each(function(mote) {
+				mote.mouseOut(mouse);
+			});
+		}
+
+		// find out which motes are newly under the mouse
+		that.motes.each(function(mote) {
+			if (mote.contains(mouse.pos) && !mouse.inside.include(mote)) {
+				mouse.inside.append(mote);
+				mote.mouseIn(mouse);
+			}
+		});
 
 		that.move(mouse);
 	};
