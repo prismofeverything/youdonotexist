@@ -1,11 +1,14 @@
 var homeostasis = function(id) {
 	var inside = flux.bounds(20, 800, 320, 1000);
 	var outside = flux.bounds(0, 800, 0, 250);
+	var above = flux.bounds(-1700, 1700, 0, 250);
+	var below = flux.bounds(-1700, 1700, 2000, 1700);
 	var offscreen = flux.bounds(-50, 800, -50, 0);
 
 	var receptorGrip = 0.996;
-	var attractantRepellentRatio = 0.1;
+	var attractantRepellentRatio = 0.3;
 	var phosphorylationCycles = 50;
+	var globalVelocity = 10;
 
 	var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -28,15 +31,27 @@ var homeostasis = function(id) {
 		return $V(box.randomPoint());
 	};
 
-	var randomLigand = function(box) {
+	var randomLigand = function() {
+		var up = (Math.random() - 0.5) > 0;
+		var inside = up ? above : below;
+
 		if (Math.random() * (attractantRepellentRatio + 1) < attractantRepellentRatio) {
-			return attractant({pos: randomPos(box)});
+			return attractant({pos: randomPos(inside)});
 		} else {
-			return repellent({pos: randomPos(box)});
+			return repellent({pos: randomPos(inside)});
 		}
 	};
 
-	var randomMote = function(type, box) {
+	var randomColumn = function(box) {
+		var up = (Math.random() - 0.5) > 0;
+		var x = box.randomPoint()[0] * 0.6;
+		var y = up ? box[1][0] - 20 : box[1][1] + 20;
+		var orientation = up ? 0 : Math.PI;
+
+		return column({pos: $V([x, y]), orientation: orientation});
+	};
+
+	var randomMolecule = function(type, box) {
 		return type({pos: randomPos(box), bounds: box});
 	};
 
@@ -52,7 +67,7 @@ var homeostasis = function(id) {
 
 		that.unattached = function(env) {
 			if (that.closestReceptor === null || that.closestReceptor.taken) {
-				that.closestReceptor = that.findClosest(receptors, function(receptor) {
+				that.closestReceptor = that.findClosest(membranes.first().receptors, function(receptor) {
 					return receptor.taken === false;
 				});
 			}
@@ -74,13 +89,13 @@ var homeostasis = function(id) {
 					that.perceive = that.attached;
 				}
 			} else {
-				that.velocity = $V([Math.random()-0.5, Math.random()-1]);
+				that.velocity = $V([Math.random()-0.5, Math.random()-1]).x(globalVelocity);
 			}
 		};
 
 		that.attached = function(env) {
 			if (Math.random() > receptorGrip) {
-				that.velocity = $V([Math.random()-0.5, Math.random()-1]);
+				that.velocity = $V([Math.random()-0.5, Math.random()-1].x(globalVelocity));
 				that.rotation = defaultRotation();
 
 				that.perceive = that.detached;
@@ -105,7 +120,7 @@ var homeostasis = function(id) {
 	var attractant = function(spec) {
 		spec.color = spec.color || $V([140, 170, 100, 1]);
 		spec.shape = spec.shape || flux.shape({ops: [flux.op.arc({radius: 7})]});
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = ligand(spec);
 		that.type = 'A';
@@ -122,7 +137,7 @@ var homeostasis = function(id) {
 			flux.op.line({to: $V([-6, 6])})
 		]});
 		spec.rotation = defaultRotation();
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = ligand(spec);
 
@@ -133,19 +148,71 @@ var homeostasis = function(id) {
 	};
 
 	var membrane = function(spec) {
+		spec.fill = 'stroke';
+		spec.lineWidth = 30;
 		spec.color = spec.color || $V([80, 20, 20, 1]);
+
 		spec.shape = spec.shape || flux.shape({ops: [
-			flux.op.move({to: $V([0, 270])}),
-			flux.op.line({to: $V([800, 270])}),
-			flux.op.bezier({to: $V([900, 370]), control1: $V([870, 270]), control2: $V([900, 300])}),
-			flux.op.line({to: $V([900, 1500])}),
-			flux.op.line({to: $V([870, 1500])}),
-			flux.op.line({to: $V([870, 370])}),
-			flux.op.bezier({to: $V([800, 300]), control1: $V([870, 325]), control2: $V([845, 300])}),
-			flux.op.line({to: $V([0, 300])})
+			flux.op.move({to: $V([-1400, -700])}),
+			flux.op.line({to: $V([1400, -700])}),
+			flux.op.bezier({to: $V([1400, 700]), control1: $V([2450, -700]), control2: $V([2450, 700])}),
+			flux.op.line({to: $V([-1400, 700])}),
+			flux.op.bezier({to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])})
 		]});
 
 		var that = molecule(spec);
+
+		var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 100, that.box[1][1] - 100);
+
+		that.columns = $R(0, 12).map(function(index) {
+			return randomColumn(that.box);
+		});
+
+		// receptors and cheWs are part of columns, but we make a reference for them here
+		that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
+		that.cheWs = that.columns.map(function(column) {return column.cheW;});
+
+		that.phosphates = $R(0, 20).map(function(index) {
+			return randomMolecule(phosphate, inside);
+		});
+		that.methyls = $R(0, 20).map(function(index) {
+			return randomMolecule(methyl, inside);
+		});
+
+		that.cheYs = $R(0, 10).map(function(index) {
+			return randomMolecule(cheY, inside);
+		});
+
+		that.cheBs = $R(0, 10).map(function(index) {
+			return randomMolecule(cheB, inside);
+		});
+
+		that.cheZs = $R(0, 10).map(function(index) {
+			return randomMolecule(cheZ, inside);
+		});
+
+		that.cheRs = $R(0, 10).map(function(index) {
+			return randomMolecule(cheR, inside);
+		});
+
+		that.cheWSeekers = that.cheYs.concat(that.cheBs).concat(that.phosphates);
+
+		that.receptors.each(function(receptor, index) {
+			receptor.cheW = that.cheWs[index];
+		});
+
+		that.submotes = that.columns
+			.concat(that.phosphates)
+			.concat(that.methyls)
+			.concat(that.cheYs)
+			.concat(that.cheZs)
+			.concat(that.cheBs)
+			.concat(that.cheRs);
+
+		that.submotes.each(function(submote) {
+			submote.supermote = that;
+		});
+
 		return that;
 	};
 
@@ -291,7 +358,7 @@ var homeostasis = function(id) {
 				cycles: 20
 			}));
 
-			cheWSeekers.each(function(seeker) {
+			membranes.first().cheWSeekers.each(function(seeker) {
 				if (seeker.activeCheW) {
 					if (seeker.distance(seeker.activeCheW) > seeker.distance(that)) {
 						seeker.activeCheW = that;
@@ -326,7 +393,7 @@ var homeostasis = function(id) {
 		]});
 
 		spec.rotation = Math.random()*0.02-0.01;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = cheWSeeker(spec);
 
@@ -371,7 +438,7 @@ var homeostasis = function(id) {
 		]});
 
 		spec.rotation = defaultRotation()*0.2;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = molecule(spec);
 		return that;
@@ -407,7 +474,7 @@ var homeostasis = function(id) {
 						switchedOff = true;
 					}
 
-					that.activeCheW = that.findClosest(cheWs, function(cheW) {
+					that.activeCheW = that.findClosest(membranes.first().cheWs, function(cheW) {
 						return cheW.active;
 					});
 				}
@@ -489,7 +556,7 @@ var homeostasis = function(id) {
 		spec.shape = inactiveShape.dup();
 
 		spec.rotation = Math.random()*0.02-0.01;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = cheWSeeker(spec);
 
@@ -501,7 +568,7 @@ var homeostasis = function(id) {
 					switchedOff = true;
 				}
 
-				that.nearestPhosphate = that.findClosest(phosphates, function(phosphate) {
+				that.nearestPhosphate = that.findClosest(membranes.first().phosphates, function(phosphate) {
 					return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
 				});
 			}
@@ -547,7 +614,7 @@ var homeostasis = function(id) {
 		]});
 
 		spec.rotation = Math.random()*0.02-0.01;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = molecule(spec);
 		return that;
@@ -578,7 +645,7 @@ var homeostasis = function(id) {
 
 		spec.shape = inactiveShape.dup();
 		spec.rotation = Math.random()*0.02-0.01;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = cheWSeeker(spec);
 
@@ -590,7 +657,7 @@ var homeostasis = function(id) {
 					switchedOff = true;
 				}
 
-				that.nearestPhosphate = that.findClosest(phosphates, function(phosphate) {
+				that.nearestPhosphate = that.findClosest(membranes.first().phosphates, function(phosphate) {
 					return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
 				});
 			}
@@ -643,68 +710,23 @@ var homeostasis = function(id) {
 		]});
 
 		spec.rotation = Math.random()*0.02-0.01;
-		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+		spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
 		var that = molecule(spec);
 		return that;
 	};
 
-	var ligands = $R(0, 20).map(function(index) {
-		return randomLigand(outside);
+	var ligands = $R(0, 30).map(function(index) {
+		return randomLigand();
 	});
 
-	var membranes = [membrane({pos: $V([0, 0]), orientation: 0})];
-
-	var columns = [column({pos: $V([300, 250]), orientation: 0}),
-				   column({pos: $V([140, 250]), orientation: 0}),
-				   column({pos: $V([600, 250]), orientation: 0})];
-
-	// receptors and cheWs are part of columns, but we make a reference for them here
-	var receptors = columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
-	var cheWs = columns.map(function(column) {return column.cheW;});
-
-	var phosphates = $R(0, 20).map(function(index) {
-		return randomMote(phosphate, inside);
-	});
-	var methyls = $R(0, 20).map(function(index) {
-		return randomMote(methyl, inside);
-	});
-
-	var cheYs = $R(0, 10).map(function(index) {
-		return randomMote(cheY, inside);
-	});
-
-	var cheBs = $R(0, 10).map(function(index) {
-		return randomMote(cheB, inside);
-	});
-
-	var cheZs = $R(0, 10).map(function(index) {
-		return randomMote(cheZ, inside);
-	});
-
-	var cheRs = $R(0, 10).map(function(index) {
-		return randomMote(cheR, inside);
-	});
-
-	var cheWSeekers = cheYs.concat(cheBs).concat(phosphates);
-
-	receptors.each(function(receptor, index) {
-		receptor.cheW = cheWs[index];
-	});
-
-	var molecules = membranes
-		.concat(columns)
-		.concat(ligands)
-		.concat(phosphates)
-		.concat(methyls)
-		.concat(cheYs)
-		.concat(cheZs)
-		.concat(cheBs)
-		.concat(cheRs);
+ 	var membranes = [membrane({pos: $V([0, 985]), orientation: 0})];
 
 	var spec = {
 		id: id,
-		motes: molecules
+		motes: membranes.concat(ligands),
+ 		scale: $V([0.2, 0.2]),
+ 		translation: $V([600, 220])
 	};
 
 	var world = flux.canvas(spec);

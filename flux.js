@@ -31,6 +31,12 @@ Vector.method('inverse', function() {
 	}));
 });
 
+Vector.method('times', function(other) {
+	return $V(this.elements.map(function(el, index) {
+		return el * other.o(index);
+	}));
+});
+
 Array.method('append', function(el) {
 	this[this.length] = el;
 	return this;
@@ -396,6 +402,7 @@ flux.mote = function(spec) {
 	that.color = spec.color || $V([200, 200, 200, 1]);
 	that.scale = spec.scale || $V([1, 1]);
 	that.fill = spec.fill || 'fill';
+	that.lineWidth = spec.lineWidth || 1;
 	that.bounds = spec.bounds;
 
 	that.tweens = [];
@@ -410,7 +417,7 @@ flux.mote = function(spec) {
 	that.mouseMove = function(mouse) {};
 
 	that.absolute = function() {
-		return that.supermote ? that.pos.add(that.supermote.absolute()) : that.pos;
+		return that.supermote ? that.pos.rotate(that.supermote.orientation, $V([0, 0])).add(that.supermote.absolute()) : that.pos;
 	};
 
 	that.contains = function(point) {
@@ -458,12 +465,6 @@ flux.mote = function(spec) {
 
 		return that;
 	};
-
-// 	that.contains = function(point) {
-// 		return Math.pointWithin(point, that.shape.map(function(vertex) {
-// 			return vertex.add(that.pos);
-// 		}));
-// 	};
 
 	that.attach = function(other) {
  		other.pos = that.to(other).rotate(-that.orientation, $V([0, 0]));
@@ -568,6 +569,7 @@ flux.mote = function(spec) {
 		context.save();
 
 		context[that.fill + "Style"] = that.color_spec();
+		context.lineWidth = that.lineWidth;
 		context.translate(that.pos.o(0), that.pos.o(1));
 		context.rotate(that.orientation);
 		context.scale(that.scale.o(0), that.scale.o(1));
@@ -607,9 +609,9 @@ flux.canvas = function(spec) {
 	that.up = spec.up || function(m){return null;};
 	that.move = spec.move || function(m){return null;};
 
-	that.translation = $V([0, 0]);
-	that.orientation = 0;
-	that.scale = $V([1, 1]);
+	that.translation = spec.translation || $V([0, 0]);
+	that.orientation = spec.orientation || 0;
+	that.scale = spec.scale || $V([1, 1]);
 
 	var time = function() {
 		return new Date().getTime();
@@ -685,10 +687,10 @@ flux.canvas = function(spec) {
 
 		mouse.prev = mouse.pos;
 
-		var x = e.clientX - canvas.offsetLeft + scrollX;
-		var y = e.clientY - canvas.offsetTop + scrollY;
+		var x = (e.clientX - canvas.offsetLeft + scrollX);
+		var y = (e.clientY - canvas.offsetTop + scrollY);
 
-		mouse.pos = $V([x, y]);
+		mouse.pos = $V([x, y]).subtract(that.translation).times(that.scale.map(function(el) {return 1.0 / el;}));
 
 		// sort out which motes are no longer under the mouse
 		// and which still contain it
@@ -732,7 +734,7 @@ flux.canvas = function(spec) {
 		canvas.height = browser.h = window.innerHeight;
 
 		context.strokeStyle = "rgba(0, 0, 0, 1)";
-		context.strokeWidth = 5;
+		context.lineWidth = 5;
 
 		setInterval(update, 20);
 	};
