@@ -95,7 +95,7 @@ var homeostasis = function(id) {
 
 		that.attached = function(env) {
 			if (Math.random() > receptorGrip) {
-				that.velocity = $V([Math.random()-0.5, Math.random()-1].x(globalVelocity));
+				that.velocity = $V([Math.random()-0.5, Math.random()-1]).x(globalVelocity);
 				that.rotation = defaultRotation();
 
 				that.perceive = that.detached;
@@ -213,6 +213,8 @@ var homeostasis = function(id) {
 			submote.supermote = that;
 		});
 
+		that.tree = Math.kdtree(that.submotes, 'pos', 0);
+
 		return that;
 	};
 
@@ -235,11 +237,13 @@ var homeostasis = function(id) {
 
 		var that = molecule(spec);
 
-		that.receptors = [receptor({supermote: that, pos: $V([0, -18]), column: that}),
-						  receptor({supermote: that, pos: $V([-25, -42]), column: that}),
-						  receptor({supermote: that, pos: $V([-17, -26]), column: that}),
-						  receptor({supermote: that, pos: $V([17, -26]), column: that}),
-						  receptor({supermote: that, pos: $V([25, -42]), column: that})];
+		that.receptors = [
+			receptor({supermote: that, pos: $V([0, -18]), column: that}),
+			receptor({supermote: that, pos: $V([-25, -42]), column: that}),
+			receptor({supermote: that, pos: $V([-17, -26]), column: that}),
+			receptor({supermote: that, pos: $V([17, -26]), column: that}),
+			receptor({supermote: that, pos: $V([25, -42]), column: that})
+		];
 		that.cheW = cheW({supermote: that, pos: $V([0, 100]), orientation: 0, column: that});
 
 		that.level = 0;

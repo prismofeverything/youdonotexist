@@ -11,32 +11,6 @@ Function.prototype.method = function(name, func) {
 	}
 };
 
-Vector.method('o', function(i) {
-	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
-});
-
-Vector.method('magnitude', function() {
-	return Math.sqrt(this.elements.inject(0, function(sum, element) {
-		return sum + element * element;
-	}));
-});
-
-Vector.method('scaleTo', function(magnitude) {
-	return this.toUnitVector().x(magnitude);
-});
-
-Vector.method('inverse', function() {
-	return $V(this.elements.map(function(el) {
-		return 0 - el;
-	}));
-});
-
-Vector.method('times', function(other) {
-	return $V(this.elements.map(function(el, index) {
-		return el * other.o(index);
-	}));
-});
-
 Array.method('append', function(el) {
 	this[this.length] = el;
 	return this;
@@ -417,7 +391,7 @@ flux.mote = function(spec) {
 	that.mouseMove = function(mouse) {};
 
 	that.absolute = function() {
-		return that.supermote ? that.pos.rotate(that.supermote.orientation, $V([0, 0])).add(that.supermote.absolute()) : that.pos;
+		return that.supermote ? that.pos.rotate(that.supermote.orientation, $V([0, 0])).add(that.supermote.absolute()).times(that.supermote.scale) : that.pos;
 	};
 
 	that.contains = function(point) {
@@ -442,10 +416,24 @@ flux.mote = function(spec) {
 
 	that.findBox();
 
+	that.findIn = function(mouse, pos) {
+		if (that.contains(pos) && !mouse.inside.include(that)) {
+			mouse.inside.append(that);
+			that.mouseIn(mouse);
+		}
+
+		that.submotes.invoke('findIn', mouse, pos);
+	};
+
+	that.warp = function(pos) {
+		return pos.rotate(-that.orientation, $V([0, 0])).subtract(that.pos).times(that.scale.map(function(el) {return 1.0 / el;}));
+	};
+
 	that.color_spec = function() {
 		var inner = that.color.elements.map(function(component) {
 			return Math.floor(component);
 		}).join(', ');
+
 		return "rgba(" + inner + ")";
 	};
 
@@ -709,12 +697,13 @@ flux.canvas = function(spec) {
 		}
 
 		// find out which motes are newly under the mouse
-		that.motes.each(function(mote) {
-			if (mote.contains(mouse.pos) && !mouse.inside.include(mote)) {
-				mouse.inside.append(mote);
-				mote.mouseIn(mouse);
-			}
-		});
+		that.motes.invoke('findIn', mouse, mouse.pos);
+// 		that.motes.each(function(mote) {
+// 			if (mote.contains(mouse.pos) && !mouse.inside.include(mote)) {
+// 				mouse.inside.append(mote);
+// 				mote.mouseIn(mouse);
+// 			}
+// 		});
 
 		that.move(mouse);
 	};
@@ -735,6 +724,8 @@ flux.canvas = function(spec) {
 
 		context.strokeStyle = "rgba(0, 0, 0, 1)";
 		context.lineWidth = 5;
+
+		that.tree = Math.kdtree(that.motes, 'pos', 0);
 
 		setInterval(update, 20);
 	};

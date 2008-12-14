@@ -1,10 +1,37 @@
-// Object.prototype.isArray = function(value) {
-//     return value &&
-//         typeof value === 'object' &&
-//         typeof value.length === 'number' &&
-//         typeof value.splice === 'function' &&
-//         !(value.propertyIsEnumerable('length'));
-// }
+Vector.prototype.o = function(i) {
+	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
+};
+
+Vector.prototype.magnitude = function() {
+	return Math.sqrt(this.elements.inject(0, function(sum, element) {
+		return sum + element * element;
+	}));
+};
+
+Vector.prototype.scaleTo = function(magnitude) {
+	return this.toUnitVector().x(magnitude);
+};
+
+Vector.prototype.inverse = function() {
+	return $V(this.elements.map(function(el) {
+		return -el;
+	}));
+};
+
+Vector.prototype.times = function(other) {
+	return $V(this.elements.map(function(el, index) {
+		return el * other.o(index);
+	}));
+};
+
+Vector.prototype.nonrootDistance = function(other) {
+	var result = 0;
+	for (var n = 0; n < this.elements.length; n++) {
+		result += Math.square(this.elements[n] - other.elements[n]);
+	}
+
+	return result;
+};
 
 Math.square = function(n) {
 	return n * n;
@@ -46,6 +73,86 @@ Math.windingSubtend = function(point, polygon) {
 // (we fudge a little to compensate for floating point inaccuracies)
 Math.pointWithin = function(point, polygon) {
 	return Math.windingSubtend(point, polygon) > (Math.PI * 1.95);
+};
+
+// build a kdtree for nearest neighbor comparisons
+Math.kdtree = function(elements, property, depth) {
+	var nullNode = function() {
+		return {
+			add: function(el, depth) {
+				return node(el, nullNode(), nullNode());
+			},
+
+			find: function(pos, depth, n) {
+				return [];
+			}
+		};
+	};
+
+	if (elements.length === 0) {return nullNode();};
+
+	var dimension = elements.first()[property].elements.length;
+	var axis = depth % dimension;
+
+	var along = function(el, axis) {
+		return el[property].elements[axis];
+	};
+
+	var mirror = function(way) {
+		return way === 'left' ? 'right' : 'left';
+	};
+
+	var node = function(value, left, right) {
+		var that = {
+			value: value,
+			left: left,
+			right: right
+		};
+
+		var nodeDistance = function(el, pos) {
+			return {
+				node: el,
+				distance: pos.nonrootDistance(el[property])
+			};
+		};
+
+		that.add = function(el, depth) {
+			var axis = depth % dimension;
+			var way = along(el, axis) < along(that.value, axis) ? 'left' : 'right';
+
+			that[way] = that[way].add(el, depth+1);
+
+			return that;
+		};
+
+		that.nearest = function(pos, depth, n) {
+			var axis = depth % dimension;
+			var way = pos.o(axis) < along(that.value, axis) ? 'left' : 'right';
+			n = n || 1;
+
+			var best = that[way].find(pos, depth+1, n);
+
+			if (best.length < n) {
+				best.append(nodeDistance(that, pos));
+			}
+		};
+
+		return that;
+	};
+
+	var sorted = elements.sort(function(left, right) {
+		var l = along(left, axis);
+		var r = along(right, axis);
+
+		return l < r ? -1 : l > r ? 1 : 0;
+	});
+
+	var median = Math.floor(elements.length / 2);
+
+	var left = Math.kdtree(sorted.slice(0, median), property, depth+1);
+	var right = Math.kdtree(sorted.slice(median+1), property, depth+1);
+
+	return node(sorted[median], left, right);
 };
 
 Math.testAllThisShizn = function() {
