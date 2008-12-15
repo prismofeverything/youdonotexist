@@ -14,10 +14,13 @@ var homeostasis = function(id) {
 
 	var molecule = function(spec) {
 		var that = flux.mote(spec);
+		that.neighbors = [that];
 
 		that.mouseIn = function(mouse) {
-			that.oldColor = that.color.dup();
-			that.tweenColor($V([255, 255, 255, 1]), 10);
+			that.neighbors.each(function(neighbor) {
+				neighbor.oldColor = neighbor.color.dup();
+				neighbor.tweenColor($V([255, 255, 255, 1]), 10);
+			});
 		};
 
 		that.mouseOut = function(mouse) {
@@ -201,6 +204,14 @@ var homeostasis = function(id) {
 			receptor.cheW = that.cheWs[index];
 		});
 
+		that.aware = that.cheWs
+			.concat(that.phosphates)
+			.concat(that.methyls)
+			.concat(that.cheYs)
+			.concat(that.cheZs)
+			.concat(that.cheBs)
+			.concat(that.cheRs);
+
 		that.submotes = that.columns
 			.concat(that.phosphates)
 			.concat(that.methyls)
@@ -213,7 +224,13 @@ var homeostasis = function(id) {
 			submote.supermote = that;
 		});
 
-		that.tree = Math.kdtree(that.submotes, 'pos', 0);
+		that.perceive = function(env) {
+			that.tree = Math.kdtree(that.submotes, 'total', 0);
+			that.aware.each(function(submote) {
+				submote.neighbors = that.tree.nearest(submote.absolute(), 5);
+				submote.perceive(env);
+			});
+		};
 
 		return that;
 	};
@@ -418,6 +435,8 @@ var homeostasis = function(id) {
 
 			that.future = [];
 			that.rotation = 0;
+			that.velocity = $V([0, 0]);
+//			that.neighbors = [];
 			that.attached = true;
 			that.phosphate = enzyme;
 		};
@@ -588,7 +607,6 @@ var homeostasis = function(id) {
 					that.tweenShape(activeShape, phosphorylationCycles);
 
 					that.phosphate.phosphorylate(that);
-					world.motes = world.motes.without(that.phosphate);
 
 					that.future.append(function(self) {
 						self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
@@ -684,7 +702,6 @@ var homeostasis = function(id) {
 					that.tweenShape(activeShape, phosphorylationCycles);
 
 					that.phosphate.phosphorylate(that);
-					world.motes = world.motes.without(that.phosphate);
 
 					that.future.append(function(self) {
 						self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);

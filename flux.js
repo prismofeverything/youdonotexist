@@ -425,8 +425,16 @@ flux.mote = function(spec) {
 		that.submotes.invoke('findIn', mouse, pos);
 	};
 
-	that.warp = function(pos) {
-		return pos.rotate(-that.orientation, $V([0, 0])).subtract(that.pos).times(that.scale.map(function(el) {return 1.0 / el;}));
+	that.introvert = function(pos) {
+//		return pos.subtract(that.pos);
+		return pos.times(that.scale.map(function(el) {return 1.0 / el;})).rotate(-that.orientation, that.pos).subtract(that.pos);
+//		return pos.add(that.pos).rotate(that.orientation, pos).times(that.scale);
+	};
+
+	that.extrovert = function(pos) {
+//		return pos.add(that.pos);
+		return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
+//		return pos.subtract(that.pos);
 	};
 
 	that.color_spec = function() {
@@ -457,8 +465,10 @@ flux.mote = function(spec) {
 	that.attach = function(other) {
  		other.pos = that.to(other).rotate(-that.orientation, $V([0, 0]));
 		other.orientation -= that.orientation;
+		if (other.supermote) {
+			other.supermote.submotes = other.supermote.submotes.without(other);
+		}
 		other.supermote = that;
-		other.velocity = $V([0, 0]);
 
 		that.submotes.append(other);
 	};
@@ -466,6 +476,7 @@ flux.mote = function(spec) {
 	that.detach = function(other) {
 		other.pos = other.absolute();
 		other.orientation += that.orientation;
+		other.supermote.submotes = other.supermote.submotes.without(other);
 		other.supermote = null;
 		other.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
 
@@ -513,6 +524,68 @@ flux.mote = function(spec) {
 				}
 			});
 		}
+
+		that.total = that.absolute();
+	};
+
+	that.supermotes = function() {
+		if (that.supermote === null) {
+			return [];
+		} else {
+			return that.supermote.supermotes().append(that.supermote);
+		}
+	};
+
+	that.commonSupermote = function(other) {
+		if (that.supermote === null || other.supermote === null) {
+			return null;
+		}
+
+		var ownSupermotes = that.supermotes();
+		var otherSupermotes = other.supermotes();
+
+		var n = ownSupermotes.length - 1;
+		var common = null;
+		var down = -1;
+		var possible = null;
+
+		while (!common && n >= 0) {
+			possible = ownSupermotes[n];
+			down = otherSupermotes.indexOf(possible);
+			if (down >= 0) {
+				common = possible;
+			} else {
+				n -= 1;
+			}
+		}
+
+		return {
+			common: common,
+			up: ownSupermotes.length - 1 - n,
+			down: down === -1 ? otherSupermotes.length : otherSupermotes.length - 1 - down,
+
+			own: ownSupermotes,
+			other: otherSupermotes
+		};
+	};
+
+	that.relativePos = function(other) {
+		if (that.supermote === other.supermote) {
+			return other.pos;
+		}
+
+		var common = that.commonSupermote(other);
+		var transformed = other.pos;
+
+		for (var extro = 0; extro < common.down; extro++) {
+			transformed = common.other[(common.other.length - 1) - extro].extrovert(transformed);
+		}
+
+		for (var intro = 0; intro < common.up; intro++) {
+			transformed = common.own[(common.own.length - common.up) + intro].introvert(transformed);
+		}
+
+		return transformed;
 	};
 
 	that.distance = function(other) {
@@ -577,7 +650,21 @@ flux.mote = function(spec) {
 		});
 
 		context.restore();
+
+		if (that.neighbors.length > 1) {
+			that.neighbors.each(function(neighbor) {
+				context.lineWidth = 3;
+				context.beginPath();
+				context.moveTo.apply(context, that.pos.elements);
+				context.lineTo.apply(context, that.relativePos(neighbor).elements);
+//				context.lineTo.apply(context, neighbor.pos.elements);
+				context.closePath();
+				context.stroke();
+			});
+		}
 	};
+
+	that.total = that.absolute();
 
 	return that;
 };
@@ -600,6 +687,8 @@ flux.canvas = function(spec) {
 	that.translation = spec.translation || $V([0, 0]);
 	that.orientation = spec.orientation || 0;
 	that.scale = spec.scale || $V([1, 1]);
+
+	that.globalDraw = spec.globalDraw || function(context) {};
 
 	var time = function() {
 		return new Date().getTime();
@@ -639,6 +728,10 @@ flux.canvas = function(spec) {
 		context.translate(that.translation.o(0), that.translation.o(1));
 		context.rotate(that.orientation);
 		context.scale(that.scale.o(0), that.scale.o(1));
+
+// 		context.save();
+// 		that.globalDraw(context);
+// 		context.restore();
 
 		that.motes.invoke("draw", context);
 
@@ -698,13 +791,8 @@ flux.canvas = function(spec) {
 
 		// find out which motes are newly under the mouse
 		that.motes.invoke('findIn', mouse, mouse.pos);
-// 		that.motes.each(function(mote) {
-// 			if (mote.contains(mouse.pos) && !mouse.inside.include(mote)) {
-// 				mouse.inside.append(mote);
-// 				mote.mouseIn(mouse);
-// 			}
-// 		});
 
+		// call custom mouse move function, if one is defined
 		that.move(mouse);
 	};
 

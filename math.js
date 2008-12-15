@@ -76,63 +76,10 @@ Math.pointWithin = function(point, polygon) {
 };
 
 // build a kdtree for nearest neighbor comparisons
-Math.kdtree = function(elements, property, depth) {
-	var nullNode = function() {
-		return {
-			add: function(el, depth) {
-				return node(el, nullNode(), nullNode());
-			},
-
-			within: function(pos, best, depth, n) {
-				return best;
-			},
-
-			nearest: function(pos, depth, n) {
-				return {
-					nodes: [],
-					closest: Infinity,
-
-					add: function(node, distance) {
-						if (distance === undefined) {
-							distance = pos.nonrootDistance(node.value[property]);
-						}
-
-						this.nodes.append({node: node, distance: distance});
-						if (distance < this.closest) {
-							this.closest = distance;
-						}
-
-						return this;
-					},
-
-					replace: function(gone, now, distance) {
-						this.nodes = this.nodes.without(gone);
-						this.add(now, distance);
-
-						return this;
-					},
-
-					merge: function(other) {
-						this.nodes = this.nodes.concat(other.nodes);
-						this.nodes = this.nodes.sort(function(a, b) {
-							return a.distance < b.distance;
-						}).slice(0, n);
-
-						if (other.closest < this.closest) {
-							this.closest = other.closest;
-						}
-
-						return this;
-					}
-				};
-			}
-		};
-	};
-
-	if (elements.length === 0) {return nullNode();};
+Math.kdtree = function(elements, property) {
+	if (elements.length === 0) {return null;};
 
 	var dimension = elements.first()[property].elements.length;
-	var axis = depth % dimension;
 
 	var along = function(el, axis) {
 		return el[property].elements[axis];
@@ -149,72 +96,140 @@ Math.kdtree = function(elements, property, depth) {
 			right: right
 		};
 
+		that.nearest = function(pos, n) {
+			n = n || 1;
+
+			var results = function() {
+				var that = {
+					nodes: [],
+					farthest: 0
+				};
+
+				that.add = function(node, distance) {
+					if (distance === undefined) {
+						distance = pos.nonrootDistance(node.value[property]);
+					}
+
+					that.nodes.append({node: node, distance: distance});
+					if (distance > that.farthest) {
+						that.farthest = distance;
+					}
+
+					return that;
+				};
+
+				that.findFarthest = function() {
+					return that.nodes.inject(0, function(farthest, node) {
+						return Math.max(farthest, node.distance);
+					});
+				};
+
+				that.remove = function(gone) {
+					that.nodes = that.nodes.without(gone);
+					if (that.farthest === gone.distance) {
+						that.farthest = that.findFarthest();
+					}
+				};
+
+				that.replace = function(gone, now, distance) {
+					that.remove(gone);
+					that.add(now, distance);
+
+					return that;
+				};
+
+				return that;
+			};
+
+			var check = function(at, best, depth) {
+				if (best.nodes.length < n) {
+					return best.add(at);
+				} else {
+					var distance = pos.nonrootDistance(at.value[property]);
+					var farther = best.nodes.find(function(node) {
+						return node.distance > distance;
+					});
+
+					return farther ? best.replace(farther, at, distance) : best;
+				}
+			};
+
+			var within = function(at, best, depth) {
+				if (at === null) {
+					return best;
+				}
+
+				var axis = depth % dimension;
+				var index = pos.dup();
+				index.elements[axis] = at.value[property].o(axis);
+
+				var distance = pos.nonrootDistance(index);
+				if (distance < best.farthest) {
+					best = check(at, best, depth);
+					var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
+					best = within(at[mirror(way)], best, depth+1);
+					return within(at[way], best, depth+1);
+				} else {
+					return best;
+				}
+			};
+
+			var recur = function(at, best, depth) {
+				if (at === null) {
+					return best;
+				}
+
+				var axis = depth % dimension;
+				var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
+
+				best = recur(at[way], best, depth+1);
+				check(at, best, depth);
+
+				return within(at[mirror(way)], best, depth+1);
+			};
+
+			return recur(that, results(), 0).nodes.map(function(node) {
+				return node.node.value;
+			});
+		};
+
 		that.add = function(el, depth) {
 			var axis = depth % dimension;
 			var way = along(el, axis) < along(that.value, axis) ? 'left' : 'right';
 
-			that[way] = that[way].add(el, depth+1);
+			if (that[way] === null) {
+				that[way] = node(el, null, null);
+			} else {
+				that[way].add(el, depth+1);
+			}
 
 			return that;
-		};
-
-		that.check = function(pos, best, depth, n) {
-			if (best.nodes.length < n) {
-				return best.add(that);
-			} else {
-				var distance = pos.nonrootDistance(that.value[property]);
-				var further = best.nodes.find(function(node) {
-					return node.distance > distance;
-				});
-
-				if (further) {
-					best = best.replace(further, that);
-				}
-
-				return best;
-			}
-		};
-
-		that.within = function(pos, best, depth, n) {
-			var axis = depth % dimension;
-			var index = pos.dup();
-			index.elements[axis] = that.value[property].o(axis);
-
-			var distance = pos.nonrootDistance(index);
-			if (distance < best.closest) {
-				return best.merge(that.nearest(pos, depth, n));
-			} else {
-				return best;
-			}
-		};
-
-		that.nearest = function(pos, depth, n) {
-			var axis = depth % dimension;
-			var way = pos.o(axis) < along(that.value, axis) ? 'left' : 'right';
-			n = n || 1;
-
-			var best = that[way].nearest(pos, depth+1, n);
-			that.check(pos, best, depth, n);
-
-			best = that[mirror(way)].within(pos, best, depth+1, n);
 		};
 
 		return that;
 	};
 
-	var sorted = elements.sort(function(left, right) {
-		var l = along(left, axis);
-		var r = along(right, axis);
+	var recur = function(elements, depth) {
+		if (elements.length < 1) {
+			return null;
+		}
 
-		return l < r ? -1 : l > r ? 1 : 0;
-	});
+		var axis = depth % dimension;
+		var sorted = elements.sort(function(left, right) {
+			var l = along(left, axis);
+			var r = along(right, axis);
 
-	var median = Math.floor(elements.length / 2);
+			return l < r ? -1 : l > r ? 1 : 0;
+		});
 
-	var left = Math.kdtree(sorted.slice(0, median), property, depth+1);
-	var right = Math.kdtree(sorted.slice(median+1), property, depth+1);
+		var median = Math.floor(elements.length / 2);
+		var left = recur(sorted.slice(0, median), depth+1);
+		var right = recur(sorted.slice(median+1), depth+1);
 
-	return node(sorted[median], left, right);
+		return node(sorted[median], left, right);
+	};
+
+	return recur(elements, 0);
 };
 
 Math.testAllThisShizn = function() {
