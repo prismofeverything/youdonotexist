@@ -747,7 +747,20 @@ var homeostasis = function(id) {
 		id: id,
 		motes: membranes.concat(ligands),
  		scale: $V([0.2, 0.2]),
- 		translation: $V([600, 220])
+ 		translation: $V([600, 220]),
+
+		down: function(mouse) {
+			if (this.zoomedIn) {
+				this.scale = $V([0.2, 0.2]);
+				this.zoomedIn = false;
+				this.translation = this.oldTranslation;
+			} else {
+				this.scale = $V([0.8, 0.8]);
+				this.zoomedIn = true;
+				this.oldTranslation = this.translation;
+				this.translation = mouse.pos.add(this.translation).subtract(membranes.first().pos).times(this.scale).times($V([-0.8, -1])).add($V([900, -50]));
+			}
+		}
 	};
 
 	var world = flux.canvas(spec);
