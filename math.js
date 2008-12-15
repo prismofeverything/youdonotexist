@@ -83,8 +83,48 @@ Math.kdtree = function(elements, property, depth) {
 				return node(el, nullNode(), nullNode());
 			},
 
-			find: function(pos, depth, n) {
-				return [];
+			within: function(pos, best, depth, n) {
+				return best;
+			},
+
+			nearest: function(pos, depth, n) {
+				return {
+					nodes: [],
+					closest: Infinity,
+
+					add: function(node, distance) {
+						if (distance === undefined) {
+							distance = pos.nonrootDistance(node.value[property]);
+						}
+
+						this.nodes.append({node: node, distance: distance});
+						if (distance < this.closest) {
+							this.closest = distance;
+						}
+
+						return this;
+					},
+
+					replace: function(gone, now, distance) {
+						this.nodes = this.nodes.without(gone);
+						this.add(now, distance);
+
+						return this;
+					},
+
+					merge: function(other) {
+						this.nodes = this.nodes.concat(other.nodes);
+						this.nodes = this.nodes.sort(function(a, b) {
+							return a.distance < b.distance;
+						}).slice(0, n);
+
+						if (other.closest < this.closest) {
+							this.closest = other.closest;
+						}
+
+						return this;
+					}
+				};
 			}
 		};
 	};
@@ -109,13 +149,6 @@ Math.kdtree = function(elements, property, depth) {
 			right: right
 		};
 
-		var nodeDistance = function(el, pos) {
-			return {
-				node: el,
-				distance: pos.nonrootDistance(el[property])
-			};
-		};
-
 		that.add = function(el, depth) {
 			var axis = depth % dimension;
 			var way = along(el, axis) < along(that.value, axis) ? 'left' : 'right';
@@ -125,16 +158,45 @@ Math.kdtree = function(elements, property, depth) {
 			return that;
 		};
 
+		that.check = function(pos, best, depth, n) {
+			if (best.nodes.length < n) {
+				return best.add(that);
+			} else {
+				var distance = pos.nonrootDistance(that.value[property]);
+				var further = best.nodes.find(function(node) {
+					return node.distance > distance;
+				});
+
+				if (further) {
+					best = best.replace(further, that);
+				}
+
+				return best;
+			}
+		};
+
+		that.within = function(pos, best, depth, n) {
+			var axis = depth % dimension;
+			var index = pos.dup();
+			index.elements[axis] = that.value[property].o(axis);
+
+			var distance = pos.nonrootDistance(index);
+			if (distance < best.closest) {
+				return best.merge(that.nearest(pos, depth, n));
+			} else {
+				return best;
+			}
+		};
+
 		that.nearest = function(pos, depth, n) {
 			var axis = depth % dimension;
 			var way = pos.o(axis) < along(that.value, axis) ? 'left' : 'right';
 			n = n || 1;
 
-			var best = that[way].find(pos, depth+1, n);
+			var best = that[way].nearest(pos, depth+1, n);
+			that.check(pos, best, depth, n);
 
-			if (best.length < n) {
-				best.append(nodeDistance(that, pos));
-			}
+			best = that[mirror(way)].within(pos, best, depth+1, n);
 		};
 
 		return that;
