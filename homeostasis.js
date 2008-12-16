@@ -69,10 +69,10 @@ var homeostasis = function(id) {
 		that.polarity = -1;
 
 		that.unattached = function(env) {
-			if (that.closestReceptor === null || that.closestReceptor.taken) {
-				that.closestReceptor = that.findClosest(membranes.first().receptors, function(receptor) {
-					return receptor.taken === false;
-				});
+			if (!exists(that.closestReceptor) || that.closestReceptor.taken) {
+				that.closestReceptor = membranes.first().receptors.nearest(that.absolute(), 1, function(receptor) {
+ 					return receptor.taken === false;
+ 				}).first();
 			}
 
 			if (exists(that.closestReceptor)) {
@@ -80,7 +80,7 @@ var homeostasis = function(id) {
 
 				if (distance > 1) {
 					that.future.append(function(self) {
-						that.velocity = that.velocity.add(that.to(that.closestReceptor).x(0.2/(distance))).scaleTo(velocityScale);
+						that.velocity = that.velocity.add(that.to(that.closestReceptor).x(20/(distance))).scaleTo(velocityScale*globalVelocity);
 					});
 				} else {
 					that.future.append(function(self) {
@@ -98,7 +98,7 @@ var homeostasis = function(id) {
 
 		that.attached = function(env) {
 			if (Math.random() > receptorGrip) {
-				that.velocity = $V([Math.random()-0.5, Math.random()-1]).x(globalVelocity);
+				that.velocity = that.closestReceptor.column.absolute().subtract(that.absolute()).scaleTo(globalVelocity);
 				that.rotation = defaultRotation();
 
 				that.perceive = that.detached;
@@ -108,7 +108,7 @@ var homeostasis = function(id) {
 		};
 
 		that.detached = function(env) {
-			if (that.pos.o(0) < -10 || that.pos.o(1) < -10) {
+			if (that.total.o(0) < -10 || that.total.o(1) < -10) {
 				that.pos = randomPos(offscreen);
 				that.perceive = that.unattached;
 			}
@@ -172,8 +172,8 @@ var homeostasis = function(id) {
 		});
 
 		// receptors and cheWs are part of columns, but we make a reference for them here
-		that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
-		that.cheWs = that.columns.map(function(column) {return column.cheW;});
+		that.receptors = Math.kdtree(that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);}), 'pos');
+		that.cheWs = Math.kdtree(that.columns.map(function(column) {return column.cheW;}), 'pos');
 
 		that.phosphates = $R(0, 20).map(function(index) {
 			return randomMolecule(phosphate, inside);
@@ -204,14 +204,6 @@ var homeostasis = function(id) {
 			receptor.cheW = that.cheWs[index];
 		});
 
-		that.aware = that.cheWs
-			.concat(that.phosphates)
-			.concat(that.methyls)
-			.concat(that.cheYs)
-			.concat(that.cheZs)
-			.concat(that.cheBs)
-			.concat(that.cheRs);
-
 		that.submotes = that.columns
 			.concat(that.phosphates)
 			.concat(that.methyls)
@@ -226,7 +218,7 @@ var homeostasis = function(id) {
 
 		that.perceive = function(env) {
 			that.tree = Math.kdtree(that.submotes, 'total', 0);
-			that.aware.each(function(submote) {
+			that.submotes.each(function(submote) {
 				submote.neighbors = that.tree.nearest(submote.absolute(), 5);
 				submote.perceive(env);
 			});
@@ -248,20 +240,17 @@ var homeostasis = function(id) {
 			flux.op.bezier({to: $V([-50, -50]), control1: $V([-40, 0]), control2: $V([-60, -50])})
 		]});
 
-		spec.perceive = function(env) {
-			return null;
-		};
-
 		var that = molecule(spec);
 
-		that.receptors = [
-			receptor({supermote: that, pos: $V([0, -18]), column: that}),
-			receptor({supermote: that, pos: $V([-25, -42]), column: that}),
-			receptor({supermote: that, pos: $V([-17, -26]), column: that}),
-			receptor({supermote: that, pos: $V([17, -26]), column: that}),
-			receptor({supermote: that, pos: $V([25, -42]), column: that})
-		];
 		that.cheW = cheW({supermote: that, pos: $V([0, 100]), orientation: 0, column: that});
+		that.receptors = [
+			receptor({supermote: that, pos: $V([0, -18]), column: that, cheW: that.cheW}),
+			receptor({supermote: that, pos: $V([-25, -42]), column: that, cheW: that.cheW}),
+			receptor({supermote: that, pos: $V([-17, -26]), column: that, cheW: that.cheW}),
+			receptor({supermote: that, pos: $V([17, -26]), column: that, cheW: that.cheW}),
+			receptor({supermote: that, pos: $V([25, -42]), column: that, cheW: that.cheW})
+		];
+		that.submotes = [that.cheW].concat(that.receptors);
 
 		that.level = 0;
 
@@ -288,7 +277,6 @@ var homeostasis = function(id) {
 		};
 
 		that.perceive = that.inactive;
-		that.submotes = [that.cheW].concat(that.receptors);
 
 		return that;
 	};
@@ -300,6 +288,7 @@ var homeostasis = function(id) {
 		var that = molecule(spec);
 
 		that.column = spec.column;
+		that.cheW = spec.cheW;
 
 		that.taken = false;
 		that.ligand = null;

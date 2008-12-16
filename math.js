@@ -61,11 +61,11 @@ Math.angleFromPoints = function(a, b, c) {
 Math.windingSubtend = function(point, polygon) {
 	var previous = polygon.last();
 	return polygon.inject(0, function(sum, vertex) {
-		var angle = Math.angleFromPoints(point, previous, vertex);
-		previous = vertex;
+							  var angle = Math.angleFromPoints(point, previous, vertex);
+							  previous = vertex;
 
-		return angle + sum;
-	});
+							  return angle + sum;
+						  });
 };
 
 // if the sum of all subtended angles is 2*pi
@@ -96,8 +96,9 @@ Math.kdtree = function(elements, property) {
 			right: right
 		};
 
-		that.nearest = function(pos, n) {
+		that.nearest = function(pos, n, predicate) {
 			n = n || 1;
+			predicate = predicate || function(all) {return true;};
 
 			var results = function() {
 				var that = {
@@ -132,8 +133,10 @@ Math.kdtree = function(elements, property) {
 				};
 
 				that.replace = function(gone, now, distance) {
-					that.remove(gone);
-					that.add(now, distance);
+					if (predicate(now.value)) {
+						that.remove(gone);
+						that.add(now, distance);
+					}
 
 					return that;
 				};
@@ -142,15 +145,19 @@ Math.kdtree = function(elements, property) {
 			};
 
 			var check = function(at, best, depth) {
-				if (best.nodes.length < n) {
-					return best.add(at);
-				} else {
-					var distance = pos.nonrootDistance(at.value[property]);
-					var farther = best.nodes.find(function(node) {
-						return node.distance > distance;
-					});
+				if (predicate(at.value)) {
+					if (best.nodes.length < n) {
+						return best.add(at);
+					} else {
+						var distance = pos.nonrootDistance(at.value[property]);
+						var farther = best.nodes.find(function(node) {
+														  return node.distance > distance;
+													  });
 
-					return farther ? best.replace(farther, at, distance) : best;
+						return farther ? best.replace(farther, at, distance) : best;
+					}
+				} else {
+					return best;
 				}
 			};
 
@@ -204,6 +211,16 @@ Math.kdtree = function(elements, property) {
 			}
 
 			return that;
+		};
+
+		that.each = function(func) {
+			func(that.value);
+
+			if (exists(that.left)) {
+				that.left.each(func);
+			} else if (exists(that.right)) {
+				that.right.each(func);
+			}
 		};
 
 		return that;
