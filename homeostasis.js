@@ -481,14 +481,14 @@ var homeostasis = function(id) {
 			if (exists(that.phosphate)) {
 				that.phosphorylated();
 			} else {
-				if (that.activeCheW === null || !that.activeCheW.active) {
+				if (!exists(that.activeCheW) || !that.activeCheW.active) {
 					if (that.activeCheW && !that.activeCheW.active) {
 						switchedOff = true;
 					}
 
-					that.activeCheW = that.findClosest(membranes.first().cheWs, function(cheW) {
+					that.activeCheW = membranes.first().cheWs.nearest(that.absolute(), 1, function(cheW) {
 						return cheW.active;
-					});
+					}).first();
 				}
 
 				if (exists(that.activeCheW)) {
@@ -575,7 +575,7 @@ var homeostasis = function(id) {
 		that.nearCheW = function() {
 			var switchedOff = false;
 
-			if (that.nearestPhosphate === null || that.nearestPhosphate.attached) {
+			if (!exists(that.nearestPhosphate) || that.nearestPhosphate.attached) {
 				if (that.nearestPhosphate && that.nearestPhosphate.attached) {
 					switchedOff = true;
 				}
