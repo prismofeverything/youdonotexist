@@ -77,10 +77,6 @@ Object.extend(Object, {
 			'splice' in object && 'join' in object;
 	},
 
-	isHash: function(object) {
-		return object instanceof Hash;
-	},
-
 	isFunction: function(object) {
 		return typeof object == "function";
 	},

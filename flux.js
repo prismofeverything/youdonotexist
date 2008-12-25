@@ -651,6 +651,7 @@ flux.mote = function(spec) {
 
 		context.restore();
 
+		// drawing lines to neighbors
 		if (that.neighbors.length > 1) {
 			that.neighbors.each(function(neighbor) {
 				context.lineWidth = 3;

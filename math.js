@@ -1,3 +1,6 @@
+Math.greater = function(where, to) {return where >= to;};
+Math.less = function(where, to) {return where <= to;};
+
 Vector.prototype.o = function(i) {
 	return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
 };
