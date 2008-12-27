@@ -22,9 +22,16 @@ Vector.prototype.inverse = function() {
 };
 
 Vector.prototype.times = function(other) {
-	return $V(this.elements.map(function(el, index) {
-		return el * other.o(index);
-	}));
+	var result = [];
+	for (var o=0; o<this.elements.length; o++) {
+		result[o] = this.elements[o] * other.elements[o];
+	}
+
+	return $V(result);
+
+// 	return $V(this.elements.map(function(el, index) {
+// 		return el * other.o(index);
+// 	}));
 };
 
 Vector.prototype.nonrootDistance = function(other) {

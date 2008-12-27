@@ -515,15 +515,15 @@ flux.mote = function(spec) {
 			submote.adjust();
 		});
 
-		if (that.bounds) {
-			var check = that.bounds.check(that.pos);
+// 		if (that.bounds) {
+// 			var check = that.bounds.check(that.pos);
 
-			check.each(function(result, index) {
-				if (!(result === 0)) {
-					that.velocity.elements[index] = -that.velocity.elements[index];
-				}
-			});
-		}
+// 			check.each(function(result, index) {
+// 				if (!(result === 0)) {
+// 					that.velocity.elements[index] = -that.velocity.elements[index];
+// 				}
+// 			});
+// 		}
 
 		that.total = that.absolute();
 	};
@@ -629,7 +629,6 @@ flux.mote = function(spec) {
 	that.draw = function(context) {
 		context.save();
 
-//		context[that.fill + "Style"] = that.color_spec();
 		context[that.fill + "Style"] = that.color_cache;
 		context.lineWidth = that.lineWidth;
 		context.translate(that.pos.o(0), that.pos.o(1));
