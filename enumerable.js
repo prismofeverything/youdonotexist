@@ -300,7 +300,7 @@ var $break = { };
 var Enumerable = {
 	each: function(iterator, context) {
 		var index = 0;
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		try {
 			this._each(function(value) {
 						   iterator(value, index++);
@@ -312,7 +312,7 @@ var Enumerable = {
 	},
 
 	eachSlice: function(number, iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var index = -number, slices = [], array = this.toArray();
 		while ((index += number) < array.length)
 			slices.push(array.slice(index, index+number));
@@ -320,7 +320,7 @@ var Enumerable = {
 	},
 
 	all: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var result = true;
 		this.each(function(value, index) {
 					  result = result && !!iterator(value, index);
@@ -330,7 +330,7 @@ var Enumerable = {
 	},
 
 	any: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var result = false;
 		this.each(function(value, index) {
 					  if (result = !!iterator(value, index))
@@ -340,7 +340,7 @@ var Enumerable = {
 	},
 
 	collect: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var results = [];
 		this.each(function(value, index) {
 					  results.push(iterator(value, index));
@@ -349,7 +349,7 @@ var Enumerable = {
 	},
 
 	detect: function(iterator, context) {
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		var result;
 		this.each(function(value, index) {
 					  if (iterator(value, index)) {
@@ -361,7 +361,7 @@ var Enumerable = {
 	},
 
 	findAll: function(iterator, context) {
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		var results = [];
 		this.each(function(value, index) {
 					  if (iterator(value, index))
@@ -371,7 +371,7 @@ var Enumerable = {
 	},
 
 	grep: function(filter, iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var results = [];
 
 		if (Object.isString(filter))
@@ -407,7 +407,7 @@ var Enumerable = {
 	},
 
 	inject: function(memo, iterator, context) {
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		this.each(function(value, index) {
 					  memo = iterator(memo, value, index);
 				  });
@@ -422,7 +422,7 @@ var Enumerable = {
 	},
 
 	max: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var result;
 		this.each(function(value, index) {
 					  value = iterator(value, index);
@@ -433,7 +433,7 @@ var Enumerable = {
 	},
 
 	min: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var result;
 		this.each(function(value, index) {
 					  value = iterator(value, index);
@@ -444,7 +444,7 @@ var Enumerable = {
 	},
 
 	partition: function(iterator, context) {
-		iterator = iterator ? iterator.bind(context) : Object.K;
+//		iterator = iterator ? iterator.bind(context) : Object.K;
 		var trues = [], falses = [];
 		this.each(function(value, index) {
 					  (iterator(value, index) ?
@@ -462,7 +462,7 @@ var Enumerable = {
 	},
 
 	reject: function(iterator, context) {
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		var results = [];
 		this.each(function(value, index) {
 					  if (!iterator(value, index))
@@ -472,7 +472,7 @@ var Enumerable = {
 	},
 
 	sortBy: function(iterator, context) {
-		iterator = iterator.bind(context);
+//		iterator = iterator.bind(context);
 		return this.map(function(value, index) {
 							return {value: value, criteria: iterator(value, index)};
 						}).sort(function(left, right) {

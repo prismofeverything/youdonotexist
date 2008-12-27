@@ -105,63 +105,42 @@ Math.kdtree = function(elements, property) {
 
 			var results = function() {
 				var that = {
-					nodes: [],
-					farthest: 0
+					nodes: []
 				};
 
-				that.add = function(node, distance) {
-					if (distance === undefined) {
-						distance = pos.nonrootDistance(node.value[property]);
+				// insert neighbors sorted by distance, so that the last element
+				// in the list is always the furthest away.
+				that.insert = function(node, distance) {
+					distance = distance || pos.nonrootDistance(node.value[property]);
+
+					if (that.nodes.length === 0) {
+						that.nodes[0] = {node: node, distance: distance};
+					} else {
+						var index = that.nodes.length;
+						while (index > 0 && that.nodes[index-1].distance > distance)
+						{
+							that.nodes[index] = that.nodes[index-1];
+							index--;
+						}
+						that.nodes[index] = {node: node, distance: distance};
 					}
 
-					that.nodes.append({node: node, distance: distance});
-					if (distance > that.farthest) {
-						that.farthest = distance;
-					}
-
-					return that;
-				};
-
-				that.findFarthest = function() {
-					return that.nodes.inject(0, function(farthest, node) {
-						return Math.max(farthest, node.distance);
-					});
-				};
-
-				that.remove = function(gone) {
-					that.nodes = that.nodes.without(gone);
-					if (that.farthest === gone.distance) {
-						that.farthest = that.findFarthest();
-					}
-				};
-
-				that.replace = function(gone, now, distance) {
-					if (predicate(now.value)) {
-						that.remove(gone);
-						that.add(now, distance);
+					if (that.nodes.length > n) {
+						that.nodes.pop();
 					}
 
 					return that;
+				};
+
+				that.farthest = function() {
+					return that.nodes[that.nodes.length-1] ? that.nodes[that.nodes.length-1].distance : Infinity;
 				};
 
 				return that;
 			};
 
 			var check = function(at, best, depth) {
-				if (predicate(at.value)) {
-					if (best.nodes.length < n) {
-						return best.add(at);
-					} else {
-						var distance = pos.nonrootDistance(at.value[property]);
-						var farther = best.nodes.find(function(node) {
-														  return node.distance > distance;
-													  });
-
-						return farther ? best.replace(farther, at, distance) : best;
-					}
-				} else {
-					return best;
-				}
+				return predicate(at.value) ? best.insert(at) : best;
 			};
 
 			var within = function(at, best, depth) {
@@ -174,9 +153,11 @@ Math.kdtree = function(elements, property) {
 				index.elements[axis] = at.value[property].o(axis);
 
 				var distance = pos.nonrootDistance(index);
-				if (distance < best.farthest) {
+				if (distance < best.farthest()) {
 					best = check(at, best, depth);
+
 					var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
+
 					best = within(at[mirror(way)], best, depth+1);
 					return within(at[way], best, depth+1);
 				} else {

@@ -31,8 +31,8 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 	that[0] = that.x;
 	that[1] = that.y;
 
-	that.extreme = function(tendency) {
-		return [that[0][tendency], that[1][tendency]];
+	that.extreme = function(way) {
+		return [that[0][way], that[1][way]];
 	};
 
 	that.range = function(axis) {
@@ -89,13 +89,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 
 	that.check = function(point) {
 		return point.elements.map(function(a, index) {
-			if (a < that[index][0]) {
-				return -1;
-			} else if(a > that[index][1]) {
-				return 1;
-			} else {
-				return 0;
-			}
+			return (a < that[index][0]) ? - 1 : (a > that[index][1]) ? 1 : 0;
 		});
 	};
 
@@ -334,6 +328,7 @@ flux.tweenV = function(spec) {
 	that.property = spec.property || 'this';
 	that.to = spec.to || $V([1, 1]);
 	that.cycles = spec.cycles || 10;
+	that.postcycle = spec.postcycle || function() {};
 
 	that.vector = function() {
 		return that.obj[that.property];
@@ -354,6 +349,8 @@ flux.tweenV = function(spec) {
 
 	that.cycle = function() {
 		that.tweens = that.tweens.select(function(tween) {return tween.cycle();});
+		that.postcycle();
+
 		return that.tweens.length > 0;
 	};
 
@@ -450,7 +447,10 @@ flux.mote = function(spec) {
 			obj: that,
 			property: 'color',
 			to: color,
-			cycles: cycles
+			cycles: cycles,
+			postcycle: function() {
+				that.color_cache = that.color_spec();
+			}
 		}));
 
 		return that;
@@ -498,9 +498,9 @@ flux.mote = function(spec) {
 			that.orientation += Math.PI*2;
 		}
 
-		$R(0, that.pos.dimensions()-1).each(function(index) {
-			that.pos.elements[index] += that.velocity.o(index);
-		});
+		for (var dim=0; dim < that.pos.dimensions(); dim++) {
+			that.pos.elements[dim] += that.velocity.o(dim);
+		}
 
 		that.future.each(function(moment) {
 			moment(that);
@@ -629,7 +629,8 @@ flux.mote = function(spec) {
 	that.draw = function(context) {
 		context.save();
 
-		context[that.fill + "Style"] = that.color_spec();
+//		context[that.fill + "Style"] = that.color_spec();
+		context[that.fill + "Style"] = that.color_cache;
 		context.lineWidth = that.lineWidth;
 		context.translate(that.pos.o(0), that.pos.o(1));
 		context.rotate(that.orientation);
@@ -666,6 +667,7 @@ flux.mote = function(spec) {
 	};
 
 	that.total = that.absolute();
+	that.color_cache = that.color_spec();
 
 	return that;
 };

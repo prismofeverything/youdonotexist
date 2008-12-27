@@ -17,10 +17,10 @@ Math.supertriangle = function(points) {
 		return extreme;
 	});
 
-	
+
 };
 
-Math.delauney = function(points, supertriangle) {
+Math.delaunay = function(points, supertriangle) {
 	supertriangle = supertriangle || Math.supertriangle(points);
 };
 
