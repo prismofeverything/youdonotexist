@@ -361,12 +361,7 @@ var homeostasis = function(id) {
 			that.active = true;
 
 			that.tweens = [];
-			that.tweens.append(flux.tweenV({
-				obj: that,
-				property: 'color',
-				to: activeColor,
-				cycles: 20
-			}));
+			that.tweenColor(activeColor, 20);
 
 			membranes.first().cheWSeekers.each(function(seeker) {
 				if (seeker.activeCheW) {
@@ -381,12 +376,7 @@ var homeostasis = function(id) {
 			that.active = false;
 
 			that.tweens = [];
-			that.tweens.append(flux.tweenV({
-				obj: that,
-				property: 'color',
-				to: inactiveColor,
-				cycles: 20
-			}));
+			that.tweenColor(inactiveColor, 20);
 		};
 
 		return that;

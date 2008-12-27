@@ -422,18 +422,6 @@ flux.mote = function(spec) {
 		that.submotes.invoke('findIn', mouse, pos);
 	};
 
-	that.introvert = function(pos) {
-//		return pos.subtract(that.pos);
-		return pos.times(that.scale.map(function(el) {return 1.0 / el;})).rotate(-that.orientation, that.pos).subtract(that.pos);
-//		return pos.add(that.pos).rotate(that.orientation, pos).times(that.scale);
-	};
-
-	that.extrovert = function(pos) {
-//		return pos.add(that.pos);
-		return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
-//		return pos.subtract(that.pos);
-	};
-
 	that.color_spec = function() {
 		var inner = that.color.elements.map(function(component) {
 			return Math.floor(component);
@@ -528,12 +516,21 @@ flux.mote = function(spec) {
 		that.total = that.absolute();
 	};
 
-	that.supermotes = function() {
-		if (that.supermote === null) {
-			return [];
-		} else {
-			return that.supermote.supermotes().append(that.supermote);
-		}
+	that.introvert = function(pos) {
+//		return pos.subtract(that.pos);
+		return pos.times(that.scale.map(function(el) {return 1.0 / el;})).rotate(-that.orientation, that.pos).subtract(that.pos);
+//		return pos.add(that.pos).rotate(that.orientation, pos).times(that.scale);
+	};
+
+	that.extrovert = function(pos) {
+//		return pos.add(that.pos);
+		return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
+//		return pos.subtract(that.pos);
+	};
+
+	that.find_supermotes = function() {
+		that.supermotes = (that.supermote === null) ? [] : that.supermote.find_supermotes().append(that.supermote);
+		return that.supermotes;
 	};
 
 	that.commonSupermote = function(other) {
@@ -541,17 +538,15 @@ flux.mote = function(spec) {
 			return null;
 		}
 
-		var ownSupermotes = that.supermotes();
-		var otherSupermotes = other.supermotes();
-
-		var n = ownSupermotes.length - 1;
+		var n = that.supermotes.length - 1;
 		var common = null;
 		var down = -1;
 		var possible = null;
 
 		while (!common && n >= 0) {
-			possible = ownSupermotes[n];
-			down = otherSupermotes.indexOf(possible);
+			possible = that.supermotes[n];
+			down = other.supermotes.indexOf(possible);
+
 			if (down >= 0) {
 				common = possible;
 			} else {
@@ -561,11 +556,8 @@ flux.mote = function(spec) {
 
 		return {
 			common: common,
-			up: ownSupermotes.length - 1 - n,
-			down: down === -1 ? otherSupermotes.length : otherSupermotes.length - 1 - down,
-
-			own: ownSupermotes,
-			other: otherSupermotes
+			up: that.supermotes.length - 1 - n,
+			down: down === -1 ? other.supermotes.length : other.supermotes.length - 1 - down
 		};
 	};
 
@@ -578,11 +570,11 @@ flux.mote = function(spec) {
 		var transformed = other.pos;
 
 		for (var extro = 0; extro < common.down; extro++) {
-			transformed = common.other[(common.other.length - 1) - extro].extrovert(transformed);
+			transformed = other.supermotes[(other.supermotes.length - 1) - extro].extrovert(transformed);
 		}
 
 		for (var intro = 0; intro < common.up; intro++) {
-			transformed = common.own[(common.own.length - common.up) + intro].introvert(transformed);
+			transformed = that.supermotes[(that.supermotes.length - common.up) + intro].introvert(transformed);
 		}
 
 		return transformed;
