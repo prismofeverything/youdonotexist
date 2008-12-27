@@ -28,10 +28,6 @@ Vector.prototype.times = function(other) {
 	}
 
 	return $V(result);
-
-// 	return $V(this.elements.map(function(el, index) {
-// 		return el * other.o(index);
-// 	}));
 };
 
 Vector.prototype.nonrootDistance = function(other) {
@@ -151,9 +147,7 @@ Math.kdtree = function(elements, property) {
 			};
 
 			var within = function(at, best, depth) {
-				if (at === null) {
-					return best;
-				}
+				if (at === null) {return best;}
 
 				var axis = depth % dimension;
 				var index = pos.dup();
@@ -162,10 +156,8 @@ Math.kdtree = function(elements, property) {
 				var distance = pos.nonrootDistance(index);
 				if (distance < best.farthest()) {
 					best = check(at, best, depth);
-
 					var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
 
-					best = within(at[mirror(way)], best, depth+1);
 					return within(at[way], best, depth+1);
 				} else {
 					return best;
