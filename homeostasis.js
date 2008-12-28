@@ -70,9 +70,9 @@ var homeostasis = function(id) {
 
 		that.unattached = function(env) {
 			if (!exists(that.closestReceptor) || that.closestReceptor.taken) {
-				that.closestReceptor = membranes.first().receptors.nearest(that.absolute(), 1, function(receptor) {
+				that.closestReceptor = that.findClosest(membranes.first().receptors, function(receptor) {
  					return receptor.taken === false;
- 				}).first();
+ 				});
 			}
 
 			if (exists(that.closestReceptor)) {
@@ -172,12 +172,13 @@ var homeostasis = function(id) {
 		});
 
 		// receptors and cheWs are part of columns, but we make a reference for them here
-		that.receptors = Math.kdtree(that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);}), 'pos');
-		that.cheWs = Math.kdtree(that.columns.map(function(column) {return column.cheW;}), 'pos');
+		that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
+		that.cheWs = that.columns.map(function(column) {return column.cheW;});
 
 		that.phosphates = $R(0, 20).map(function(index) {
 			return randomMolecule(phosphate, inside);
 		});
+
 		that.methyls = $R(0, 20).map(function(index) {
 			return randomMolecule(methyl, inside);
 		});
@@ -476,9 +477,9 @@ var homeostasis = function(id) {
 						switchedOff = true;
 					}
 
-					that.activeCheW = membranes.first().cheWs.nearest(that.absolute(), 1, function(cheW) {
+					that.activeCheW = that.findClosest(membranes.first().cheWs, function(cheW) {
 						return cheW.active;
-					}).first();
+					});
 				}
 
 				if (exists(that.activeCheW)) {
@@ -726,7 +727,7 @@ var homeostasis = function(id) {
 		id: id,
 		motes: membranes.concat(ligands),
  		scale: $V([0.2, 0.2]),
- 		translation: $V([600, 220]),
+ 		translation: $V([600, 200]),
 
 		down: function(mouse) {
 			if (this.zoomedIn) {

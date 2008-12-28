@@ -232,16 +232,3 @@ Math.kdtree = function(elements, property) {
 	return recur(elements, 0);
 };
 
-Math.testAllThisShizn = function() {
-	var polygon = [$V([0, 0]), $V([0, 2]), $V([1, 3]), $V([2, 2]), $V([2, 0])];
-	var test = [Math.pointWithin($V([1, 1]), polygon),
-				Math.pointWithin($V([-1, -1]), polygon),
-				Math.pointWithin($V([3, 2]), polygon),
-				Math.pointWithin($V([0.5, 0.5]), polygon),
-				Math.pointWithin($V([1, 3]), polygon),
-				Math.pointWithin($V([1, 3.1]), polygon),
-				Math.pointWithin($V([-5, -1]), polygon),
-				Math.pointWithin($V([1, 2.5]), polygon)];
-
-	alert(test.join(' --- '));
-};
