@@ -28,6 +28,10 @@ get '/' do
   render_plasma('youdonotexist')
 end
 
+get '/ben/?' do
+  open_template('ben')
+end
+
 get '/:place/?' do 
   place = params[:place]
   render_plasma(place)
