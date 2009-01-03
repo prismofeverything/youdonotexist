@@ -499,9 +499,10 @@ flux.mote = function(spec) {
 			return tween.cycle();
 		});
 
-		that.submotes.each(function(submote) {
-			submote.adjust();
-		});
+		that.submotes.invoke('adjust');
+// 		that.submotes.each(function(submote) {
+// 			submote.adjust();
+// 		});
 
 // 		if (that.bounds) {
 // 			var check = that.bounds.check(that.pos);
@@ -528,8 +529,8 @@ flux.mote = function(spec) {
 //		return pos.subtract(that.pos);
 	};
 
-	that.find_supermotes = function() {
-		that.supermotes = (that.supermote === null) ? [] : that.supermote.find_supermotes().append(that.supermote);
+	that.findSupermotes = function() {
+		that.supermotes = (that.supermote === null) ? [] : that.supermote.findSupermotes().append(that.supermote);
 		return that.supermotes;
 	};
 
@@ -644,21 +645,22 @@ flux.mote = function(spec) {
 		context.restore();
 
 		// drawing lines to neighbors
-		if (that.neighbors.length > 1) {
-			that.neighbors.each(function(neighbor) {
-				context.lineWidth = 3;
-				context.beginPath();
-				context.moveTo.apply(context, that.pos.elements);
-				context.lineTo.apply(context, that.relativePos(neighbor).elements);
-//				context.lineTo.apply(context, neighbor.pos.elements);
-				context.closePath();
-				context.stroke();
-			});
-		}
+// 		if (that.neighbors.length > 1) {
+// 			that.neighbors.each(function(neighbor) {
+// 				context.lineWidth = 3;
+// 				context.beginPath();
+// 				context.moveTo.apply(context, that.pos.elements);
+// 				context.lineTo.apply(context, that.relativePos(neighbor).elements);
+// //				context.lineTo.apply(context, neighbor.pos.elements);
+// 				context.closePath();
+// 				context.stroke();
+// 			});
+// 		}
 	};
 
 	that.total = that.absolute();
 	that.color_cache = that.color_spec();
+	that.findSupermotes();
 
 	return that;
 };

@@ -8,7 +8,8 @@ var homeostasis = function(id) {
 	var receptorGrip = 0.996;
 	var attractantRepellentRatio = 0.3;
 	var phosphorylationCycles = 50;
-	var globalVelocity = 10;
+	var globalVelocity = 1;
+	var timeZoom = 10;
 
 	var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -16,16 +17,16 @@ var homeostasis = function(id) {
 		var that = flux.mote(spec);
 		that.neighbors = [that];
 
-		that.mouseIn = function(mouse) {
-			that.neighbors.each(function(neighbor) {
-				neighbor.oldColor = neighbor.color.dup();
-				neighbor.tweenColor($V([255, 255, 255, 1]), 10);
-			});
-		};
+// 		that.mouseIn = function(mouse) {
+// 			that.neighbors.each(function(neighbor) {
+// 				neighbor.oldColor = neighbor.color.dup();
+// 				neighbor.tweenColor($V([255, 255, 255, 1]), 10);
+// 			});
+// 		};
 
-		that.mouseOut = function(mouse) {
-			that.tweenColor(that.oldColor, 10);
-		};
+// 		that.mouseOut = function(mouse) {
+// 			that.tweenColor(that.oldColor, 10);
+// 		};
 
 		return that;
 	};
@@ -722,6 +723,12 @@ var homeostasis = function(id) {
 	});
 
  	var membranes = [membrane({pos: $V([0, 985]), orientation: 0})];
+
+	var moleculeKey = function() {
+		var keyItem = function(kind, description) {
+
+		};
+	}();
 
 	var spec = {
 		id: id,
