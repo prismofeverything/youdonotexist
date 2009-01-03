@@ -40,9 +40,9 @@ var homeostasis = function(id) {
 		var inside = up ? above : below;
 
 		if (Math.random() * (attractantRepellentRatio + 1) < attractantRepellentRatio) {
-			return attractant({pos: randomPos(inside)});
+			return {type: 'attractant', ligand: attractant({pos: randomPos(inside)})};
 		} else {
-			return repellent({pos: randomPos(inside)});
+			return {type: 'repellent', ligand: repellent({pos: randomPos(inside)})};
 		}
 	};
 
@@ -718,14 +718,33 @@ var homeostasis = function(id) {
 		return that;
 	};
 
-	var ligands = $R(0, 30).map(function(index) {
-		return randomLigand();
+	var ligands = {
+		attractant: [],
+		repellent: []
+	};
+
+	$R(0, 30).map(function(index) {
+		var one = randomLigand();
+		ligands[one.type].append(one.ligand);
 	});
 
  	var membranes = [membrane({pos: $V([0, 985]), orientation: 0})];
 
+	var visible = {
+		ligand: ligands,
+		membrane: membranes
+	};
+
 	var focusGroups = [
-		""
+		"ligand.attractant",
+		"ligand.repellent",
+		"membrane.0.columns",
+		"membrane.0.phosphates",
+		"membrane.0.methyls",
+		"membrane.0.cheWs",
+		"membrane.0.cheYs",
+		"membrane.0.cheBs",
+		"membrane.0.cheRs"
 	];
 
 	var moleculeFocus = function(group) {
@@ -740,7 +759,7 @@ var homeostasis = function(id) {
 
 	var spec = {
 		id: id,
-		motes: membranes.concat(ligands),
+		motes: membranes.concat(ligands.attractant).concat(ligands.repellent),
  		scale: $V([0.2, 0.2]),
  		translation: $V([600, 200]),
 
