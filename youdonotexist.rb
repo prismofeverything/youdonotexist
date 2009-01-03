@@ -5,6 +5,7 @@ require 'sqlite3'
 
 configure do 
   THIS_DIR = File.dirname(__FILE__)
+  IMG_DIR = File.join(THIS_DIR, 'img')
   TEMPLATES_DIR = File.join(THIS_DIR, 'plasma')
   PLASMA = Plasma::Interpreter::PlasmaInterpreter.new
   DB = SQLite3::Database.open("youdonotexist.db")
@@ -44,10 +45,7 @@ post '/statement/?' do
 end
 
 get '*.*' do 
-  name, ext = params["splat"]
-  ending = ext.gsub(/([^\/]+\/)+/, '')
-  result = File.open(File.join(THIS_DIR, ending)).read
-  result
+  File.open(File.join(THIS_DIR, params["splat"])).read
 end
 
 

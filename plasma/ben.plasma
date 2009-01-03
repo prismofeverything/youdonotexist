@@ -1,7 +1,7 @@
 <html>
   <head>
     <title>Ben</title>
-    <link href="youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+    <link href="/youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
   </head>
   <body>
     <div id="stuff" style="width:600px;margin-left:50px;color:#ddd">

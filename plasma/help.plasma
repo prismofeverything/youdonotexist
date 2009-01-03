@@ -1,9 +1,9 @@
 <html>
   <head>
     <title>Help</title>
-    <script src="prototype.js" type="text/javascript"></script>
-    <script src="youdonotexist.js" type="text/javascript"></script>
-    <link href="youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
+    <script src="/prototype.js" type="text/javascript"></script>
+    <script src="/youdonotexist.js" type="text/javascript"></script>
+    <link href="/youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
   </head>
   <body>
     <div class="youdonotexist">
