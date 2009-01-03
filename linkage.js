@@ -72,3 +72,15 @@ var linkage = function() {
 };
 
 
+Object.prototype.access = function(entry) {
+	if (entry) {
+		var path = entry.split('.');
+		var component = path.shift();
+		var parts = component.match(/([^\(]+)\(([^\)]*)\)/);
+		var found = parts === null ? this[component] : this[parts[1]](parts[2]);
+
+		return found.access(path.join('.'));
+	} else {
+		return this;
+	}
+};

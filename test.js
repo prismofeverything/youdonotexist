@@ -20,7 +20,23 @@ var test = {
 		var id = yellow.watch(observer);
 		yellow(44);
 		yellow.unwatch(id);
-		alert(yellow(55));
-		yellow();
+		yellow(55);
+		alert(yellow());
+
+		var non = {
+			yes: {
+				no: 66,
+				okay: function() {
+					return 999;
+				},
+				maybe: function(thing) {
+					return thing*555;
+				}
+			}
+		};
+
+		alert(non.access("yes.no"));
+		alert(non.access("yes.okay()"));
+		alert(non.access("yes.maybe(96969)"));
 	}
 };

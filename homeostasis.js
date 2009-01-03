@@ -724,6 +724,14 @@ var homeostasis = function(id) {
 
  	var membranes = [membrane({pos: $V([0, 985]), orientation: 0})];
 
+	var focusGroups = [
+		""
+	];
+
+	var moleculeFocus = function(group) {
+
+	};
+
 	var moleculeKey = function() {
 		var keyItem = function(kind, description) {
 
