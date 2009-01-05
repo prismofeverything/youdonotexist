@@ -500,10 +500,10 @@ flux.mote = function(spec) {
 		});
 
 		that.submotes.invoke('adjust');
-// 		that.submotes.each(function(submote) {
-// 			submote.adjust();
-// 		});
 
+
+
+//  ----------- lazy bounds checking ---------------
 // 		if (that.bounds) {
 // 			var check = that.bounds.check(that.pos);
 
@@ -513,6 +513,8 @@ flux.mote = function(spec) {
 // 				}
 // 			});
 // 		}
+//  -------------------------------------------------
+
 
 		that.total = that.absolute();
 	};
@@ -638,9 +640,7 @@ flux.mote = function(spec) {
 		context.closePath();
 		context[that.fill]();
 
-		that.submotes.each(function(submote) {
-			submote.draw(context);
-		});
+		that.submotes.invoke("draw", context);
 
 		context.restore();
 
@@ -656,6 +656,7 @@ flux.mote = function(spec) {
 // 				context.stroke();
 // 			});
 // 		}
+
 	};
 
 	that.total = that.absolute();
@@ -684,7 +685,8 @@ flux.canvas = function(spec) {
 	that.orientation = spec.orientation || 0;
 	that.scale = spec.scale || $V([1, 1]);
 
-	that.globalDraw = spec.globalDraw || function(context) {};
+	that.predraw = spec.predraw || function(context) {};
+	that.postdraw = spec.postdraw || function(context) {};
 
 	var time = function() {
 		return new Date().getTime();
@@ -721,15 +723,14 @@ flux.canvas = function(spec) {
 
 		context.clearRect(0, 0, browser.w, browser.h);
 
+		that.predraw(context);
+
 		context.translate(that.translation.o(0), that.translation.o(1));
 		context.rotate(that.orientation);
 		context.scale(that.scale.o(0), that.scale.o(1));
 
-// 		context.save();
-// 		that.globalDraw(context);
-// 		context.restore();
-
 		that.motes.invoke("draw", context);
+		that.postdraw(context);
 
 		context.restore();
 	};
