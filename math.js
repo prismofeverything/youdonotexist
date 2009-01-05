@@ -85,10 +85,10 @@ Math.pointWithin = function(point, polygon) {
 Math.kdtree = function(elements, property) {
 	if (elements.length === 0) {return null;};
 
-	var dimension = elements.first()[property].elements.length;
+	var dimension = elements.first()[property]().elements.length;
 
 	var along = function(el, axis) {
-		return el[property].elements[axis];
+		return el[property]().elements[axis];
 	};
 
 	var mirror = function(way) {
@@ -114,7 +114,7 @@ Math.kdtree = function(elements, property) {
 				// insert neighbors sorted by distance, so that the last element
 				// in the list is always the furthest away.
 				that.insert = function(node, distance) {
-					distance = distance || pos.nonrootDistance(node.value[property]);
+					distance = distance || pos.nonrootDistance(node.value[property]());
 
 					if (that.nodes.length === 0) {
 						that.nodes[0] = {node: node, distance: distance};
@@ -151,7 +151,7 @@ Math.kdtree = function(elements, property) {
 
 				var axis = depth % dimension;
 				var index = pos.dup();
-				index.elements[axis] = at.value[property].o(axis);
+				index.elements[axis] = at.value[property]().o(axis);
 
 				var distance = pos.nonrootDistance(index);
 				if (distance < best.farthest()) {

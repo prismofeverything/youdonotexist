@@ -109,7 +109,7 @@ var homeostasis = function(id) {
 		};
 
 		that.detached = function(env) {
-			if (that.total.o(0) < -10 || that.total.o(1) < -10) {
+			if (that.absolute().o(0) < -10 || that.absolute().o(1) < -10) {
 				that.pos = randomPos(offscreen);
 				that.perceive = that.unattached;
 			}
@@ -219,7 +219,7 @@ var homeostasis = function(id) {
 		});
 
 		that.perceive = function(env) {
-			that.tree = Math.kdtree(that.submotes, 'total', 0);
+			that.tree = Math.kdtree(that.submotes, 'absolute', 0);
 			that.submotes.each(function(submote) {
 				submote.neighbors = that.tree.nearest(submote.absolute(), 5);
 				submote.perceive(env);

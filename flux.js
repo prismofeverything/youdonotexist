@@ -387,9 +387,11 @@ flux.mote = function(spec) {
 	that.mouseOut = function(mouse) {};
 	that.mouseMove = function(mouse) {};
 
-	that.absolute = function() {
-		return that.supermote ? that.pos.rotate(that.supermote.orientation, $V([0, 0])).add(that.supermote.absolute()).times(that.supermote.scale) : that.pos;
+	var find_absolute = function() {
+		return that.supermote ? that.supermote.extrovert(that.pos) : that.pos; //that.pos.rotate(that.supermote.orientation, $V([0, 0])).add(that.supermote.absolute()).times(that.supermote.scale) : that.pos;
 	};
+
+	that.absolute = cache(find_absolute);
 
 	that.contains = function(point) {
 		return that.box.inside(point.subtract(that.absolute()));
@@ -422,13 +424,15 @@ flux.mote = function(spec) {
 		that.submotes.invoke('findIn', mouse, pos);
 	};
 
-	that.color_spec = function() {
+	var find_color_spec = function() {
 		var inner = that.color.elements.map(function(component) {
 			return Math.floor(component);
 		}).join(', ');
 
 		return "rgba(" + inner + ")";
 	};
+
+	that.color_spec = cache(find_color_spec);
 
 	that.tweenColor = function(color, cycles) {
 		that.tweens.append(flux.tweenV({
@@ -437,7 +441,7 @@ flux.mote = function(spec) {
 			to: color,
 			cycles: cycles,
 			postcycle: function() {
-				that.color_cache = that.color_spec();
+				that.color_spec.expire();
 			}
 		}));
 
@@ -500,7 +504,7 @@ flux.mote = function(spec) {
 		});
 
 		that.submotes.invoke('adjust');
-
+		that.absolute.expire();
 
 
 //  ----------- lazy bounds checking ---------------
@@ -515,40 +519,35 @@ flux.mote = function(spec) {
 // 		}
 //  -------------------------------------------------
 
-
-		that.total = that.absolute();
 	};
 
 	that.introvert = function(pos) {
-//		return pos.subtract(that.pos);
 		return pos.times(that.scale.map(function(el) {return 1.0 / el;})).rotate(-that.orientation, that.pos).subtract(that.pos);
-//		return pos.add(that.pos).rotate(that.orientation, pos).times(that.scale);
 	};
 
 	that.extrovert = function(pos) {
-//		return pos.add(that.pos);
 		return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
-//		return pos.subtract(that.pos);
 	};
 
-	that.findSupermotes = function() {
-		that.supermotes = (that.supermote === null) ? [] : that.supermote.findSupermotes().append(that.supermote);
-		return that.supermotes;
+	that.find_supermotes = function() {
+		return (that.supermote === null) ? [] : that.supermote.supermotes().slice().append(that.supermote);
 	};
+
+	that.supermotes = cache(that.find_supermotes);
 
 	that.commonSupermote = function(other) {
 		if (that.supermote === null || other.supermote === null) {
 			return null;
 		}
 
-		var n = that.supermotes.length - 1;
+		var n = that.supermotes().length - 1;
 		var common = null;
 		var down = -1;
 		var possible = null;
 
 		while (!common && n >= 0) {
-			possible = that.supermotes[n];
-			down = other.supermotes.indexOf(possible);
+			possible = that.supermotes()[n];
+			down = other.supermotes().indexOf(possible);
 
 			if (down >= 0) {
 				common = possible;
@@ -559,8 +558,8 @@ flux.mote = function(spec) {
 
 		return {
 			common: common,
-			up: that.supermotes.length - 1 - n,
-			down: down === -1 ? other.supermotes.length : other.supermotes.length - 1 - down
+			up: that.supermotes().length - 1 - n,
+			down: down === -1 ? other.supermotes().length : other.supermotes().length - 1 - down
 		};
 	};
 
@@ -573,11 +572,11 @@ flux.mote = function(spec) {
 		var transformed = other.pos;
 
 		for (var extro = 0; extro < common.down; extro++) {
-			transformed = other.supermotes[(other.supermotes.length - 1) - extro].extrovert(transformed);
+			transformed = other.supermotes()[(other.supermotes().length - 1) - extro].extrovert(transformed);
 		}
 
 		for (var intro = 0; intro < common.up; intro++) {
-			transformed = that.supermotes[(that.supermotes.length - common.up) + intro].introvert(transformed);
+			transformed = that.supermotes()[(that.supermotes().length - common.up) + intro].introvert(transformed);
 		}
 
 		return transformed;
@@ -624,7 +623,7 @@ flux.mote = function(spec) {
 	that.draw = function(context) {
 		context.save();
 
-		context[that.fill + "Style"] = that.color_cache;
+		context[that.fill + "Style"] = that.color_spec();
 		context.lineWidth = that.lineWidth;
 		context.translate(that.pos.o(0), that.pos.o(1));
 		context.rotate(that.orientation);
@@ -645,23 +644,19 @@ flux.mote = function(spec) {
 		context.restore();
 
 		// drawing lines to neighbors
-// 		if (that.neighbors.length > 1) {
-// 			that.neighbors.each(function(neighbor) {
-// 				context.lineWidth = 3;
-// 				context.beginPath();
-// 				context.moveTo.apply(context, that.pos.elements);
-// 				context.lineTo.apply(context, that.relativePos(neighbor).elements);
-// //				context.lineTo.apply(context, neighbor.pos.elements);
-// 				context.closePath();
-// 				context.stroke();
-// 			});
-// 		}
+		if (that.neighbors.length > 1) {
+			that.neighbors.each(function(neighbor) {
+				context.lineWidth = 3;
+				context.beginPath();
+				context.moveTo.apply(context, that.pos.elements);
+				context.lineTo.apply(context, that.relativePos(neighbor).elements);
+//				context.lineTo.apply(context, neighbor.pos.elements);
+				context.closePath();
+				context.stroke();
+			});
+		}
 
 	};
-
-	that.total = that.absolute();
-	that.color_cache = that.color_spec();
-	that.findSupermotes();
 
 	return that;
 };
@@ -809,8 +804,6 @@ flux.canvas = function(spec) {
 
 		context.strokeStyle = "rgba(0, 0, 0, 1)";
 		context.lineWidth = 5;
-
-		that.tree = Math.kdtree(that.motes, 'pos', 0);
 
 		setInterval(update, 20);
 	};
