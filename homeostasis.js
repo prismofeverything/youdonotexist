@@ -221,7 +221,9 @@ var homeostasis = function(id) {
 		that.perceive = function(env) {
 			that.tree = Math.kdtree(that.submotes, 'absolute', 0);
 			that.submotes.each(function(submote) {
-				submote.neighbors = that.tree.nearest(submote.absolute(), 5);
+				submote.neighbors = that.tree.nearest(submote.absolute(), 5, function(pod) {
+					return !(pod === that);
+				});
 				submote.perceive(env);
 			});
 		};
@@ -736,15 +738,16 @@ var homeostasis = function(id) {
 	};
 
 	var focusGroups = [
-		"ligand.attractant",
-		"ligand.repellent",
-		"membrane.0.columns",
-		"membrane.0.phosphates",
-		"membrane.0.methyls",
-		"membrane.0.cheWs",
-		"membrane.0.cheYs",
-		"membrane.0.cheBs",
-		"membrane.0.cheRs"
+		{name: 'attractant', path: 'ligand.attractant'},
+		{name: 'repellent', path: 'ligand.repellent'},
+		{name: 'column', path: 'membrane.0.columns'},
+		{name: 'cheW', path: 'membrane.0.cheWs'},
+		{name: 'phosphate', path: 'membrane.0.phosphates'},
+		{name: 'cheY', path: 'membrane.0.cheYs'},
+		{name: 'cheB', path: 'membrane.0.cheBs'},
+		{name: 'methyl', path: 'membrane.0.methyls'},
+		{name: 'cheR', path: 'membrane.0.cheRs'},
+		{name: 'membrane', path: 'membrane'}
 	];
 
 	var moleculeFocus = function(group) {
@@ -752,9 +755,31 @@ var homeostasis = function(id) {
 	};
 
 	var moleculeKey = function() {
-		var keyItem = function(kind, description) {
-
+		var keyspec = {
+			pos: $V([50, 50]),
+			shape: flux.shape({ops: [
+				flux.op.line({to: $V([100, 0])}),
+				flux.op.line({to: $V([100, 100])}),
+				flux.op.line({to: $V([0, 100])}),
+				flux.op.line({to: $V([0, 0])})
+			]}),
+			orientation: 0,
+			color: $V([200, 100, 100, 1])
 		};
+		var key = flux.mote(keyspec);
+
+		var keyitem = function(spec) {
+			spec.color = spec.color || $V([60, 70, 170, 1]);
+			spec.fill = 'stroke';
+			spec.shape = spec.shape || flux.shape({ops: [
+				flux.op.text({to: $V([0, 0]), size: 12, string: spec.name})
+			]});
+
+			var item = flux.mote(spec);
+			return item;
+		};
+
+		return key;
 	}();
 
 	var spec = {
@@ -774,6 +799,15 @@ var homeostasis = function(id) {
 				this.oldTranslation = this.translation;
 				this.translation = mouse.pos.add(this.translation).subtract(membranes.first().pos).times(this.scale).times($V([-0.8, -1])).add($V([900, -50]));
 			}
+		},
+
+		postdraw: function(context) {
+			moleculeKey.draw(context);
+
+			context.save();
+			context.strokeStyle = "rgba(200, 200, 200, 1)";
+			context.drawText(true, 12, 200, 300, "YES INDEED");
+			context.restore();
 		}
 	};
 

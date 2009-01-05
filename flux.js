@@ -160,6 +160,24 @@ flux.op = function() {
 		return that;
 	};
 
+	result.text = function(spec) {
+		spec.method = 'opText';
+		var that = result.base(spec);
+
+		that.size = spec.size || 12;
+		that.string = spec.string || '';
+
+		that.dup = function() {
+			return result.text(that);
+		};
+
+		that.args = function() {
+			return [true, that.size, that.to.o(0), that.to.o(1), that.string];
+		};
+
+		return that;
+	};
+
 	result.arc = function(spec) {
 		spec.method = 'arc';
 
@@ -360,6 +378,7 @@ flux.tweenV = function(spec) {
 // representation of individual agents
 flux.mote = function(spec) {
 	var that = {};
+	spec = spec || {};
 
 	that.supermote = spec.supermote || null;
 	that.submotes = spec.submotes || [];
@@ -714,20 +733,19 @@ flux.canvas = function(spec) {
 	};
 
 	var draw = function() {
+		that.predraw(context);
 		context.save();
 
 		context.clearRect(0, 0, browser.w, browser.h);
-
-		that.predraw(context);
 
 		context.translate(that.translation.o(0), that.translation.o(1));
 		context.rotate(that.orientation);
 		context.scale(that.scale.o(0), that.scale.o(1));
 
 		that.motes.invoke("draw", context);
-		that.postdraw(context);
 
 		context.restore();
+		that.postdraw(context);
 	};
 
 	var mouseEvent = function(event, mouse) {
@@ -794,6 +812,7 @@ flux.canvas = function(spec) {
 			return;
 		}
 		context = canvas.getContext('2d');
+		CanvasTextFunctions.enable(context);
 
 		canvas.addEventListener('mousedown', mouseDown, false);
 		canvas.addEventListener('mouseup', mouseUp, false);

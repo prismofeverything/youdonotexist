@@ -5,6 +5,7 @@
     <script src="/sylvester.js" type="text/javascript"></script>
     <script src="/linkage.js" type="text/javascript"></script>
     <script src="/math.js" type="text/javascript"></script>
+    <script src="/canvastext.js" type="text/javascript"></script>
     <script src="/flux.js" type="text/javascript"></script>
     <script src="/homeostasis.js" type="text/javascript"></script>
     <link href="/youdonotexist.css" media="screen" rel="stylesheet" type="text/css" />
