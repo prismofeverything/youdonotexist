@@ -329,6 +329,17 @@ var Enumerable = {
 		return result;
 	},
 
+	groupBy: function(iterator, context) {
+//		iterator = iterator ? iterator.bind(context) : Object.K;
+		var result = {};
+		this.each(function(value, index) {
+            var key = iterator(value, index);
+            if (!result[key]) result[key] = [];
+            result[key].append(value);
+        });
+        return result;
+    },
+
 	any: function(iterator, context) {
 //		iterator = iterator ? iterator.bind(context) : Object.K;
 		var result = false;

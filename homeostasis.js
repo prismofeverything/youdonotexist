@@ -254,15 +254,15 @@ var homeostasis = function(id) {
 
         var that = molecule(spec);
 
-        that.cheW = cheW({supermote: that, pos: $V([0, 100]), orientation: 0, column: that});
+        that.cheW = cheW({pos: $V([0, 100]), orientation: 0, column: that});
         that.receptors = [
-            receptor({supermote: that, pos: $V([0, -18]), column: that, cheW: that.cheW}),
-            receptor({supermote: that, pos: $V([-25, -42]), column: that, cheW: that.cheW}),
-            receptor({supermote: that, pos: $V([-17, -26]), column: that, cheW: that.cheW}),
-            receptor({supermote: that, pos: $V([17, -26]), column: that, cheW: that.cheW}),
-            receptor({supermote: that, pos: $V([25, -42]), column: that, cheW: that.cheW})
+            receptor({pos: $V([0, -18]), column: that, cheW: that.cheW}),
+            receptor({pos: $V([-25, -42]), column: that, cheW: that.cheW}),
+            receptor({pos: $V([-17, -26]), column: that, cheW: that.cheW}),
+            receptor({pos: $V([17, -26]), column: that, cheW: that.cheW}),
+            receptor({pos: $V([25, -42]), column: that, cheW: that.cheW})
         ];
-        that.submotes = [that.cheW].concat(that.receptors);
+        that.addSubmotes([that.cheW].concat(that.receptors));
 
         that.level = 0;
 
@@ -541,7 +541,7 @@ var homeostasis = function(id) {
     };
 
     var cheY = function(spec) {
-        var velocityScale = 0.9;
+        var velocityScale = 3;
 
         var activeColor = spec.activeColor || $V([150, 180, 190, 1]);
         var inactiveColor = spec.inactiveColor || $V([40, 58, 64, 1]);
@@ -752,8 +752,9 @@ var homeostasis = function(id) {
         {name: 'cheW', path: 'membrane.0.cheWs'},
         {name: 'phosphate', path: 'membrane.0.phosphates'},
         {name: 'cheY', path: 'membrane.0.cheYs'},
-        {name: 'cheB', path: 'membrane.0.cheBs'},
+        {name: 'cheZ', path: 'membrane.0.cheZs'},
         {name: 'methyl', path: 'membrane.0.methyls'},
+        {name: 'cheB', path: 'membrane.0.cheBs'},
         {name: 'cheR', path: 'membrane.0.cheRs'},
         {name: 'membrane', path: 'membrane'}
     ];
@@ -764,17 +765,18 @@ var homeostasis = function(id) {
 
     var moleculeKey = function() {
         var keyspec = {
-            pos: $V([1200, 100]),
+            pos: $V([0.8, 0.1]),
             shape: flux.shape({ops: [
                 flux.op.line({to: $V([200, 0])}),
-                flux.op.line({to: $V([200, 300])}),
-                flux.op.line({to: $V([0, 300])}),
+                flux.op.line({to: $V([200, 330])}),
+                flux.op.line({to: $V([0, 330])}),
                 flux.op.line({to: $V([0, 0])})
             ]}),
             orientation: 0,
             lineWidth: 2,
             outline: $V([170, 170, 170, 1]),
-            color: $V([0, 0, 0, 1])
+            color: $V([0, 0, 0, 1]),
+            transform: 'screen'
         };
         var key = flux.mote(keyspec);
 
@@ -813,7 +815,7 @@ var homeostasis = function(id) {
 
     var spec = {
         id: id,
-        motes: membranes.concat(ligands.attractant).concat(ligands.repellent),
+        motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
         scale: $V([0.2, 0.2]),
         translation: $V([600, 200]),
 
@@ -824,15 +826,20 @@ var homeostasis = function(id) {
         },
 
         wheel: function(that, delta) {
-            var scale = Math.pow(1.03, delta);
+            var scale = Math.pow(1.01, delta);
             this.scale = this.scale.times($V([scale, scale]));
         },
 
-        postdraw: function(context) {
-            moleculeKey.draw(context);
-        }
+//         postdraw: function(context) {
+//             moleculeKey.draw(context);
+//         }
     };
 
     var world = flux.canvas(spec);
+
+    // for testing
+    world.membrane = membranes[0];
+    world.key = moleculeKey;
+
     return world;
 };

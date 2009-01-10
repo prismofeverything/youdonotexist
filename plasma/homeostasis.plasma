@@ -18,5 +18,6 @@
 </html>
 
 <script type="text/javascript">
-  window.onload = homeostasis("homeostasis").init;
+  h = homeostasis("homeostasis");
+  window.onload = h.init;
 </script>

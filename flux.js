@@ -32,7 +32,26 @@ var vector_to_rgba = function(v) {
     }
 };
 
-var flux = {};
+var flux = {
+    browser: {
+        dim: function() {
+            var w = arguments[0];
+            var h = arguments[1];
+
+            if (w && h) {
+                this.w = w;
+                this.h = h;
+                this.dimension = $V([w, h]);
+            } else if (w) {
+                this.w = w.elements[0];
+                this.h = w.elements[1];
+                this.dimension = w;
+            }
+
+            return this.dimension;
+        }
+    }
+};
 
 flux.bounds = function(xlow, xhigh, ylow, yhigh) {
     var that = [];
@@ -427,6 +446,7 @@ flux.mote = function(spec) {
     that.lineWidth = spec.lineWidth || 1;
     that.outline = spec.outline || null;
     that.bounds = spec.bounds;
+    that.transform = spec.transform || 'pos';
 
     that.tweens = [];
 
@@ -439,10 +459,22 @@ flux.mote = function(spec) {
     that.mouseOut = function(mouse) {};
     that.mouseMove = function(mouse) {};
 
-    var find_absolute = function() {
-        return that.supermote ? that.supermote.extrovert(that.pos) : that.pos;
+    // absolute is a function to find the absolute position of the mote
+    // with the position, orientation and scale each supermote in this mote's
+    // heirarchy of supermotes taken into consideration.
+
+    // rise takes a position and recursively applies the transformations of
+    // all supermotes onto it
+    that.rise = function(pos) {
+        return that.supermote ? that.supermote.rise(that.supermote.extrovert(pos)) : pos;
     };
 
+    // find_absolute is for the cache, so that the absolute position does not
+    // need to be calculated every time it is accessed, only when the
+    // position or orientation of it or one of its supermotes is changed.
+    var find_absolute = function() {
+        return that.rise(that.pos);
+    };
     that.absolute = cache(find_absolute);
 
     that.contains = function(point) {
@@ -467,13 +499,13 @@ flux.mote = function(spec) {
 
     that.findBox();
 
-    that.findIn = function(mouse, pos) {
-        if (that.contains(pos) && !mouse.inside.include(that)) {
+    that.findIn = function(mouse) {
+        if (that.contains(mouse[that.transform]) && !mouse.inside.include(that)) {
             mouse.inside.append(that);
             that.mouseIn(mouse);
         }
 
-        that.submotes.invoke('findIn', mouse, pos);
+        that.submotes.invoke('findIn', mouse);
     };
 
     var findColorSpec = function(prop) {
@@ -503,17 +535,23 @@ flux.mote = function(spec) {
         return that;
     };
 
+    that.expireSupermotes = function() {
+        that.supermotes.expire();
+        that.absolute.expire();
+        that.submotes.each(function(submote) {
+            submote.expireSupermotes();
+        });
+    };
+
     that.attach = function(other) {
-//        other.pos = that.to(other).rotate(-that.orientation, $V([0, 0]));
-        other.pos = that.introvert(other.pos);
         other.orientation -= that.orientation;
         if (other.supermote) {
             other.supermote.submotes = other.supermote.submotes.without(other);
         }
-        other.supermote = that;
-
         that.submotes.append(other);
-        other.supermotes.expire();
+
+        other.supermote = that;
+        other.expireSupermotes();
     };
 
     that.detach = function(other) {
@@ -529,54 +567,7 @@ flux.mote = function(spec) {
     that.addSubmotes = function(submotes) {
         submotes.each(function(submote) {
             that.attach(submote);
-            submote.pos = submote.pos.add(that.pos);
         });
-    };
-
-    that.perceive = spec.perceive || function(env) {
-        that.submotes.each(function(submote) {
-            submote.perceive(env);
-        });
-    };
-
-    that.adjust = spec.adjust || function() {
-        that.orientation += that.rotation;
-
-        while (that.orientation > Math.PI) {
-            that.orientation -= Math.PI*2;
-        } while (that.orientation < -Math.PI) {
-            that.orientation += Math.PI*2;
-        }
-
-        for (var dim=0; dim < that.pos.dimensions(); dim++) {
-            that.pos.elements[dim] += that.velocity.o(dim);
-        }
-
-        that.future.each(function(moment) {
-            moment(that);
-        });
-        that.future = [];
-
-        that.tweens = that.tweens.select(function(tween) {
-            return tween.cycle();
-        });
-
-        that.submotes.invoke('adjust');
-        that.absolute.expire();
-
-
-//  ----------- lazy bounds checking ---------------
-//      if (that.bounds) {
-//          var check = that.bounds.check(that.pos);
-
-//          check.each(function(result, index) {
-//              if (!(result === 0)) {
-//                  that.velocity.elements[index] = -that.velocity.elements[index];
-//              }
-//          });
-//      }
-//  -------------------------------------------------
-
     };
 
     that.introvert = function(pos) {
@@ -584,6 +575,7 @@ flux.mote = function(spec) {
     };
 
     that.extrovert = function(pos) {
+        var transform = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos.add(that.pos);
         return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
     };
 
@@ -678,6 +670,52 @@ flux.mote = function(spec) {
         return closestMote;
     };
 
+    that.perceive = spec.perceive || function(env) {
+        that.submotes.each(function(submote) {
+            submote.perceive(env);
+        });
+    };
+
+    that.adjust = spec.adjust || function() {
+        that.orientation += that.rotation;
+
+        while (that.orientation > Math.PI) {
+            that.orientation -= Math.PI*2;
+        } while (that.orientation < -Math.PI) {
+            that.orientation += Math.PI*2;
+        }
+
+        for (var dim=0; dim < that.pos.dimensions(); dim++) {
+            that.pos.elements[dim] += that.velocity.o(dim);
+        }
+
+        that.future.each(function(moment) {
+            moment(that);
+        });
+        that.future = [];
+
+        that.tweens = that.tweens.select(function(tween) {
+            return tween.cycle();
+        });
+
+        that.submotes.invoke('adjust');
+        that.absolute.expire();
+
+
+//  ----------- lazy bounds checking ---------------
+//      if (that.bounds) {
+//          var check = that.bounds.check(that.pos);
+
+//          check.each(function(result, index) {
+//              if (!(result === 0)) {
+//                  that.velocity.elements[index] = -that.velocity.elements[index];
+//              }
+//          });
+//      }
+//  -------------------------------------------------
+
+    };
+
     that.drawShape = function(context, fill) {
         context.beginPath();
 
@@ -690,11 +728,33 @@ flux.mote = function(spec) {
     };
 
     that.draw = function(context) {
+        // drawing lines to neighbors
+        context.save();
+        if (that.neighbors.length > 1) {
+            that.neighbors.each(function(neighbor) {
+                context.lineWidth = 3;
+                context.beginPath();
+                context.moveTo.apply(context, that.pos.elements);
+                context.lineTo.apply(context, that.relativePos(neighbor).elements);
+//              context.lineTo.apply(context, neighbor.pos.elements);
+                context.closePath();
+                context.stroke();
+            });
+        }
+        context.restore();
+
+        // drawing the shape
         context.save();
 
         context[that.fill + 'Style'] = that.color_spec();
         context.lineWidth = that.lineWidth;
-        context.translate(that.pos.o(0), that.pos.o(1));
+
+        if (that.transform === 'screen') {
+            context.translate(that.pos.o(0)*flux.browser.w, that.pos.o(1)*flux.browser.h);
+        } else {
+            context.translate(that.pos.o(0), that.pos.o(1));
+        }
+
         context.rotate(that.orientation);
         context.scale(that.scale.o(0), that.scale.o(1));
 
@@ -710,19 +770,6 @@ flux.mote = function(spec) {
         that.submotes.invoke('draw', context);
 
         context.restore();
-
-        // drawing lines to neighbors
-        if (that.neighbors.length > 1) {
-            that.neighbors.each(function(neighbor) {
-                context.lineWidth = 3;
-                context.beginPath();
-                context.moveTo.apply(context, that.pos.elements);
-                context.lineTo.apply(context, that.relativePos(neighbor).elements);
-//              context.lineTo.apply(context, neighbor.pos.elements);
-                context.closePath();
-                context.stroke();
-            });
-        }
     };
 
     return that;
@@ -734,10 +781,13 @@ flux.canvas = function(spec) {
 
     var canvas, context;
     var now, before, interval;
-    var browser = {};
 
     that.motes = spec.motes || [];
     that.id = spec.id || '';
+
+    that.transforms = that.motes.groupBy(function(mote) {
+        return mote.transform;
+    });
 
     that.down = spec.down || function(m){return null;};
     that.up = spec.up || function(m){return null;};
@@ -763,12 +813,19 @@ flux.canvas = function(spec) {
 
     var mouse = {
         pos: $V([0, 0]),
-        prev: $V([0, 0]),
+        prevpos: $V([0, 0]),
+
+        screen: $V([0, 0]),
+        prevscreen: $V([0, 0]),
+
         down: false,
         inside: [],
 
-        diff: function() {
-            pos.subtract(prev);
+        diffpos: function() {
+            this.pos.subtract(this.prevpos);
+        },
+        diffscreen: function() {
+            this.screen.subtract(this.prevscreen);
         }
     };
 
@@ -784,18 +841,28 @@ flux.canvas = function(spec) {
     };
 
     var draw = function() {
+        context.clearRect(0, 0, flux.browser.w, flux.browser.h);
         that.predraw(context);
-        context.save();
 
-        context.clearRect(0, 0, browser.w, browser.h);
+        if (that.transforms['pos']) {
+            context.save();
+            context.translate(that.translation.o(0), that.translation.o(1));
+            context.rotate(that.orientation);
+            context.scale(that.scale.o(0), that.scale.o(1));
 
-        context.translate(that.translation.o(0), that.translation.o(1));
-        context.rotate(that.orientation);
-        context.scale(that.scale.o(0), that.scale.o(1));
+            that.transforms['pos'].invoke('draw', context);
 
-        that.motes.invoke('draw', context);
+            context.restore();
+        }
 
-        context.restore();
+        if (that.transforms['screen']) {
+            context.save();
+
+            that.transforms['screen'].invoke('draw', context);
+
+            context.restore();
+        }
+
         that.postdraw(context);
     };
 
@@ -840,7 +907,7 @@ flux.canvas = function(spec) {
         // and which still contain it
         if (mouse.inside.length > 0) {
             var motion = mouse.inside.partition(function(mote) {
-                return mote.contains(mouse.pos);
+                return mote.contains(mouse[mote.transform]);
             });
 
             mouse.inside = motion[0];
@@ -853,7 +920,7 @@ flux.canvas = function(spec) {
         }
 
         // find out which motes are newly under the mouse
-        that.motes.invoke('findIn', mouse, mouse.pos);
+        that.motes.invoke('findIn', mouse);
 
         // call custom mouse move function, if one is defined
         that.move(mouse);
@@ -881,12 +948,14 @@ flux.canvas = function(spec) {
 
     that.init = function() {
         // resize
-        window.onresize = function(e) {
-            browser.w = window.innerWidth;
-            browser.h = window.innerHeight;
+        var resize = function(e) {
+            flux.browser.dim(window.innerWidth, window.innerHeight);
+//             browser.w = window.innerWidth;
+//             browser.h = window.innerHeight;
 
-            that.resize(browser);
+            that.resize(flux.browser);
         };
+        window.onresize = resize;
 
         // mouse wheel
         if (window.addEventListener) {
@@ -906,8 +975,9 @@ flux.canvas = function(spec) {
         canvas.addEventListener('mouseup', mouseUp, false);
         canvas.addEventListener('mousemove', mouseMove, false);
 
-        canvas.width = browser.w = window.innerWidth;
-        canvas.height = browser.h = window.innerHeight;
+        flux.browser.dim(window.innerWidth, window.innerHeight);
+        canvas.width = flux.browser.w;
+        canvas.height = flux.browser.h;
 
         context.strokeStyle = 'rgba(0, 0, 0, 1)';
         context.lineWidth = 5;
