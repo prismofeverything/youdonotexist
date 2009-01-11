@@ -461,7 +461,7 @@ var homeostasis = function(id) {
     var cheWSeeker = function(spec) {
         var that = molecule(spec);
 
-        var velocityScale = 0.9;
+        var velocityScale = 5;
 
         that.nearestPhosphate = null;
         that.phosphate = null;
@@ -528,7 +528,7 @@ var homeostasis = function(id) {
                     }
                 } else if (switchedOff) {
                     that.future.append(function(self) {
-                        that.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+                        that.velocity = $V([(Math.random()-0.5)*velocityScale, (Math.random()-0.5)*velocityScale]);
                     });
                     that.offCheW();
                 } else {
