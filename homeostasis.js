@@ -794,11 +794,13 @@ var homeostasis = function(id) {
             var item = flux.mote(spec);
 
             item.mouseIn = function(mouse) {
-                item.tweenColor(activeColor, 5);
+                item.tweens = [];
+                item.tweenColor(activeColor, 3);
             };
 
             item.mouseOut = function(mouse) {
-                item.tweenColor(inactiveColor, 5);
+                item.tweens = [];
+                item.tweenColor(inactiveColor, 3);
             };
 
             return item;
@@ -828,7 +830,7 @@ var homeostasis = function(id) {
         wheel: function(that, delta) {
             var scale = Math.pow(1.01, delta);
             this.scale = this.scale.times($V([scale, scale]));
-        },
+        }
 
 //         postdraw: function(context) {
 //             moleculeKey.draw(context);

@@ -221,7 +221,7 @@ flux.op = function() {
             box.union(flux.bounds(
                 that.to.o(0),
                 that.to.o(0) + that.string.length*that.size,
-                that.to.o(1),
+                that.to.o(1) - that.size,
                 that.to.o(1) + that.size
             ));
         };
@@ -466,6 +466,7 @@ flux.mote = function(spec) {
     // rise takes a position and recursively applies the transformations of
     // all supermotes onto it
     that.rise = function(pos) {
+        pos = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos;
         return that.supermote ? that.supermote.rise(that.supermote.extrovert(pos)) : pos;
     };
 
@@ -499,13 +500,17 @@ flux.mote = function(spec) {
 
     that.findBox();
 
-    that.findIn = function(mouse) {
-        if (that.contains(mouse[that.transform]) && !mouse.inside.include(that)) {
+    that.findIn = function(mouse, pos) {
+        if (that.transform === 'screen') {
+            var l = 8;
+        }
+
+        if (that.contains(pos) && !mouse.inside.include(that)) {
             mouse.inside.append(that);
             that.mouseIn(mouse);
         }
 
-        that.submotes.invoke('findIn', mouse);
+        that.submotes.invoke('findIn', mouse, pos);
     };
 
     var findColorSpec = function(prop) {
@@ -575,8 +580,9 @@ flux.mote = function(spec) {
     };
 
     that.extrovert = function(pos) {
-        var transform = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos.add(that.pos);
-        return pos.add(that.pos).rotate(that.orientation, that.pos).times(that.scale);
+//        var transform = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos.add(that.pos);
+        var transform = pos.add(that.pos);
+        return transform.rotate(that.orientation, that.pos).times(that.scale);
     };
 
     that.find_supermotes = function() {
@@ -920,7 +926,9 @@ flux.canvas = function(spec) {
         }
 
         // find out which motes are newly under the mouse
-        that.motes.invoke('findIn', mouse);
+        that.motes.each(function(mote) {
+            mote.findIn(mouse, mouse[mote.transform]);
+        });
 
         // call custom mouse move function, if one is defined
         that.move(mouse);
@@ -978,6 +986,9 @@ flux.canvas = function(spec) {
         flux.browser.dim(window.innerWidth, window.innerHeight);
         canvas.width = flux.browser.w;
         canvas.height = flux.browser.h;
+
+        // provide a reference to the actual canvas object
+        that.canvas = canvas;
 
         context.strokeStyle = 'rgba(0, 0, 0, 1)';
         context.lineWidth = 5;
