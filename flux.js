@@ -66,6 +66,10 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
         return [that[0][way], that[1][way]];
     };
 
+    that.copy = function() {
+        return flux.bounds(that.x[0], that.x[1], that.y[0], that.y[1]);
+    };
+
     that.range = function(axis) {
         return that[axis][1] - that[axis][0];
     };
@@ -101,6 +105,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
                 that[a][b] = ops[b](that[a][b], other[a][b]);
             }
         }
+        return that;
     };
 
     // grows to ensure it encloses the given point
@@ -110,6 +115,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
                 that[a][b] = ops[b](that[a][b], point.o(a));
             }
         }
+        return that;
     };
 
     // shifts the entire object by the given vector
@@ -119,6 +125,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
                 that[a][b] += point.o(a);
             }
         }
+        return that;
     };
 
     // check whether the given point is within these bounds
@@ -431,6 +438,7 @@ flux.mote = function(spec) {
     var that = {};
     spec = spec || {};
 
+    that.type = spec.type || 'mote';
     that.supermote = spec.supermote || null;
     that.submotes = spec.submotes || [];
 
@@ -447,6 +455,7 @@ flux.mote = function(spec) {
     that.outline = spec.outline || null;
     that.bounds = spec.bounds;
     that.transform = spec.transform || 'pos';
+    that.paused = false;
 
     that.tweens = [];
 
@@ -501,10 +510,6 @@ flux.mote = function(spec) {
     that.findBox();
 
     that.findIn = function(mouse, pos) {
-        if (that.transform === 'screen') {
-            var l = 8;
-        }
-
         if (that.contains(pos) && !mouse.inside.include(that)) {
             mouse.inside.append(that);
             that.mouseIn(mouse);
@@ -529,6 +534,17 @@ flux.mote = function(spec) {
             postcycle: function() {
                 that.color_spec.expire();
             }
+        }));
+
+        return that;
+    };
+
+    that.tweenScale = function(scale, cycles) {
+        that.tweens.append(flux.tweenV({
+            obj: that,
+            property: 'scale',
+            to: scale,
+            cycles: cycles
         }));
 
         return that;
@@ -676,6 +692,14 @@ flux.mote = function(spec) {
         return closestMote;
     };
 
+    that.pause = function() {
+        that.paused = true;
+    };
+
+    that.unpause = function() {
+        that.paused = false;
+    };
+
     that.perceive = spec.perceive || function(env) {
         that.submotes.each(function(submote) {
             submote.perceive(env);
@@ -683,22 +707,24 @@ flux.mote = function(spec) {
     };
 
     that.adjust = spec.adjust || function() {
-        that.orientation += that.rotation;
+        if (!that.paused) {
+            that.orientation += that.rotation;
 
-        while (that.orientation > Math.PI) {
-            that.orientation -= Math.PI*2;
-        } while (that.orientation < -Math.PI) {
-            that.orientation += Math.PI*2;
+            while (that.orientation > Math.PI) {
+                that.orientation -= Math.PI*2;
+            } while (that.orientation < -Math.PI) {
+                that.orientation += Math.PI*2;
+            }
+
+            for (var dim=0; dim < that.pos.dimensions(); dim++) {
+                that.pos.elements[dim] += that.velocity.o(dim);
+            }
+
+            that.future.each(function(moment) {
+                                 moment(that);
+                             });
+            that.future = [];
         }
-
-        for (var dim=0; dim < that.pos.dimensions(); dim++) {
-            that.pos.elements[dim] += that.velocity.o(dim);
-        }
-
-        that.future.each(function(moment) {
-            moment(that);
-        });
-        that.future = [];
 
         that.tweens = that.tweens.select(function(tween) {
             return tween.cycle();
@@ -707,18 +733,17 @@ flux.mote = function(spec) {
         that.submotes.invoke('adjust');
         that.absolute.expire();
 
+// ----------- lazy bounds checking ---------------
+        if (that.bounds) {
+            var check = that.bounds.check(that.pos);
 
-//  ----------- lazy bounds checking ---------------
-//      if (that.bounds) {
-//          var check = that.bounds.check(that.pos);
-
-//          check.each(function(result, index) {
-//              if (!(result === 0)) {
-//                  that.velocity.elements[index] = -that.velocity.elements[index];
-//              }
-//          });
-//      }
-//  -------------------------------------------------
+            check.each(function(result, index) {
+                if (!(result === 0)) {
+                    that.velocity.elements[index] = -that.velocity.elements[index];
+                }
+            });
+        }
+// -------------------------------------------------
 
     };
 
@@ -803,6 +828,8 @@ flux.canvas = function(spec) {
     that.orientation = spec.orientation || 0;
     that.scale = spec.scale || $V([1, 1]);
 
+    that.tweens = [];
+
     that.predraw = spec.predraw || function(context) {};
     that.postdraw = spec.postdraw || function(context) {};
 
@@ -835,6 +862,47 @@ flux.canvas = function(spec) {
         }
     };
 
+    that.addMote = function(mote) {
+        if (!that.transforms[mote.transform]) that.transforms[mote.transform] = [];
+
+        that.transforms[mote.transform].append(mote);
+        that.motes.append(mote);
+    };
+
+    that.removeMote = function(mote) {
+        that.transforms[mote.transform] = that.transforms[mote.transform].without(mote);
+        that.motes = that.motes.without(mote);
+    };
+
+    that.tweenScale = function(scale, cycles) {
+        var tween = flux.tweenV({
+            obj: that,
+            property: 'scale',
+            to: scale,
+            cycles: cycles
+        });
+
+        that.tweens.append(tween);
+        return that;
+    };
+
+    that.tweenTranslation = function(translation, cycles) {
+        var tween = flux.tweenV({
+            obj: that,
+            property: 'translation',
+            to: translation,
+            cycles: cycles
+        });
+
+        that.tweens.append(tween);
+        return that;
+    };
+
+    that.tweenViewport = function(spec, cycles) {
+        if (spec.scale) that.tweenScale(spec.scale, cycles);
+        if (spec.translation) that.tweenTranslation(spec.translation, cycles);
+    };
+
     var update = function() {
         before = now;
         now = time();
@@ -842,6 +910,10 @@ flux.canvas = function(spec) {
 
         that.motes.invoke('perceive', that);
         that.motes.invoke('adjust');
+
+        that.tweens = that.tweens.select(function(tween) {
+            return tween.cycle();
+        });
 
         draw();
     };
@@ -852,9 +924,9 @@ flux.canvas = function(spec) {
 
         if (that.transforms['pos']) {
             context.save();
+            context.scale(that.scale.o(0), that.scale.o(1));
             context.translate(that.translation.o(0), that.translation.o(1));
             context.rotate(that.orientation);
-            context.scale(that.scale.o(0), that.scale.o(1));
 
             that.transforms['pos'].invoke('draw', context);
 
@@ -873,10 +945,8 @@ flux.canvas = function(spec) {
     };
 
     var mouseEvent = function(event, mouse) {
-        that.motes.each(function(mote) {
-            if (mote.contains(mouse.pos)) {
-                mote['mouse' + event](mouse);
-            }
+        mouse.inside.each(function(mote) {
+            mote['mouse'+event](mouse);
         });
 
         return that;
@@ -907,7 +977,7 @@ flux.canvas = function(spec) {
         mouse.screen = $V([x, y]);
 
         mouse.prevpos = mouse.pos;
-        mouse.pos = mouse.screen.subtract(that.translation).times(that.scale.map(function(el) {return 1.0 / el;}));
+        mouse.pos = mouse.screen.times(that.scale.map(function(el) {return 1.0 / el;})).subtract(that.translation);
 
         // sort out which motes are no longer under the mouse
         // and which still contain it

@@ -1,9 +1,10 @@
 var homeostasis = function(id) {
     var inside = flux.bounds(20, 800, 320, 1000);
     var outside = flux.bounds(0, 800, 0, 250);
-    var above = flux.bounds(-1700, 1700, 0, 250);
-    var below = flux.bounds(-1700, 1700, 2000, 1700);
+    var above = flux.bounds(-1700, 1700, -450, 250);
+    var below = flux.bounds(-1700, 1700, 1700, 2400);
     var offscreen = flux.bounds(-50, 800, -50, 0);
+    var all = above.copy().union(below);
 
     var receptorGrip = 0.996;
     var attractantRepellentRatio = 0.3;
@@ -13,17 +14,91 @@ var homeostasis = function(id) {
 
     var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
+    var descriptions = {
+        membrane: 'The membrane is the enclosing surface that separates\n'
+            + 'the inside of the cell from the outside.  The cell\n'
+            + 'maintains an electric potential across this membrane\n'
+            + 'and then harnesses that potential to do work.',
+        column: 'The column spans the membrane, allowing for communication\n'
+            + 'across the otherwise impenetrable barrier.  This way also\n'
+            + 'transportation of materials across the membrane is strictly\n'
+            + 'controlled.  In this case, receptors in the outer portion\n'
+            + 'of the column bind either attractants or repellents, which\n'
+            + 'act as ligands, and the inner portion is bound to cheW,\n'
+            + 'which can be activated or deactived based on which ligands\n'
+            + 'the outer portion is bound to.',
+        repellent: 'Repellents bind to receptors in a column and\n'
+            + 'increase the activity of cheW, leading to the phosphorylation\n'
+            + 'of cheY and cheB.',
+        attractant: 'Attractants bind to receptors in a column and\n'
+            + 'reduce the activity of cheW.',
+        cheW: 'cheW is activated by repellents binding to the outer portion\n'
+            + 'of the column and deactivated by the binding of attractants,\n'
+            + 'with its sensitivity guided by the number of bound\n'
+            + 'methyl groups attached to the inner portion.  When active, cheW\n'
+            + 'enables the phosphorylation of cheY, which triggers activation of the\n'
+            + 'flagellar motors, and of cheB, which removes\n'
+            + 'methyl groups from the column.',
+        phosphate: 'Phosphate groups act as a tag, or a signal that some condition is present.\n'
+            + 'In the process of binding to various enzymes they trigger conformational\n'
+            + 'changes which expose the enzymes\' active sites.  These active sites\n'
+            + 'then trigger some other change, such as splicing or fusing other molecular components.',
+        cheY: 'cheY is an enzyme that when phosphorylated binds to flagellar motors,\n'
+            + 'inducing them to reverse their rotation and send the cell tumbling in a different direction.\n'
+            + 'Most of the time the flagella are rotating in a clockwise direction, which sends\n'
+            + 'the cell travelling in mostly a straight line.  The motor can be reversed, causing the cell\n'
+            + 'to tumble more or less randomly, which then travels off in a new direction.',
+        cheZ: 'cheZ removes the phosphorylation of both cheY and cheB.  In this way,\n'
+            + 'a balance is struck between the phosphorylation caused by the activation of\n'
+            + 'cheW when the cell is in the presence of repellents, and the steady dephosphorylation\n'
+            + 'that results from interactions with cheZ.  This self-limiting cycle\n'
+            + 'results in a sensitivity to chemical gradients, with the cell avoiding repellents\n'
+            + 'and seeking attractants.',
+        methyl: 'Methyl groups are another signifier, and are attached to various molecules\n'
+            + 'in order to induce conformational changes.  In this case, the methyls are binding\n'
+            + 'to the inner portion of the columns.  The more methyl groups bound to the column,\n'
+            + 'the more sensitive the column is to repellents, and the more active cheW will be.',
+        cheB: 'cheB is phosphorylated in the presence of active cheW, just like cheY.  cheB\n'
+            + 'removes methyl groups from columns, thereby reducing the activity of cheW and\n'
+            + 'the subsequent phosphorylation of cheB (and cheY).  So here we see another layer\n'
+            + 'of self-limitation, the activation of cheW leading to the phosphorylation of cheB\n'
+            + 'leading to the demethylation of columns leading to the DE-activation of cheW.\n'
+            + 'So the activation of cheW entails the eventual deactivation of cheW, cleaning up\n'
+            + 'its own mess so to speak.  This process is called *adaptation*, and is common\n'
+            + 'to a mind-boggling cross-section of biological processes.  ',
+        cheR: 'cheR adds methyl groups to the inner portion of a column at a steady rate.\n'
+            + 'In this way the rate of cheW activation is steadily increased, offset by the\n'
+            + 'concentration of phosphorylated cheB.  This adaptive cycle of methylation and\n'
+            + 'demethylation is on a much longer time-scale than the activation of cheW by\n'
+            + 'repellents and the phosphorylation of cheY.  In this way the cell can be\n'
+            + 'immediately responsive while at the same time adaptive to the general\n'
+            + 'fluctuations of attractants and repellents in the surrounding environment.'
+    };
+
     var molecule = function(spec) {
         var that = flux.mote(spec);
+        var oldVelocity = that.velocity;
         that.neighbors = [that];
 
         that.mouseIn = spec.mouseIn || function(mouse) {
             that.oldColor = that.color.dup();
             that.tweenColor($V([255, 255, 255, 1]), 5);
+
+            that.pause();
+
+            if (that.type) {
+                moleculeKey.itemhash[that.type].activate();
+            }
         };
 
         that.mouseOut = spec.mouseOut || function(mouse) {
             if (that.oldColor) that.tweenColor(that.oldColor, 5);
+
+            that.unpause();
+
+            if (that.type) {
+                moleculeKey.itemhash[that.type].deactivate();
+            }
         };
 
         return that;
@@ -90,14 +165,12 @@ var homeostasis = function(id) {
                     that.closestReceptor.take(that);
                     that.perceive = that.attached;
                 }
-//          } else {
-//              that.velocity = $V([Math.random()-0.5, Math.random()-1]).x(globalVelocity);
             }
         };
 
         that.attached = function(env) {
             if (Math.random() > receptorGrip) {
-                that.velocity = that.closestReceptor.column.absolute().subtract(that.absolute()).scaleTo(globalVelocity);
+                that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity); //.subtract(that.absolute())
                 that.rotation = defaultRotation();
 
                 that.perceive = that.detached;
@@ -107,8 +180,9 @@ var homeostasis = function(id) {
         };
 
         that.detached = function(env) {
-            if (that.absolute().o(0) < -10 || that.absolute().o(1) < -10) {
-                that.pos = randomPos(offscreen);
+            if (!all.inside(that.absolute())) {
+                var realm = Math.random() - 0.5 < 0 ? above : below;
+                that.pos = randomPos(realm);
                 that.perceive = that.unattached;
             }
         };
@@ -120,17 +194,18 @@ var homeostasis = function(id) {
     };
 
     var attractant = function(spec) {
+        spec.type = 'attractant';
         spec.color = spec.color || $V([140, 170, 100, 1]);
         spec.shape = spec.shape || flux.shape({ops: [flux.op.arc({radius: 7})]});
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = ligand(spec);
-        that.type = 'A';
 
         return that;
     };
 
     var repellent = function(spec) {
+        spec.type = 'repellent';
         spec.color = spec.color || $V([170, 70, 60, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
             flux.op.move({to: $V([-6, -6])}),
@@ -142,14 +217,13 @@ var homeostasis = function(id) {
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = ligand(spec);
-
-        that.type = 'X';
         that.polarity = 1;
 
         return that;
     };
 
     var membrane = function(spec) {
+        spec.type = 'membrane';
         spec.fill = 'stroke';
         spec.lineWidth = 30;
         spec.color = spec.color || $V([80, 20, 20, 1]);
@@ -204,18 +278,6 @@ var homeostasis = function(id) {
             receptor.cheW = that.cheWs[index];
         });
 
-//         that.submotes = that.columns
-//             .concat(that.phosphates)
-//             .concat(that.methyls)
-//             .concat(that.cheYs)
-//             .concat(that.cheZs)
-//             .concat(that.cheBs)
-//             .concat(that.cheRs);
-
-//         that.submotes.each(function(submote) {
-//             submote.supermote = that;
-//         });
-
         that.addSubmotes(that.columns
             .concat(that.phosphates)
             .concat(that.methyls)
@@ -238,6 +300,7 @@ var homeostasis = function(id) {
     };
 
     var column = function(spec) {
+        spec.type = 'column';
         spec.color = spec.color || $V([60, 70, 170, 1]);
         spec.outline = spec.outline || $V([0, 0, 0, 1]);
         spec.lineWidth = 3;
@@ -294,6 +357,7 @@ var homeostasis = function(id) {
     };
 
     var receptor = function(spec) {
+        spec.type = 'receptor';
         spec.color = $V([0, 0, 0, 0]);
         spec.shape = flux.shape({ops: [flux.op.arc({to: $V([0, 0]), radius: 7})]});
 
@@ -355,6 +419,8 @@ var homeostasis = function(id) {
     };
 
     var cheW = function(spec) {
+        spec.type = 'cheW';
+
         var activeColor = spec.activeColor || $V([210, 220, 130, 1]);
         var inactiveColor = spec.inactiveColor || $V([40, 40, 40, 1]);
 
@@ -395,6 +461,7 @@ var homeostasis = function(id) {
     };
 
     var phosphate = function(spec) {
+        spec.type = 'phosphate';
         spec.color = spec.color || $V([120, 80, 130, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
             flux.op.move({to: $V([-10, -5])}),
@@ -410,6 +477,8 @@ var homeostasis = function(id) {
         var that = cheWSeeker(spec);
 
         that.phosphorylate = function(enzyme) {
+            that.pos = enzyme.introvert(that.pos);
+
             that.tweens.append(flux.tweenV({
                 obj: that,
                 property: 'pos',
@@ -440,6 +509,7 @@ var homeostasis = function(id) {
     };
 
     var methyl = function(spec) {
+        spec.type = 'methyl';
         spec.color = spec.color || $V([130, 110, 70, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
             flux.op.move({to: $V([-5, 0])}),
@@ -541,6 +611,8 @@ var homeostasis = function(id) {
     };
 
     var cheY = function(spec) {
+        spec.type = 'cheY';
+
         var velocityScale = 3;
 
         var activeColor = spec.activeColor || $V([150, 180, 190, 1]);
@@ -614,6 +686,7 @@ var homeostasis = function(id) {
     };
 
     var cheZ = function(spec) {
+        spec.type = 'cheZ';
         spec.color = spec.color || $V([220, 30, 20, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
             flux.op.move({to: $V([-15, -15])}),
@@ -634,6 +707,8 @@ var homeostasis = function(id) {
     };
 
     var cheB = function(spec) {
+        spec.type = 'cheB';
+
         var activeColor = spec.activeColor || $V([100, 140, 230, 1]);
         var inactiveColor = spec.inactiveColor || $V([80, 80, 90, 1]);
         var velocityScale = 0.9;
@@ -709,6 +784,7 @@ var homeostasis = function(id) {
     };
 
     var cheR = function(spec) {
+        spec.type = 'cheR';
         spec.color = spec.color || $V([180, 180, 220, 1]);
 
         spec.shape = spec.shape || flux.shape({ops: [
@@ -746,18 +822,31 @@ var homeostasis = function(id) {
     };
 
     var focusGroups = [
-        {name: 'attractant', path: 'ligand.attractant'},
-        {name: 'repellent', path: 'ligand.repellent'},
+        {name: 'membrane', path: 'membrane'},
         {name: 'column', path: 'membrane.0.columns'},
+        {name: 'repellent', path: 'ligand.repellent'},
+        {name: 'attractant', path: 'ligand.attractant'},
         {name: 'cheW', path: 'membrane.0.cheWs'},
         {name: 'phosphate', path: 'membrane.0.phosphates'},
         {name: 'cheY', path: 'membrane.0.cheYs'},
         {name: 'cheZ', path: 'membrane.0.cheZs'},
         {name: 'methyl', path: 'membrane.0.methyls'},
         {name: 'cheB', path: 'membrane.0.cheBs'},
-        {name: 'cheR', path: 'membrane.0.cheRs'},
-        {name: 'membrane', path: 'membrane'}
+        {name: 'cheR', path: 'membrane.0.cheRs'}
     ];
+
+    focusGroups.arrange = function() {
+        var wedge = Math.PI*2*(1.0/focusGroups.length);
+        var outwards = $V([3000, 0]);
+        var zero = $V([0, 0]);
+
+        focusGroups.each(function(group, index) {
+            var around = wedge*index;
+            group.outer = outwards.rotate(around, zero);
+//             group.outer = $V([,]);
+        });
+    };
+    focusGroups.arrange();
 
     var moleculeFocus = function(group) {
 
@@ -780,6 +869,21 @@ var homeostasis = function(id) {
         };
         var key = flux.mote(keyspec);
 
+        var makeDescription = function(spec) {
+            spec.orientation = 0;
+            spec.fill = 'stroke';
+            spec.lineWidth = 2;
+
+            var ops = spec.description.split('\n').map(function(line, index) {
+                return flux.op.text({to: spec.pos.add($V([0, index*30])), size: 14, string: line});
+            });
+
+            spec.shape = spec.shape || flux.shape({ops: ops});
+
+            var desc = flux.mote(spec);
+            return desc;
+        };
+
         var keyitem = function(spec) {
             var inactiveColor = $V([60, 70, 170, 1]);
             var activeColor = $V([230, 230, 230, 1]);
@@ -793,21 +897,82 @@ var homeostasis = function(id) {
 
             var item = flux.mote(spec);
 
-            item.mouseIn = function(mouse) {
-                item.tweens = [];
-                item.tweenColor(activeColor, 3);
+            item.name = spec.name;
+            item.path = spec.path;
+
+            item.active = false;
+            item.outer = spec.outer || $V([5000, 0]);
+            item.description = makeDescription({
+                pos: item.outer,
+//                pos: $V([0, 0]),
+                color: $V([250, 240, 30, 1]),
+                description: descriptions[item.name]
+            });
+
+            item.activate = function() {
+                if (!item.active) {
+                    item.tweens = [];
+                    item.tweenColor(activeColor, 3);
+                    item.tweenScale($V([1.05, 1.05]), 3);
+
+                    item.active = true;
+                }
             };
 
-            item.mouseOut = function(mouse) {
-                item.tweens = [];
-                item.tweenColor(inactiveColor, 3);
+            item.deactivate = function() {
+                if (item.active) {
+                    item.tweens = [];
+                    item.tweenColor(inactiveColor, 3);
+                    item.tweenScale($V([1, 1]), 3);
+
+                    item.active = false;
+                }
             };
+
+            var oldScale = null;
+            var oldTranslation = null;
+            var oldDown = null;
+
+            item.showDescription = function() {
+                oldScale = world.scale.dup();
+                oldTranslation = world.translation.dup();
+
+                world.addMote(item.description);
+
+                world.tweens = [];
+                var newscale = $V([1.126, 1.126]);
+                var newtranslation = item.outer.inverse().times($V([2, 2])).add($V([300, 300]));
+                world.tweenViewport({scale: newscale, translation: newtranslation}, 15);
+//                world.tweenScale($V([1, 1]), 30);
+//                world.tweenTranslation(item.outer.inverse(), 30);
+//                world.tweenViewport({scale: $V([1.0, 1.0]), translation: item.outer.inverse()}, 30);
+
+                item.mouseDown = item.hideDescription;
+            };
+
+            item.hideDescription = function() {
+//                world.removeMote(item.description);
+                world.tweens = [];
+                world.tweenViewport({scale: oldScale, translation: oldTranslation}, 15);
+
+//                 world.down = oldDown;
+                item.mouseDown = item.showDescription;
+            };
+
+            item.mouseIn = item.activate;
+            item.mouseOut = item.deactivate;
+            item.mouseDown = item.showDescription;
 
             return item;
         };
 
+        key.itemhash = {};
         key.keyitems = focusGroups.map(function(group, index) {
-            return keyitem({name: group.name, pos: $V([10, index*30+20])});
+            group.pos = $V([10, index*30+20]);
+            var item = keyitem(group);
+
+            key.itemhash[group.name] = item;
+            return item;
         });
 
         key.addSubmotes(key.keyitems);
@@ -819,7 +984,7 @@ var homeostasis = function(id) {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
         scale: $V([0.2, 0.2]),
-        translation: $V([600, 200]),
+        translation: $V([2500, 1200]),
 
         move: function(mouse) {
             if (mouse.down) {
@@ -831,10 +996,6 @@ var homeostasis = function(id) {
             var scale = Math.pow(1.01, delta);
             this.scale = this.scale.times($V([scale, scale]));
         }
-
-//         postdraw: function(context) {
-//             moleculeKey.draw(context);
-//         }
     };
 
     var world = flux.canvas(spec);
