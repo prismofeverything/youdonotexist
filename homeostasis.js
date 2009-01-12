@@ -54,7 +54,7 @@ var homeostasis = function(id) {
             + 'that results from interactions with cheZ.  This self-limiting cycle\n'
             + 'results in a sensitivity to chemical gradients, with the cell avoiding repellents\n'
             + 'and seeking attractants.',
-        methyl: 'Methyl groups are another signifier, and are attached to various molecules\n'
+        methyl: 'Methyl groups are signifiers like phosphates, and are attached to various molecules\n'
             + 'in order to induce conformational changes.  In this case, the methyls are binding\n'
             + 'to the inner portion of the columns.  The more methyl groups bound to the column,\n'
             + 'the more sensitive the column is to repellents, and the more active cheW will be.',
