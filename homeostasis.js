@@ -864,6 +864,8 @@ var homeostasis = function(id) {
     };
     focusGroups.arrange();
 
+    // descriptive menu -------------
+
     var moleculeFocus = function(group) {
 
     };
@@ -984,6 +986,8 @@ var homeostasis = function(id) {
         return key;
     }();
 
+    // creation of flux canvas -------------------
+
     var spec = {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
@@ -1007,6 +1011,7 @@ var homeostasis = function(id) {
     // for testing
     world.membrane = membranes[0];
     world.key = moleculeKey;
+
 
     return world;
 };
