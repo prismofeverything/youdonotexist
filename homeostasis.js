@@ -66,13 +66,15 @@ var homeostasis = function(id) {
             + 'So the activation of cheW entails the eventual deactivation of cheW, cleaning up\n'
             + 'its own mess so to speak.  This process is called *adaptation*, and is common\n'
             + 'to a mind-boggling cross-section of biological processes.  ',
-        cheR: 'cheR adds methyl groups to the inner portion of a column at a steady rate.\n'
-            + 'In this way the rate of cheW activation is steadily increased, offset by the\n'
-            + 'concentration of phosphorylated cheB.  This adaptive cycle of methylation and\n'
-            + 'demethylation is on a much longer time-scale than the activation of cheW by\n'
-            + 'repellents and the phosphorylation of cheY.  In this way the cell can be\n'
-            + 'immediately responsive while at the same time adaptive to the general\n'
-            + 'fluctuations of attractants and repellents in the surrounding environment.'
+        cheR: 'cheR adds methyl groups to the inner portion of a column at a\n'
+            + 'steady rate.  In this way the rate of cheW activation is steadily\n'
+            + 'increased, offset by the concentration of phosphorylated cheB.\n'
+            + 'This adaptive cycle of methylation and demethylation is on a much\n'
+            + 'longer time-scale than the activation of cheW by repellents and\n'
+            + 'the phosphorylation of cheY.  In this way the cell can be\n'
+            + 'immediately responsive while at the same time adaptive to the\n'
+            + 'general fluctuations of attractants and repellents in the\n'
+            + 'surrounding environment.'
     };
 
     var molecule = function(spec) {
@@ -837,12 +839,14 @@ var homeostasis = function(id) {
 
     focusGroups.arrange = function() {
         var wedge = Math.PI*2*(1.0/focusGroups.length);
-        var outwards = $V([3000, 0]);
+        var outwards = $V([0.6, 0.5]);
         var zero = $V([0, 0]);
+        var half = $V([0.3, 0.4]);
 
         focusGroups.each(function(group, index) {
             var around = wedge*index;
-            group.outer = outwards.rotate(around, zero);
+            group.outer = outwards.rotate(around, half);
+//            group.outer = outwards.rotate(around, zero);
 //             group.outer = $V([,]);
         });
     };
@@ -873,6 +877,7 @@ var homeostasis = function(id) {
             spec.orientation = 0;
             spec.fill = 'stroke';
             spec.lineWidth = 2;
+            spec.transform = 'screen';
 
             var ops = spec.description.split('\n').map(function(line, index) {
                 return flux.op.text({to: spec.pos.add($V([0, index*30])), size: 14, string: line});
@@ -904,7 +909,6 @@ var homeostasis = function(id) {
             item.outer = spec.outer || $V([5000, 0]);
             item.description = makeDescription({
                 pos: item.outer,
-//                pos: $V([0, 0]),
                 color: $V([250, 240, 30, 1]),
                 description: descriptions[item.name]
             });
@@ -938,24 +942,11 @@ var homeostasis = function(id) {
                 oldTranslation = world.translation.dup();
 
                 world.addMote(item.description);
-
-                world.tweens = [];
-                var newscale = $V([1.126, 1.126]);
-                var newtranslation = item.outer.inverse().times($V([2, 2])).add($V([300, 300]));
-                world.tweenViewport({scale: newscale, translation: newtranslation}, 15);
-//                world.tweenScale($V([1, 1]), 30);
-//                world.tweenTranslation(item.outer.inverse(), 30);
-//                world.tweenViewport({scale: $V([1.0, 1.0]), translation: item.outer.inverse()}, 30);
-
                 item.mouseDown = item.hideDescription;
             };
 
             item.hideDescription = function() {
-//                world.removeMote(item.description);
-                world.tweens = [];
-                world.tweenViewport({scale: oldScale, translation: oldTranslation}, 15);
-
-//                 world.down = oldDown;
+                world.removeMote(item.description);
                 item.mouseDown = item.showDescription;
             };
 
@@ -988,7 +979,7 @@ var homeostasis = function(id) {
 
         move: function(mouse) {
             if (mouse.down) {
-                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
+                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen).times(this.scale.map(function(el) {return 1.0/el;})));
             }
         },
 
