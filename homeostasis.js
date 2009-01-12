@@ -838,16 +838,17 @@ var homeostasis = function(id) {
     ];
 
     focusGroups.arrange = function() {
+        // arrange the descriptions in a circle
         var wedge = Math.PI*2*(1.0/focusGroups.length);
-        var outwards = $V([0.6, 0.5]);
+        var outwards = $V([0.5, 0.26]);
         var zero = $V([0, 0]);
-        var half = $V([0.3, 0.4]);
+        var half = $V([0.245, 0.26]);
+
+        $V([250, 240, 30, 1]);
 
         focusGroups.each(function(group, index) {
             var around = wedge*index;
-            group.outer = outwards.rotate(around, half);
-//            group.outer = outwards.rotate(around, zero);
-//             group.outer = $V([,]);
+            group.outer = outwards.rotate(around, half).times($V([1, 1.7]));
         });
     };
     focusGroups.arrange();
@@ -907,9 +908,10 @@ var homeostasis = function(id) {
 
             item.active = false;
             item.outer = spec.outer || $V([5000, 0]);
+            item.descriptionColor = spec.descriptionColor || $V([250, 240, 30, 1]);
             item.description = makeDescription({
                 pos: item.outer,
-                color: $V([250, 240, 30, 1]),
+                color: item.descriptionColor,
                 description: descriptions[item.name]
             });
 
