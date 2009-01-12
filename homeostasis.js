@@ -840,15 +840,26 @@ var homeostasis = function(id) {
     focusGroups.arrange = function() {
         // arrange the descriptions in a circle
         var wedge = Math.PI*2*(1.0/focusGroups.length);
+        var third = Math.PI*2.0/3;
         var outwards = $V([0.5, 0.26]);
         var zero = $V([0, 0]);
-        var half = $V([0.245, 0.26]);
+        var center = $V([0.245, 0.26]);
 
         $V([250, 240, 30, 1]);
 
+        var colorWheel = function(phase) {
+            return Math.floor(140 + (Math.sin(phase)*60));
+        };
+
         focusGroups.each(function(group, index) {
             var around = wedge*index;
-            group.outer = outwards.rotate(around, half).times($V([1, 1.7]));
+            var color = [around, around+(2*third), around+third].map(function(phase) {
+                return colorWheel(phase);
+            });
+            color.append(1);
+
+            group.outer = outwards.rotate(around, center).times($V([1, 1.7]));
+            group.descriptionColor = $V(color);
         });
     };
     focusGroups.arrange();
