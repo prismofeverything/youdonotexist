@@ -103,6 +103,22 @@ var homeostasis = function(id) {
             }
         };
 
+        that.keyItem = function() {
+            return moleculeKey.itemhash[that.type];
+        };
+
+        var showDescription = function(mouse) {
+            that.keyItem().showDescription();
+            that.mouseDown = hideDescription;
+        };
+
+        var hideDescription = function(mouse) {
+            that.keyItem().hideDescription();
+            that.mouseDown = showDescription;
+        };
+
+        that.mouseDown = spec.mouseDown || showDescription;
+
         return that;
     };
 
