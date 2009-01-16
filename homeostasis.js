@@ -254,6 +254,8 @@ var homeostasis = function(id) {
             flux.op.bezier({to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])})
         ]});
 
+        spec.mouseDown = function(e) {};
+
         var that = molecule(spec);
 
         var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 100, that.box[1][1] - 100);
@@ -903,7 +905,7 @@ var homeostasis = function(id) {
         };
         var key = flux.mote(keyspec);
 
-        var makeDescription = function(spec) {
+        var description = function(spec) {
             spec.orientation = 0;
             spec.fill = 'stroke';
             spec.lineWidth = 2;
@@ -938,7 +940,7 @@ var homeostasis = function(id) {
             item.active = false;
             item.outer = spec.outer || $V([5000, 0]);
             item.descriptionColor = spec.descriptionColor || $V([250, 240, 30, 1]);
-            item.description = makeDescription({
+            item.description = description({
                 pos: item.outer,
                 color: item.descriptionColor,
                 description: descriptions[item.name]
@@ -1009,6 +1011,7 @@ var homeostasis = function(id) {
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
         scale: $V([0.2, 0.2]),
         translation: $V([2500, 1200]),
+//        translation: $V([500, 200]),
 
         move: function(mouse) {
             if (mouse.down) {
@@ -1016,9 +1019,12 @@ var homeostasis = function(id) {
             }
         },
 
+        // delta is either 1 or -1, which is the exponent of the scaling constant
+        // signifying either the number or its inverse.
         wheel: function(that, delta) {
-            var scale = Math.pow(1.01, delta);
-            this.scale = this.scale.times($V([scale, scale]));
+            var scale = Math.pow(1.007, delta);
+            this.zoom(scale);
+//            this.scale = this.scale.times($V([scale, scale]));
         }
     };
 

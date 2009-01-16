@@ -11,10 +11,10 @@ Function.prototype.method = function(name, func) {
     }
 };
 
-Array.method('append', function(el) {
+Array.prototype.append = function(el) {
     this[this.length] = el;
     return this;
-});
+};
 
 var exists = function(value) {
     return !(value === null || value === undefined);
@@ -1022,6 +1022,13 @@ flux.canvas = function(spec) {
             event.preventDefault();
         }
         event.returnValue = false;
+    };
+
+    that.zoom = function(factor) {
+        var buffer = mouse.pos.add(that.translation).x(1.0/factor);
+
+        that.translation = mouse.pos.subtract(buffer);
+        that.scale = that.scale.x(factor);
     };
 
     that.init = function() {
