@@ -904,7 +904,7 @@ var homeostasis = function(id) {
             orientation: 0,
             lineWidth: 2,
             outline: $V([170, 170, 170, 1]),
-            color: $V([0, 0, 0, 1]),
+            color: $V([200, 200, 100, 1]),
             transform: 'screen'
         };
         var key = flux.mote(keyspec);
@@ -970,14 +970,7 @@ var homeostasis = function(id) {
                 }
             };
 
-            var oldScale = null;
-            var oldTranslation = null;
-            var oldDown = null;
-
             item.showDescription = function() {
-                oldScale = world.scale.dup();
-                oldTranslation = world.translation.dup();
-
                 world.addMote(item.description);
                 item.mouseDown = item.hideDescription;
             };
@@ -1012,14 +1005,13 @@ var homeostasis = function(id) {
 
     var spec = {
         id: id,
-        motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
+        motes: membranes.concat(ligands.attractant).concat(ligands.repellent).append(moleculeKey),
         scale: $V([0.2, 0.2]),
-//        translation: $V([2500, 1200]),
         translation: $V([500, 200]),
 
         move: function(mouse) {
             if (mouse.down) {
-                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));//.times(this.scale.map(function(el) {return 1.0/el;})));
+                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
             }
         },
 
@@ -1028,7 +1020,6 @@ var homeostasis = function(id) {
         wheel: function(that, delta) {
             var scale = Math.pow(1.007, delta);
             this.zoom(scale);
-//            this.scale = this.scale.times($V([scale, scale]));
         }
     };
 

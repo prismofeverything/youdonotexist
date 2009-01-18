@@ -781,7 +781,7 @@ flux.mote = function(spec) {
         context.lineWidth = that.lineWidth;
 
         if (that.transform === 'screen') {
-            context.translate(that.pos.o(0)*flux.browser.w, that.pos.o(1)*flux.browser.h);
+            context.translate(Math.floor(that.pos.o(0)*flux.browser.w), Math.floor(that.pos.o(1)*flux.browser.h));
         } else {
             context.translate(that.pos.o(0), that.pos.o(1));
         }
@@ -793,6 +793,7 @@ flux.mote = function(spec) {
 
         if (that.outline) {
             context.save();
+            context.lineWidth = that.lineWidth;
             context.strokeStyle = that.outline_spec();
             that.drawShape(context, 'stroke');
             context.restore();
