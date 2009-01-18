@@ -784,11 +784,9 @@ flux.mote = function(spec) {
             context.translate(Math.floor(that.pos.o(0)*flux.browser.w), Math.floor(that.pos.o(1)*flux.browser.h));
         } else {
             context.translate.apply(context, that.pos.elements);
-//                        context.translate(that.pos.o(0), that.pos.o(1));
         }
 
         context.rotate(that.orientation);
-//        context.scale(that.scale.o(0), that.scale.o(1));
         context.scale.apply(context, that.scale.elements);
 
         that.drawShape(context, that.fill);
@@ -931,7 +929,7 @@ flux.canvas = function(spec) {
 
     var draw = function() {
         context.clearRect(0, 0, flux.browser.w, flux.browser.h);
-//        that.predraw(context);
+        that.predraw(context);
 
         if (that.transforms['pos']) {
             context.save();
@@ -952,7 +950,7 @@ flux.canvas = function(spec) {
             context.restore();
         }
 
-//        that.postdraw(context);
+        that.postdraw(context);
     };
 
     var mouseEvent = function(event, mouse) {

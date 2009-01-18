@@ -139,25 +139,25 @@ CanvasTextFunctions.draw = function(ctx,font,size,x,y,str)
     ctx.lineCap = "round";
     ctx.lineWidth = 2.0 * mag;
 
-    for ( i = 0; i < len; i++) {
-		var c = CanvasTextFunctions.letter( str.charAt(i));
-		if ( !c) continue;
+    for (i = 0; i < len; i++) {
+		var c = CanvasTextFunctions.letter(str.charAt(i));
+		if (!c) continue;
 
 		ctx.beginPath();
 
 		var penUp = 1;
 		var needStroke = 0;
-		for ( j = 0; j < c.points.length; j++) {
+		for (j = 0; j < c.points.length; j++) {
 			var a = c.points[j];
-			if ( a[0] == -1 && a[1] == -1) {
+			if (a[0] == -1 && a[1] == -1) {
 				penUp = 1;
 				continue;
 			}
-			if ( penUp) {
-				ctx.moveTo( x + a[0]*mag, y - a[1]*mag);
+			if (penUp) {
+				ctx.moveTo(x + a[0]*mag, y - a[1]*mag);
 				penUp = false;
 			} else {
-				ctx.lineTo( x + a[0]*mag, y - a[1]*mag);
+				ctx.lineTo(x + a[0]*mag, y - a[1]*mag);
 			}
 		}
 
@@ -175,37 +175,32 @@ CanvasTextFunctions.op = function(ctx,font,size,x,y,str)
     var len = str.length;
     var mag = size / 25.0;
 
-    ctx.save();
     ctx.lineCap = "round";
     ctx.lineWidth = 2.0 * mag;
 
-    for ( i = 0; i < len; i++) {
-		var c = CanvasTextFunctions.letter( str.charAt(i));
-		if ( !c) continue;
-
-//		ctx.beginPath();
+    for (i = 0; i < len; i++) {
+		var c = CanvasTextFunctions.letter(str.charAt(i));
+		if (!c) continue;
 
 		var penUp = 1;
 		var needStroke = 0;
-		for ( j = 0; j < c.points.length; j++) {
+		for (j = 0; j < c.points.length; j++) {
 			var a = c.points[j];
-			if ( a[0] == -1 && a[1] == -1) {
+			if (a[0] == -1 && a[1] == -1) {
 				penUp = 1;
 				continue;
 			}
-			if ( penUp) {
-				ctx.moveTo( x + a[0]*mag, y - a[1]*mag);
+			if (penUp) {
+				ctx.moveTo(x + a[0]*mag, y - a[1]*mag);
 				penUp = false;
 			} else {
-				ctx.lineTo( x + a[0]*mag, y - a[1]*mag);
+				ctx.lineTo(x + a[0]*mag, y - a[1]*mag);
 			}
 		}
 
-//		ctx.stroke();
 		x += c.width*mag;
 	}
 
-    ctx.restore();
     return total;
 };
 
@@ -219,12 +214,12 @@ CanvasTextFunctions.enable = function(ctx)
 
     ctx.drawTextRight = function(font,size,x,y,text) {
 		var w = CanvasTextFunctions.measure(font,size,text);
-		return CanvasTextFunctions.draw( ctx, font,size,x-w,y,text);
+		return CanvasTextFunctions.draw(ctx, font,size,x-w,y,text);
     };
 
     ctx.drawTextCenter = function(font,size,x,y,text) {
 		var w = CanvasTextFunctions.measure(font,size,text);
-		return CanvasTextFunctions.draw( ctx, font,size,x-w/2,y,text);
+		return CanvasTextFunctions.draw(ctx, font,size,x-w/2,y,text);
     };
 };
 
