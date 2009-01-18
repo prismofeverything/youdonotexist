@@ -275,8 +275,8 @@ Object.extend(Function.prototype, {
 	delay: function() {
 		var __method = this, args = $A(arguments), timeout = args.shift() * 1000;
 		return window.setTimeout(function() {
-									 return __method.apply(__method, args);
-								 }, timeout);
+			return __method.apply(__method, args);
+		}, timeout);
 	},
 
 	wrap: function(wrapper) {
@@ -302,8 +302,8 @@ var Enumerable = {
 		var index = 0;
 		try {
 			this._each(function(value) {
-						   iterator(value, index++);
-					   });
+				iterator(value, index++);
+			});
 		} catch (e) {
 			if (e != $break) throw e;
 		}
@@ -320,9 +320,9 @@ var Enumerable = {
 	all: function(iterator, context) {
 		var result = true;
 		this.each(function(value, index) {
-					  result = result && !!iterator(value, index);
-					  if (!result) throw $break;
-				  });
+			result = result && !!iterator(value, index);
+			if (!result) throw $break;
+		});
 		return result;
 	},
 
@@ -339,9 +339,9 @@ var Enumerable = {
 	any: function(iterator, context) {
 		var result = false;
 		this.each(function(value, index) {
-					  if (result = !!iterator(value, index))
-						  throw $break;
-				  });
+			if (result = !!iterator(value, index))
+				throw $break;
+	    });
 		return result;
 	},
 
@@ -356,20 +356,20 @@ var Enumerable = {
 	detect: function(iterator, context) {
 		var result;
 		this.each(function(value, index) {
-					  if (iterator(value, index)) {
-						  result = value;
-						  throw $break;
-					  }
-				  });
+			if (iterator(value, index)) {
+				result = value;
+				throw $break;
+			}
+		});
 		return result;
 	},
 
 	findAll: function(iterator, context) {
 		var results = [];
 		this.each(function(value, index) {
-					  if (iterator(value, index))
-						  results.push(value);
-				  });
+			if (iterator(value, index))
+				results.push(value);
+	    });
 		return results;
 	},
 
@@ -380,9 +380,9 @@ var Enumerable = {
 			filter = new RegExp(filter);
 
 		this.each(function(value, index) {
-					  if (filter.match(value))
-						  results.push(iterator(value, index));
-				  });
+			if (filter.match(value))
+				results.push(iterator(value, index));
+	    });
 		return results;
 	},
 
@@ -392,11 +392,11 @@ var Enumerable = {
 
 		var found = false;
 		this.each(function(value) {
-					  if (value == object) {
-						  found = true;
-						  throw $break;
-					  }
-				  });
+			if (value == object) {
+				found = true;
+				throw $break;
+			}
+		});
 		return found;
 	},
 
@@ -405,13 +405,13 @@ var Enumerable = {
 		return this.eachSlice(number, function(slice) {
 			while(slice.length < number) slice.push(fillWith);
 				return slice;
-			});
+		});
 	},
 
 	inject: function(memo, iterator, context) {
 		this.each(function(value, index) {
-					  memo = iterator(memo, value, index);
-				  });
+		    memo = iterator(memo, value, index);
+		});
 		return memo;
 	},
 
@@ -574,10 +574,10 @@ Object.extend(Array.prototype, {
 
 	uniq: function(sorted) {
 		return this.inject([], function(array, value, index) {
-							   if (0 == index || (sorted ? array.last() != value : !array.include(value)))
-								   array.push(value);
-							   return array;
-						   });
+			if (0 == index || (sorted ? array.last() != value : !array.include(value)))
+				array.push(value);
+			return array;
+		});
 	},
 
 	intersect: function(array) {

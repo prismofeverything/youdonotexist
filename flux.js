@@ -783,11 +783,13 @@ flux.mote = function(spec) {
         if (that.transform === 'screen') {
             context.translate(Math.floor(that.pos.o(0)*flux.browser.w), Math.floor(that.pos.o(1)*flux.browser.h));
         } else {
-            context.translate(that.pos.o(0), that.pos.o(1));
+            context.translate.apply(context, that.pos.elements);
+//                        context.translate(that.pos.o(0), that.pos.o(1));
         }
 
         context.rotate(that.orientation);
-        context.scale(that.scale.o(0), that.scale.o(1));
+//        context.scale(that.scale.o(0), that.scale.o(1));
+        context.scale.apply(context, that.scale.elements);
 
         that.drawShape(context, that.fill);
 

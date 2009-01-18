@@ -896,16 +896,15 @@ var homeostasis = function(id) {
         var keyspec = {
             pos: $V([0.8, 0.1]),
             shape: flux.shape({ops: [
+                flux.op.move({to: $V([0, 0])}),
                 flux.op.line({to: $V([200, 0])}),
                 flux.op.line({to: $V([200, 330])}),
-                flux.op.line({to: $V([0, 330])}),
-                flux.op.line({to: $V([0, 0])})
+                flux.op.line({to: $V([0, 330])})
             ]}),
             orientation: 0,
             lineWidth: 2,
             outline: $V([170, 170, 170, 1]),
             color: $V([0, 0, 0, 1]),
-//            color: $V([200, 200, 100, 1]),
             transform: 'screen'
         };
         var key = flux.mote(keyspec);
