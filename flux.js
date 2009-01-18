@@ -793,7 +793,6 @@ flux.mote = function(spec) {
 
         if (that.outline) {
             context.save();
-            context.lineWidth = that.lineWidth;
             context.strokeStyle = that.outline_spec();
             that.drawShape(context, 'stroke');
             context.restore();
