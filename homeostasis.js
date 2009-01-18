@@ -1010,12 +1010,12 @@ var homeostasis = function(id) {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).concat([moleculeKey]),
         scale: $V([0.2, 0.2]),
-        translation: $V([2500, 1200]),
-//        translation: $V([500, 200]),
+//        translation: $V([2500, 1200]),
+        translation: $V([500, 200]),
 
         move: function(mouse) {
             if (mouse.down) {
-                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen).times(this.scale.map(function(el) {return 1.0/el;})));
+                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));//.times(this.scale.map(function(el) {return 1.0/el;})));
             }
         },
 

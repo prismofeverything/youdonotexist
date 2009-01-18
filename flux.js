@@ -855,10 +855,19 @@ flux.canvas = function(spec) {
         inside: [],
 
         diffpos: function() {
-            this.pos.subtract(this.prevpos);
+            return this.pos.subtract(this.prevpos);
         },
+
         diffscreen: function() {
-            this.screen.subtract(this.prevscreen);
+            return this.screen.subtract(this.prevscreen);
+        },
+
+        posify: function(where) {
+            return where.subtract(that.translation).times(that.scale.map(function(el) {return 1.0 / el;}));
+        },
+
+        deposify: function(where) {
+            return where.times(that.scale).add(that.translation);
         }
     };
 
@@ -920,12 +929,12 @@ flux.canvas = function(spec) {
 
     var draw = function() {
         context.clearRect(0, 0, flux.browser.w, flux.browser.h);
-        that.predraw(context);
+//        that.predraw(context);
 
         if (that.transforms['pos']) {
             context.save();
-            context.scale(that.scale.o(0), that.scale.o(1));
             context.translate(that.translation.o(0), that.translation.o(1));
+            context.scale(that.scale.o(0), that.scale.o(1));
             context.rotate(that.orientation);
 
             that.transforms['pos'].invoke('draw', context);
@@ -941,7 +950,7 @@ flux.canvas = function(spec) {
             context.restore();
         }
 
-        that.postdraw(context);
+//        that.postdraw(context);
     };
 
     var mouseEvent = function(event, mouse) {
@@ -977,7 +986,7 @@ flux.canvas = function(spec) {
         mouse.screen = $V([x, y]);
 
         mouse.prevpos = mouse.pos;
-        mouse.pos = mouse.screen.times(that.scale.map(function(el) {return 1.0 / el;})).subtract(that.translation);
+        mouse.pos = mouse.posify(mouse.screen);
 
         // sort out which motes are no longer under the mouse
         // and which still contain it
@@ -1025,10 +1034,10 @@ flux.canvas = function(spec) {
     };
 
     that.zoom = function(factor) {
-        var buffer = mouse.pos.add(that.translation).x(1.0/factor);
+        var buffer = mouse.pos.subtract(mouse.posify($V([0, 0]))).x(1.0/factor);
 
-        that.translation = mouse.pos.subtract(buffer);
         that.scale = that.scale.x(factor);
+        that.translation = that.translation.subtract(mouse.deposify(mouse.pos.subtract(buffer)));
     };
 
     that.init = function() {
