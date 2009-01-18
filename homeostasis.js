@@ -108,8 +108,14 @@ var homeostasis = function(id) {
         };
 
         var showDescription = function(mouse) {
-            that.keyItem().showDescription();
-            that.mouseDown = hideDescription;
+            // only show the deepest submote under the mouse
+            var lowest = mouse.inside.inject(that, function(lowest, inside) {
+                return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
+            });
+            if (that === lowest) {
+                that.keyItem().showDescription();
+                that.mouseDown = hideDescription;
+            }
         };
 
         var hideDescription = function(mouse) {
@@ -253,8 +259,6 @@ var homeostasis = function(id) {
             flux.op.line({to: $V([-1400, 700])}),
             flux.op.bezier({to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])})
         ]});
-
-        spec.mouseDown = function(e) {};
 
         var that = molecule(spec);
 
