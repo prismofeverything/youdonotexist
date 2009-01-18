@@ -11,6 +11,7 @@ var homeostasis = function(id) {
     var phosphorylationCycles = 50;
     var globalVelocity = 5;
     var timeZoom = 10;
+    var dragging = false;
 
     var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -113,17 +114,21 @@ var homeostasis = function(id) {
                 return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
             });
             if (that === lowest) {
-                that.keyItem().showDescription();
-                that.mouseDown = hideDescription;
+                if (!dragging) {
+                    that.keyItem().showDescription();
+                    that.mouseClick = hideDescription;
+                } else {
+                    dragging = false;
+                }
             }
         };
 
         var hideDescription = function(mouse) {
             that.keyItem().hideDescription();
-            that.mouseDown = showDescription;
+            that.mouseClick = showDescription;
         };
 
-        that.mouseDown = spec.mouseDown || showDescription;
+        that.mouseClick = spec.mouseClick || showDescription;
 
         return that;
     };
@@ -1012,6 +1017,7 @@ var homeostasis = function(id) {
         move: function(mouse) {
             if (mouse.down) {
                 this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
+                dragging = true;
             }
         },
 

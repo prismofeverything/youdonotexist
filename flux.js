@@ -464,6 +464,7 @@ flux.mote = function(spec) {
 
     that.mouseDown = function(mouse) {};
     that.mouseUp = function(mouse) {};
+    that.mouseClick = function(mouse) {};
     that.mouseIn = function(mouse) {};
     that.mouseOut = function(mouse) {};
     that.mouseMove = function(mouse) {};
@@ -975,6 +976,10 @@ flux.canvas = function(spec) {
         that.up(mouse);
     };
 
+    var mouseClick = function(e) {
+        mouseEvent('Click', mouse);
+    };
+
     var mouseMove = function(e) {
         var scrollX = window.scrollX != null ? window.scrollX : window.pageXOffset;
         var scrollY = window.scrollY != null ? window.scrollY : window.pageYOffset;
@@ -1033,6 +1038,9 @@ flux.canvas = function(spec) {
         event.returnValue = false;
     };
 
+    // zoom keeping the current mouse position fixed.
+    // works by finding the vector from the mouse position to the top left corner,
+    // then scaling it to the new zoom factor.
     that.zoom = function(factor) {
         var buffer = mouse.pos.subtract(mouse.posify($V([0, 0]))).x(1.0/factor);
 
@@ -1064,6 +1072,7 @@ flux.canvas = function(spec) {
 
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);
+        canvas.addEventListener('click', mouseClick, false);
         canvas.addEventListener('mousemove', mouseMove, false);
 
         flux.browser.dim(window.innerWidth, window.innerHeight);
