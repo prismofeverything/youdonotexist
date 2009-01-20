@@ -114,6 +114,7 @@ var homeostasis = function(id) {
                 return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
             });
             if (that === lowest) {
+                // don't show description if the click was from dragging
                 if (!dragging) {
                     that.keyItem().showDescription();
                     that.mouseClick = hideDescription;
@@ -732,6 +733,9 @@ var homeostasis = function(id) {
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = molecule(spec);
+
+        
+
         return that;
     };
 
