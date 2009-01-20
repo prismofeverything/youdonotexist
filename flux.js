@@ -32,16 +32,19 @@ var vector_to_rgba = function(v) {
     }
 };
 
+// basic framework namespace
 var flux = {
     browser: {
         dim: function() {
             var w = arguments[0];
             var h = arguments[1];
 
+            // if two arguments are provided, they represent width and height
             if (w && h) {
                 this.w = w;
                 this.h = h;
                 this.dimension = $V([w, h]);
+            // if only one, it is a vector
             } else if (w) {
                 this.w = w.elements[0];
                 this.h = w.elements[1];
