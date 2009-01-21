@@ -749,7 +749,7 @@ var homeostasis = function(id) {
         var that = molecule(spec);
 
         that.seekPhosphorylated = function() {
-
+            
         };
 
         return that;
