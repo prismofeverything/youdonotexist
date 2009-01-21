@@ -564,10 +564,6 @@ flux.mote = function(spec) {
     that.findBox = function() {
         var box = flux.bounds(0, 0, 0, 0);
 
-//         that.shape.ops.each(function(vertex) {
-//             vertex.prod(box);
-//         });
-
         box = that.shapes.inject(box, function(grow, shape) {
             return grow.union(shape.box);
         });
@@ -868,8 +864,6 @@ flux.mote = function(spec) {
         for (var index=0; index < len; index++){
             that.shapes[index].draw(context);
         }
-
-//        that.drawShape(context, that.fill);
 
         if (that.outline) {
             context.save();
