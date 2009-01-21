@@ -58,7 +58,7 @@ var flux = {
 
 flux.bounds = function(xlow, xhigh, ylow, yhigh) {
     var that = [];
-    var ops = [Math.min, Math.max];
+    var checks = [Math.min, Math.max];
 
     that.x = [xlow, xhigh];
     that.y = [ylow, yhigh];
@@ -105,9 +105,10 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
     that.union = function(other) {
         for (var a = 0; a < 2; a++) {
             for (var b = 0; b < 2; b++) {
-                that[a][b] = ops[b](that[a][b], other[a][b]);
+                that[a][b] = checks[b](that[a][b], other[a][b]);
             }
         }
+
         return that;
     };
 
@@ -115,9 +116,10 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
     that.include = function(point) {
         for (var a = 0; a < 2; a++) {
             for (var b = 0; b < 2; b++) {
-                that[a][b] = ops[b](that[a][b], point.o(a));
+                that[a][b] = checks[b](that[a][b], point.o(a));
             }
         }
+
         return that;
     };
 
@@ -128,6 +130,7 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
                 that[a][b] += point.o(a);
             }
         }
+
         return that;
     };
 
@@ -145,6 +148,24 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
         return that.check(point).inject(true, function(side, a, index) {
             return side && a === 0;
         });
+    };
+
+    that.shapeFor = function() {
+        return flux.shape({ops: [
+            flux.op.move({to: $V([that.x[0], that.y[0]])}),
+            flux.op.line({to: $V([that.x[1], that.y[0]])}),
+            flux.op.line({to: $V([that.x[1], that.y[1]])}),
+            flux.op.line({to: $V([that.x[0], that.y[1]])})
+        ]});
+    };
+
+    that.scale = function(factor) {
+        var w = that.width();
+        var h = that.height();
+        var wfactor = (w*factor-w)*0.5;
+        var hfactor = (h*factor-h)*0.5;
+
+        return flux.bounds(that.x[0]-wfactor, that.x[1]+wfactor, that.y[0]-hfactor, that.y[1]+hfactor);
     };
 
     return that;
@@ -228,11 +249,25 @@ flux.op = function() {
         };
 
         that.prod = function(box) {
+            var renderLength = function(string) {
+                return CanvasTextFunctions.measure(true, that.size, string);
+            };
+
+            // find the longest line to use as the outermost horizontal boundary
+            var lines = that.string.split('\n');
+            var longest = {length: renderLength(lines[0]), line: lines[0]};
+            for (var index=1; index < lines.length; index++) {
+                var possible = renderLength(line[index]);
+                if (possible > longest.length) {
+                    longest = {length: possible, line: line[index]};
+                }
+            }
+
             box.union(flux.bounds(
                 that.to.o(0),
-                that.to.o(0) + that.string.length*that.size,
+                that.to.o(0) + longest.length,
                 that.to.o(1) - that.size,
-                that.to.o(1) + that.size
+                that.to.o(1) + that.size*lines.length
             ));
         };
 
@@ -338,6 +373,8 @@ flux.shape = function(spec) {
     var that = {};
 
     that.ops = spec.ops || [];
+    that.color = spec.color;
+    that.fill = spec.fill || 'fill';
 
     that.between = function(other, cycles) {
         return that.ops.inject([], function(tweens, op, index) {
@@ -349,17 +386,30 @@ flux.shape = function(spec) {
         return flux.shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
     };
 
-    that.draw = function(context, fill, color) {
+    // construct a simple bounding box to tell if further bounds checking is necessary
+    that.boxFor = function() {
+        var box = flux.bounds(0, 0, 0, 0);
+
+        that.ops.each(function(vertex) {
+            vertex.prod(box);
+        });
+
+        return box;
+    };
+
+    that.box = that.boxFor();
+
+    that.draw = function(context) {
         context.beginPath();
 
-        if (color) context[fill+'Style'] = vector_to_rgba(color);
+        if (that.color) context[that.fill+'Style'] = vector_to_rgba(that.color);
 
-        that.shape.ops.each(function(vertex) {
+        that.ops.each(function(vertex) {
             context[vertex.method].apply(context, vertex.args());
         });
 
         context.closePath();
-        context[fill]();
+        context[that.fill]();
     };
 
     return that;
@@ -464,6 +514,8 @@ flux.mote = function(spec) {
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
     that.velocity = spec.velocity || $V([0, 0]);
 
+    that.shapes = spec.shapes || [that.shape];
+
     that.color = spec.color || $V([200, 200, 200, 1]);
     that.scale = spec.scale || $V([1, 1]);
     that.fill = spec.fill || 'fill';
@@ -512,8 +564,12 @@ flux.mote = function(spec) {
     that.findBox = function() {
         var box = flux.bounds(0, 0, 0, 0);
 
-        that.shape.ops.each(function(vertex) {
-            vertex.prod(box);
+//         that.shape.ops.each(function(vertex) {
+//             vertex.prod(box);
+//         });
+
+        box = that.shapes.inject(box, function(grow, shape) {
+            return grow.union(shape.box);
         });
 
         that.submotes.each(function(submote) {
@@ -782,12 +838,10 @@ flux.mote = function(spec) {
 
             that.neighbors.each(function(neighbor) {
                 context.lineWidth = 3;
-//                context.strokeStyle = "rgba(30, 30, 120, 1)";
                 context.strokeStyle = that.color_spec();
                 context.beginPath();
                 context.moveTo.apply(context, that.pos.elements);
                 context.lineTo.apply(context, that.relativePos(neighbor).elements);
-//              context.lineTo.apply(context, neighbor.pos.elements);
                 context.closePath();
                 context.stroke();
             });
@@ -810,7 +864,12 @@ flux.mote = function(spec) {
         context.rotate(that.orientation);
         context.scale.apply(context, that.scale.elements);
 
-        that.drawShape(context, that.fill);
+        var len = that.shapes.length;
+        for (var index=0; index < len; index++){
+            that.shapes[index].draw(context);
+        }
+
+//        that.drawShape(context, that.fill);
 
         if (that.outline) {
             context.save();

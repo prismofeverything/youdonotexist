@@ -278,7 +278,7 @@ var homeostasis = function(id) {
             flux.op.bezier({to: $V([1400, 700]), control1: $V([2450, -700]), control2: $V([2450, 700])}),
             flux.op.line({to: $V([-1400, 700])}),
             flux.op.bezier({to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])})
-        ]});
+        ], fill: 'stroke'});
 
         var that = molecule(spec);
 
@@ -944,9 +944,17 @@ var homeostasis = function(id) {
                 return flux.op.text({to: spec.pos.add($V([0, index*30])), size: 14, string: line});
             });
 
-            spec.shape = spec.shape || flux.shape({ops: ops});
+            var text = flux.shape({ops: ops, fill: 'stroke'});
+            var background = text.box.scale(1.1).shapeFor();
+
+            spec.shapes = [background, text];
 
             var desc = flux.mote(spec);
+
+            desc.item = spec.item;
+            desc.mouseDown = desc.item.hideDescription;
+            background.color = $V([20, 20, 20, 1]);
+
             return desc;
         };
 
@@ -959,7 +967,7 @@ var homeostasis = function(id) {
             spec.fill = 'stroke';
             spec.shape = spec.shape || flux.shape({ops: [
                 flux.op.text({to: $V([0, 0]), size: 14, string: spec.name})
-            ]});
+            ], fill: 'stroke'});
 
             var item = flux.mote(spec);
 
@@ -970,6 +978,7 @@ var homeostasis = function(id) {
             item.outer = spec.outer || $V([5000, 0]);
             item.descriptionColor = spec.descriptionColor || $V([250, 240, 30, 1]);
             item.description = description({
+                item: item,
                 pos: item.outer,
                 color: item.descriptionColor,
                 description: descriptions[item.name]
@@ -1017,22 +1026,22 @@ var homeostasis = function(id) {
         var homeostatic = keyitem({
             name: 'homeostasis',
             pos: $V([10, 20]),
-            outer: $V([0.2, 0.1]),
+            outer: $V([0.2, 0.05]),
             inactiveColor: $V([150, 150, 110, 1]),
-            descriptionColor: $V([150, 150, 210, 1])
+            descriptionColor: $V([240, 230, 170, 1])
         });
 
         var about = keyitem({
             name: 'about',
             pos: $V([10, 50]),
-            outer: $V([0.2, 0.8]),
+            outer: $V([0.2, 0.7]),
             inactiveColor: $V([150, 150, 110, 1]),
             descriptionColor: $V([150, 150, 210, 1])
         });
 
         var divider = keyitem({
             name: '______________________________',
-            pos: $V([-30, 70]),
+            pos: $V([-35, 70]),
             outer: $V([0.5, 0.5]),
             inactive: true,
             inactiveColor: $V([210, 110, 110, 1]),
@@ -1059,7 +1068,7 @@ var homeostasis = function(id) {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).append(moleculeKey),
         scale: $V([0.2, 0.2]),
-        translation: $V([500, 270]),
+        translation: $V([500, 300]),
 
         move: function(mouse) {
             if (mouse.down) {
