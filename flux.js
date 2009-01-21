@@ -349,6 +349,19 @@ flux.shape = function(spec) {
         return flux.shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
     };
 
+    that.draw = function(context, fill, color) {
+        context.beginPath();
+
+        if (color) context[fill+'Style'] = vector_to_rgba(color);
+
+        that.shape.ops.each(function(vertex) {
+            context[vertex.method].apply(context, vertex.args());
+        });
+
+        context.closePath();
+        context[fill]();
+    };
+
     return that;
 };
 
@@ -764,10 +777,13 @@ flux.mote = function(spec) {
 
     that.draw = function(context) {
         // drawing lines to neighbors
-        context.save();
         if (that.neighbors.length > 1) {
+            context.save();
+
             that.neighbors.each(function(neighbor) {
                 context.lineWidth = 3;
+//                context.strokeStyle = "rgba(30, 30, 120, 1)";
+                context.strokeStyle = that.color_spec();
                 context.beginPath();
                 context.moveTo.apply(context, that.pos.elements);
                 context.lineTo.apply(context, that.relativePos(neighbor).elements);
@@ -775,8 +791,9 @@ flux.mote = function(spec) {
                 context.closePath();
                 context.stroke();
             });
+
+            context.restore();
         }
-        context.restore();
 
         // drawing the shape
         context.save();

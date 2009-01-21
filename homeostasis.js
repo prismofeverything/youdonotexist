@@ -7,7 +7,7 @@ var homeostasis = function(id) {
     var all = above.copy().union(below);
 
     var receptorGrip = 0.996;
-    var attractantRepellentRatio = 0.3;
+    var attractantRepellentRatio = 0.5;
     var phosphorylationCycles = 50;
     var globalVelocity = 5;
     var timeZoom = 10;
@@ -16,6 +16,20 @@ var homeostasis = function(id) {
     var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
     var descriptions = {
+        homeostasis: 'Homeostasis is the process of maintaining some kind of balance\n'
+            + 'in the face of endlessly changing external forces.  In this case\n'
+            + 'the cell is always seeking to climb the gradient of attractants\n'
+            + 'and oppose the gradient of repellents, leading it to sources of food\n'
+            + 'and away from potentially harmful agents.  The system maintains\n'
+            + 'its sensitivity to even the most subtle gradient while compensating\n'
+            + 'for any saturation of either attractants or repellents in the\n'
+            + 'surrounding environment.',
+        about: 'This is an interactive model of cellular chemotaxis.  You can drag\n'
+            + 'the model around with the mouse and zoom in and out with the scroll wheel.\n'
+            + 'Mousing over one of the components will highlight the corresponding entry\n'
+            + 'in the menu, and clicking will bring up a description of that component\n'
+            + 'and its role in the process of sensing chemical gradients.',
+        '______________________________': 'This is the divider!',
         membrane: 'The membrane is the enclosing surface that separates\n'
             + 'the inside of the cell from the outside.  The cell\n'
             + 'maintains an electric potential across this membrane\n'
@@ -735,7 +749,7 @@ var homeostasis = function(id) {
         var that = molecule(spec);
 
         that.seekPhosphorylated = function() {
-            
+
         };
 
         return that;
@@ -909,8 +923,8 @@ var homeostasis = function(id) {
             shape: flux.shape({ops: [
                 flux.op.move({to: $V([0, 0])}),
                 flux.op.line({to: $V([200, 0])}),
-                flux.op.line({to: $V([200, 330])}),
-                flux.op.line({to: $V([0, 330])})
+                flux.op.line({to: $V([200, 410])}),
+                flux.op.line({to: $V([0, 410])})
             ]}),
             orientation: 0,
             lineWidth: 2,
@@ -937,7 +951,7 @@ var homeostasis = function(id) {
         };
 
         var keyitem = function(spec) {
-            var inactiveColor = $V([60, 70, 170, 1]);
+            var inactiveColor = spec.inactiveColor || $V([110, 130, 210, 1]);
             var activeColor = $V([230, 230, 230, 1]);
 
             spec.color = spec.color || inactiveColor.dup();
@@ -991,21 +1005,48 @@ var homeostasis = function(id) {
                 item.mouseDown = item.showDescription;
             };
 
-            item.mouseIn = item.activate;
-            item.mouseOut = item.deactivate;
-            item.mouseDown = item.showDescription;
+            if (!spec.inactive) {
+                item.mouseIn = item.activate;
+                item.mouseOut = item.deactivate;
+                item.mouseDown = item.showDescription;
+            }
 
             return item;
         };
 
+        var homeostatic = keyitem({
+            name: 'homeostasis',
+            pos: $V([10, 20]),
+            outer: $V([0.2, 0.1]),
+            inactiveColor: $V([150, 150, 110, 1]),
+            descriptionColor: $V([150, 150, 210, 1])
+        });
+
+        var about = keyitem({
+            name: 'about',
+            pos: $V([10, 50]),
+            outer: $V([0.2, 0.8]),
+            inactiveColor: $V([150, 150, 110, 1]),
+            descriptionColor: $V([150, 150, 210, 1])
+        });
+
+        var divider = keyitem({
+            name: '______________________________',
+            pos: $V([-30, 70]),
+            outer: $V([0.5, 0.5]),
+            inactive: true,
+            inactiveColor: $V([210, 110, 110, 1]),
+            descriptionColor: $V([150, 150, 210, 1])
+        });
+
         key.itemhash = {};
-        key.keyitems = focusGroups.map(function(group, index) {
-            group.pos = $V([10, index*30+20]);
+        key.keyitems = [homeostatic, about, divider].concat(focusGroups.map(function(group, index) {
+            group.pos = $V([10, index*30+100]);
             var item = keyitem(group);
 
             key.itemhash[group.name] = item;
             return item;
-        });
+        }));
 
         key.addSubmotes(key.keyitems);
 
@@ -1018,7 +1059,7 @@ var homeostasis = function(id) {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).append(moleculeKey),
         scale: $V([0.2, 0.2]),
-        translation: $V([500, 200]),
+        translation: $V([500, 270]),
 
         move: function(mouse) {
             if (mouse.down) {
