@@ -53,5 +53,6 @@ post '/statement/?' do
   render_plasma('statement')
 end
 
-
-
+get '*.*' do 
+  File.open(File.join(THIS_DIR, params["splat"])).read
+end

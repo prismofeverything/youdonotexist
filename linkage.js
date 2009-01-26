@@ -15,8 +15,10 @@ var cache = function(find) {
 		return value;
 	};
 
+    that.expiring = function() {};
 	that.expire = function() {
 		value = null;
+        that.expiring();
 	};
 
 	return that;

@@ -555,6 +555,11 @@ flux.mote = function(spec) {
         return that.rise(that.pos);
     };
     that.absolute = cache(find_absolute);
+    that.absolute.expiring = function() {
+        that.submotes.each(function(submote) {
+            submote.absolute.expire();
+        });
+    };
 
     that.contains = function(point) {
         return that.box.inside(point.subtract(that.absolute()));

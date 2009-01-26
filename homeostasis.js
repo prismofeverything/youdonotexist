@@ -1,9 +1,6 @@
 var homeostasis = function(id) {
-    var inside = flux.bounds(20, 800, 320, 1000);
-    var outside = flux.bounds(0, 800, 0, 250);
     var above = flux.bounds(-1700, 1700, -450, 250);
     var below = flux.bounds(-1700, 1700, 1700, 2400);
-    var offscreen = flux.bounds(-50, 800, -50, 0);
     var all = above.copy().union(below);
 
     var receptorGrip = 0.996;
@@ -330,9 +327,11 @@ var homeostasis = function(id) {
             .concat(that.cheBs)
             .concat(that.cheRs));
 
+        that.submote_pantheon = that.submotes.clone();
+
         that.perceive = function(env) {
-            that.tree = Math.kdtree(that.submotes, 'absolute', 0);
-            that.submotes.each(function(submote) {
+            that.tree = Math.kdtree(that.submote_pantheon, 'absolute', 0);
+            that.submote_pantheon.each(function(submote) {
                 submote.neighbors = that.tree.nearest(submote.absolute(), 5, function(pod) {
                     return !(pod === that);
                 });
@@ -522,6 +521,7 @@ var homeostasis = function(id) {
 
         that.phosphorylate = function(enzyme) {
             that.pos = enzyme.introvert(that.pos);
+            that.absolute.expire();
 
             that.tweens.append(flux.tweenV({
                 obj: that,
@@ -542,10 +542,10 @@ var homeostasis = function(id) {
             that.velocity = $V([0, 0]);
 //          that.neighbors = [];
             that.attached = true;
-            that.phosphate = enzyme;
+            that.phosphorylated = true;
         };
 
-        that.phosphorylated = function() {
+        that.whenPhosphorylated = function() {
 
         };
 
@@ -579,13 +579,14 @@ var homeostasis = function(id) {
 
         that.nearestPhosphate = null;
         that.phosphate = null;
+        that.phosphorylated = false;
         that.activeCheW = null;
 
         that.outsideCheW = function() {};
         that.nearCheW = function() {};
         that.tooCloseCheW = function() {};
         that.offCheW = function() {};
-        that.phosphorylated = function() {};
+        that.whenPhosphorylated = function() {};
 
         that.outside = function(env) {
 
@@ -594,8 +595,8 @@ var homeostasis = function(id) {
         that.perceive = function(env) {
             var switchedOff = false;
 
-            if (exists(that.phosphate)) {
-                that.phosphorylated();
+            if (that.phosphorylated) {
+                that.whenPhosphorylated();
             } else {
                 if (!exists(that.activeCheW) || !that.activeCheW.active) {
                     if (that.activeCheW && !that.activeCheW.active) {
@@ -621,7 +622,7 @@ var homeostasis = function(id) {
                             that.outsideCheW();
                         } else if (distance > 20) {
                             that.future.append(function(self) {
-                                that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
+                                that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
                             });
                             that.near = true;
 
@@ -714,6 +715,7 @@ var homeostasis = function(id) {
                     that.tweenShape(activeShape, phosphorylationCycles);
 
                     that.phosphate.phosphorylate(that);
+                    that.phosphorylated = true;
 
                     that.future.append(function(self) {
                         self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
@@ -749,6 +751,10 @@ var homeostasis = function(id) {
         var that = molecule(spec);
 
         that.seekPhosphorylated = function() {
+            var phosphoneighbors = that.neighbors.select(function(neighbor) {
+                return neighbor.phosphate;
+            });
+
             
         };
 
@@ -817,6 +823,7 @@ var homeostasis = function(id) {
                     that.tweenShape(activeShape, phosphorylationCycles);
 
                     that.phosphate.phosphorylate(that);
+                    that.phosphorylated = true;
 
                     that.future.append(function(self) {
                         self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
