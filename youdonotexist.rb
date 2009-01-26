@@ -13,7 +13,7 @@ configure do
 end
 
 def open_template(name)
-  santized = name.gsub(/[^a-zA-Z_]/, '')
+  sanitized = name.gsub(/[^a-zA-Z_]/, '')
   path = File.join(TEMPLATES_DIR, "#{sanitized}.plasma")
   template = File.open(path).read if File.exist?(path)
 end
