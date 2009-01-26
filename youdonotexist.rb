@@ -13,7 +13,8 @@ configure do
 end
 
 def open_template(name)
-  path = File.join(TEMPLATES_DIR, "#{name}.plasma")
+  santized = name.gsub(/[^a-zA-Z_]/, '')
+  path = File.join(TEMPLATES_DIR, "#{sanitized}.plasma")
   template = File.open(path).read if File.exist?(path)
 end
 
@@ -52,8 +53,5 @@ post '/statement/?' do
   render_plasma('statement')
 end
 
-get '*.*' do 
-  File.open(File.join(THIS_DIR, params["splat"])).read
-end
 
 
