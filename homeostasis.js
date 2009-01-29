@@ -749,13 +749,23 @@ var homeostasis = function(id) {
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = molecule(spec);
+        var phosphorylated = null;
+        var phosphoneighbors = null;
 
         that.seekPhosphorylated = function() {
-            var phosphoneighbors = that.neighbors.select(function(neighbor) {
+            phosphoneighbors = that.neighbors.select(function(neighbor) {
                 return neighbor.phosphate;
             });
 
-            
+            if (!phosphorylated) {
+                if (phosphoneighbors.length > 0) {
+                    phosphorylated = phosphoneighbors[0];
+                }
+            } else {
+                that.future.append(function(self) {
+
+                });
+            }
         };
 
         return that;
