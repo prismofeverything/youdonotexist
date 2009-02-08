@@ -931,7 +931,7 @@ var homeostasis = function(id) {
 
     var moleculeKey = function() {
         var keyspec = {
-            pos: $V([0.8, 0.1]),
+            pos: $V([0.75, 0.1]),
             shape: flux.shape({ops: [
                 flux.op.move({to: $V([0, 0])}),
                 flux.op.line({to: $V([200, 0])}),

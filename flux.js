@@ -1130,6 +1130,9 @@ flux.canvas = function(spec) {
         // resize
         var resize = function(e) {
             flux.browser.dim(window.innerWidth, window.innerHeight);
+            canvas.width = flux.browser.w;
+            canvas.height = flux.browser.h;
+
             that.resize(flux.browser);
         };
         window.onresize = resize;
