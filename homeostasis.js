@@ -124,23 +124,18 @@ var homeostasis = function(id) {
             var lowest = mouse.inside.inject(that, function(lowest, inside) {
                 return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
             });
+
             if (that === lowest) {
-                // don't show description if the click was from dragging
-                if (!dragging) {
-                    that.keyItem().showDescription();
-                    that.mouseClick = hideDescription;
-                } else {
-                    dragging = false;
-                }
+                that.keyItem().showDescription();
             }
         };
 
         var hideDescription = function(mouse) {
             that.keyItem().hideDescription();
-            that.mouseClick = showDescription;
         };
 
-        that.mouseClick = spec.mouseClick || showDescription;
+        that.mouseDown = spec.mouseDown || showDescription;
+        that.mouseUp = spec.mouseUp || hideDescription;
 
         return that;
     };
@@ -905,7 +900,7 @@ var homeostasis = function(id) {
         // arrange the descriptions in a circle
         var wedge = Math.PI*2*(1.0/focusGroups.length);
         var third = Math.PI*2.0/3;
-        var outwards = $V([0.5, 0.26]);
+        var outwards = $V([0.42, 0.22]);
         var zero = $V([0, 0]);
         var center = $V([0.245, 0.26]);
 
@@ -958,7 +953,7 @@ var homeostasis = function(id) {
             spec.transform = 'screen';
 
             var ops = spec.description.split('\n').map(function(line, index) {
-                return flux.op.text({to: spec.pos.add($V([0, index*30])), size: 14, string: line});
+                return flux.op.text({to: spec.pos.add($V([0, index*23])), size: 12, string: line});
             });
 
             var text = flux.shape({ops: ops, fill: 'stroke'});
@@ -1022,19 +1017,18 @@ var homeostasis = function(id) {
             };
 
             item.showDescription = function() {
-                world.addMote(item.description);
-                item.mouseDown = item.hideDescription;
+                world.addActiveDescription(item.description);
             };
 
             item.hideDescription = function() {
-                world.removeMote(item.description);
-                item.mouseDown = item.showDescription;
+                world.removeActiveDescription();
             };
 
             if (!spec.inactive) {
                 item.mouseIn = item.activate;
                 item.mouseOut = item.deactivate;
                 item.mouseDown = item.showDescription;
+                item.mouseUp = item.hideDescription;
             }
 
             return item;
@@ -1089,7 +1083,9 @@ var homeostasis = function(id) {
 
         move: function(mouse) {
             if (mouse.down) {
+                world.removeActiveDescription();
                 this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
+
                 dragging = true;
             }
         },
@@ -1103,6 +1099,21 @@ var homeostasis = function(id) {
     };
 
     var world = flux.canvas(spec);
+    world.activeDescription = null;
+
+    world.addActiveDescription = function(description) {
+        world.removeActiveDescription();
+
+        world.addMote(description);
+        world.activeDescription = description;
+    };
+
+    world.removeActiveDescription = function() {
+        if (world.activeDescription) {
+            world.removeMote(world.activeDescription);
+            world.activeDescription = null;
+        }
+    };
 
     // for testing
     world.membrane = membranes[0];
