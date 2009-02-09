@@ -51,7 +51,7 @@ var homeostasis = function(id) {
             + 'enables the phosphorylation of cheY, which triggers activation of the\n'
             + 'flagellar motors, and of cheB, which removes\n'
             + 'methyl groups from the column.',
-        phosphate: 'Phosphate groups act as a tag, or a signal that some condition is present.\n'
+        phosphate: 'Phosphate groups often act as a tag, or a signal that some condition is present.\n'
             + 'In the process of binding to various enzymes they trigger conformational\n'
             + 'changes which expose the enzymes\' active sites.  These active sites\n'
             + 'then trigger some other change, such as splicing or fusing other molecular components.',
@@ -94,11 +94,20 @@ var homeostasis = function(id) {
         var oldVelocity = that.velocity;
         that.neighbors = [that];
 
-        that.mouseIn = spec.mouseIn || function(mouse) {
+        that.focus = function() {
             that.oldColor = that.color.dup();
             that.tweenColor($V([255, 255, 255, 1]), 5);
 
             that.pause();
+        };
+
+        that.unfocus = function() {
+            if (that.oldColor) that.tweenColor(that.oldColor, 5);
+            that.unpause();
+        };
+
+        that.mouseIn = spec.mouseIn || function(mouse) {
+            that.focus();
 
             if (that.type) {
                 moleculeKey.itemhash[that.type].activate();
@@ -106,9 +115,7 @@ var homeostasis = function(id) {
         };
 
         that.mouseOut = spec.mouseOut || function(mouse) {
-            if (that.oldColor) that.tweenColor(that.oldColor, 5);
-
-            that.unpause();
+            that.unfocus();
 
             if (that.type) {
                 moleculeKey.itemhash[that.type].deactivate();
@@ -396,6 +403,7 @@ var homeostasis = function(id) {
 
     var receptor = function(spec) {
         spec.type = 'receptor';
+        spec.visible = false;
         spec.color = $V([0, 0, 0, 0]);
         spec.shape = flux.shape({ops: [flux.op.arc({to: $V([0, 0]), radius: 7})]});
 
@@ -931,7 +939,7 @@ var homeostasis = function(id) {
 
     var moleculeKey = function() {
         var keyspec = {
-            pos: $V([0.75, 0.1]),
+            pos: $V([0.77, 0.1]),
             shape: flux.shape({ops: [
                 flux.op.move({to: $V([0, 0])}),
                 flux.op.line({to: $V([200, 0])}),

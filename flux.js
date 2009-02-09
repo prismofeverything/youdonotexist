@@ -515,6 +515,7 @@ flux.mote = function(spec) {
     that.velocity = spec.velocity || $V([0, 0]);
 
     that.shapes = spec.shapes || [that.shape];
+    that.visible = spec.visible || true;
 
     that.color = spec.color || $V([200, 200, 200, 1]);
     that.scale = spec.scale || $V([1, 1]);
@@ -834,7 +835,7 @@ flux.mote = function(spec) {
 
     that.draw = function(context) {
         // drawing lines to neighbors
-        if (that.neighbors.length > 1) {
+        if (that.visible && that.neighbors.length > 1) {
             context.save();
 
             that.neighbors.each(function(neighbor) {
@@ -865,16 +866,18 @@ flux.mote = function(spec) {
         context.rotate(that.orientation);
         context.scale.apply(context, that.scale.elements);
 
-        var len = that.shapes.length;
-        for (var index=0; index < len; index++){
-            that.shapes[index].draw(context);
-        }
+        if (that.visible) {
+            var len = that.shapes.length;
+            for (var index=0; index < len; index++){
+                that.shapes[index].draw(context);
+            }
 
-        if (that.outline) {
-            context.save();
-            context.strokeStyle = that.outline_spec();
-            that.drawShape(context, 'stroke');
-            context.restore();
+            if (that.outline) {
+                context.save();
+                context.strokeStyle = that.outline_spec();
+                that.drawShape(context, 'stroke');
+                context.restore();
+            }
         }
 
         that.submotes.invoke('draw', context);
