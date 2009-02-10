@@ -51,6 +51,7 @@ var flux = {
                 this.dimension = w;
             }
 
+            // if none (or any), simply return dimension
             return this.dimension;
         }
     }
@@ -917,6 +918,7 @@ flux.canvas = function(spec) {
 
     that.resize = spec.resize || function(browser) {};
     that.wheel = spec.wheel || function(delta) {};
+    that.preventKeys = spec.preventKeys || false;
 
     var time = function() {
         return new Date().getTime();
@@ -925,6 +927,21 @@ flux.canvas = function(spec) {
     that.triangulate = function() {
 
     };
+
+    var keys = {};
+
+    keys.pressed = {};
+    keys.predown = function(key) {
+        keys.pressed[key] = true;
+        keys.down(that, key);
+    };
+    keys.preup = function(key) {
+        delete this.pressed[key];
+        keys.up(that, key);
+    };
+
+    keys.down = spec.keyDown || function(th, key) {};
+    keys.up = spec.keyUp || function(th, key) {};
 
     var mouse = {
         pos: $V([0, 0]),
@@ -1100,23 +1117,48 @@ flux.canvas = function(spec) {
     };
 
     // parse the mouse wheel event and call wheel with a useful value
-    var readDeltas = function(event) {
+    var readDeltas = function(e) {
         var delta = 0;
-        if (!event) {
-            event = window.event;
+        if (!e) {
+            e = window.event;
         }
-        if (event.wheelDelta) {
-            delta = event.wheelDelta/120;
-        } else if (event.detail) {
-            delta = -event.detail/3;
+        if (e.wheelDelta) {
+            delta = e.wheelDelta/120;
+        } else if (e.detail) {
+            delta = -e.detail/3;
         }
         if (delta) {
             that.wheel(that, delta);
         }
-        if (event.preventDefault) {
-            event.preventDefault();
+        if (e.preventDefault) {
+            e.preventDefault();
         }
-        event.returnValue = false;
+
+        e.returnValue = false;
+    };
+
+    var keyDown = function(e) {
+        keys.predown(e.keyCode);
+
+        if (that.preventKeys) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+            return false;
+        }
+
+        return true;
+    };
+
+    var keyUp = function(e) {
+        keys.preup(e.keyCode);
+
+        if (that.preventKeys) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+            return false;
+        }
+
+        return true;
     };
 
     // zoom keeping the current mouse position fixed.
@@ -1154,11 +1196,17 @@ flux.canvas = function(spec) {
         context = canvas.getContext('2d');
         CanvasTextFunctions.enable(context);
 
+        // mouse events
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);
         canvas.addEventListener('click', mouseClick, false);
         canvas.addEventListener('mousemove', mouseMove, false);
 
+        // key events
+        window.addEventListener('keydown', keyDown, false);
+        window.addEventListener('keyup', keyUp, false);
+
+        // dimensions
         flux.browser.dim(window.innerWidth, window.innerHeight);
         canvas.width = flux.browser.w;
         canvas.height = flux.browser.h;

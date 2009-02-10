@@ -22,7 +22,8 @@ var homeostasis = function(id) {
             + 'for any saturation of either attractants or repellents in the\n'
             + 'surrounding environment.',
         about: 'This is an interactive model of cellular chemotaxis.  You can drag\n'
-            + 'the model around with the mouse and zoom in and out with the scroll wheel.\n'
+            + 'the model around with the mouse and zoom in and out with the scroll wheel\n'
+            + '(or the \'i\' and \'o\' keys (in and out) if you are missing a scroll wheel).\n'
             + 'Mousing over one of the components will highlight the corresponding entry\n'
             + 'in the menu, and clicking will bring up a description of that component\n'
             + 'and its role in the process of sensing chemical gradients.',
@@ -213,7 +214,7 @@ var homeostasis = function(id) {
 
         that.attached = function(env) {
             if (Math.random() > receptorGrip) {
-                that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity); //.subtract(that.absolute())
+                that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity);
                 that.rotation = defaultRotation();
 
                 that.perceive = that.detached;
@@ -1098,11 +1099,24 @@ var homeostasis = function(id) {
             }
         },
 
+        keyDown: function(that, key) {
+            var base = 1.25;
+
+            if (key == 79) {
+                var scale = Math.pow(base, -1);
+                that.zoom(scale);
+            }
+            if (key == 73) {
+                var scale = Math.pow(base, 1);
+                that.zoom(scale);
+            }
+        },
+
         // delta is either 1 or -1, which is the exponent of the scaling constant
         // signifying either the number or its inverse.
         wheel: function(that, delta) {
             var scale = Math.pow(1.007, delta);
-            this.zoom(scale);
+            that.zoom(scale);
         }
     };
 
