@@ -142,6 +142,23 @@ var homeostasis = function(id) {
             that.keyItem().hideDescription();
         };
 
+        that.findNeighbor = function(condition) {
+            var index = 0;
+            var neighbor = null;
+            var found = null;
+
+            while (!found && index < that.neighbors.length) {
+                neighbor = that.neighbors[index];
+                if (condition(neighbor)) {
+                    found = neighbor;
+                }
+
+                index += 1;
+            }
+
+            return found;
+        };
+
         that.mouseDown = spec.mouseDown || showDescription;
         that.mouseUp = spec.mouseUp || hideDescription;
 
@@ -330,7 +347,15 @@ var homeostasis = function(id) {
             .concat(that.cheBs)
             .concat(that.cheRs));
 
-        that.submote_pantheon = that.submotes.clone();
+//        that.submote_pantheon = that.cheWs.concat(that.submotes.clone());
+
+        that.submote_pantheon = that.cheWs
+            .concat(that.phosphates)
+            .concat(that.methyls)
+            .concat(that.cheYs)
+            .concat(that.cheZs)
+            .concat(that.cheBs)
+            .concat(that.cheRs);
 
         that.perceive = function(env) {
             that.tree = Math.kdtree(that.submote_pantheon, 'absolute', 0);
@@ -338,6 +363,9 @@ var homeostasis = function(id) {
                 submote.neighbors = that.tree.nearest(submote.absolute(), 5, function(pod) {
                     return !(pod === that);
                 });
+            });
+
+            that.submotes.each(function(submote) {
                 submote.perceive(env);
             });
         };
@@ -757,14 +785,7 @@ var homeostasis = function(id) {
         var phosphoneighbors = null;
 
         that.seekPhosphorylated = function() {
-            phosphoneighbors = that.neighbors.select(function(neighbor) {
-                return neighbor.phosphate;
-            });
-
             if (!phosphorylated) {
-                if (phosphoneighbors.length > 0) {
-                    phosphorylated = phosphoneighbors[0];
-                }
             } else {
                 that.future.append(function(self) {
 
@@ -940,7 +961,7 @@ var homeostasis = function(id) {
 
     var moleculeKey = function() {
         var keyspec = {
-            pos: $V([0.77, 0.1]),
+            pos: $V([0.72, 0.1]),
             shape: flux.shape({ops: [
                 flux.op.move({to: $V([0, 0])}),
                 flux.op.line({to: $V([200, 0])}),
@@ -1087,8 +1108,8 @@ var homeostasis = function(id) {
     var spec = {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).append(moleculeKey),
-        scale: $V([0.2, 0.2]),
-        translation: $V([500, 300]),
+        scale: $V([0.17, 0.17]),
+        translation: $V([500, 200]),
 
         move: function(mouse) {
             if (mouse.down) {

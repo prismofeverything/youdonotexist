@@ -67,13 +67,15 @@ var evader = function(spec) {
     };
 
     that.approach = function() {
-        if(that.distance > 5 && !that.accepted) {
-            that.orient();
-            var factor = that.approachFactor * (8.0 / (that.distance + 1.0));
+        if(that.distance > 7 && !that.accepted) {
+            var factor = that.approachFactor * (8.0 / (that.distance + 8.0));
             var new_origin = that.origin.add(that.direction.invert().normalize().scale(factor));
 
             that.origin.set(new_origin);
             that.applyVector(that.origin);
+            that.orient();
+        } else if (that.distance <= 7) {
+            that.over(that.element);
         }
     };
 

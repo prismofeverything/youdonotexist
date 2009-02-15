@@ -516,7 +516,7 @@ flux.mote = function(spec) {
     that.velocity = spec.velocity || $V([0, 0]);
 
     that.shapes = spec.shapes || [that.shape];
-    that.visible = spec.visible || true;
+    that.visible = spec.visible === undefined ? true : spec.visible;
 
     that.color = spec.color || $V([200, 200, 200, 1]);
     that.scale = spec.scale || $V([1, 1]);
