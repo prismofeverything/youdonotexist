@@ -61,7 +61,7 @@ var homeostasis = function(id) {
             + 'Most of the time the flagella are rotating in a clockwise direction, which sends\n'
             + 'the cell travelling in mostly a straight line.  The motor can be reversed, causing the cell\n'
             + 'to tumble more or less randomly, which then travels off in a new direction.',
-        cheZ: 'cheZ removes the phosphorylation of both cheY and cheB.  In this way,\n'
+        cheZ: 'cheZ removes phosphate groups from cheY.  In this way,\n'
             + 'a balance is struck between the phosphorylation caused by the activation of\n'
             + 'cheW when the cell is in the presence of repellents, and the steady dephosphorylation\n'
             + 'that results from interactions with cheZ.  This self-limiting cycle\n'
@@ -786,6 +786,7 @@ var homeostasis = function(id) {
 
         that.seekPhosphorylated = function() {
             if (!phosphorylated) {
+
             } else {
                 that.future.append(function(self) {
 
