@@ -185,13 +185,13 @@ flux.op = function() {
 
         that.op = spec.op;
         that.method = spec.method || 'lineTo';
-        that.to = spec.to || $V([0, 0]);
+        that.to = spec.to ? $V([spec.to.elements[0], spec.to.elements[1]]) : $V([0, 0]);
 
-        that.args = spec.args || function() {
+        that.args = function() {
             return that.to.elements;
         };
 
-        that.prod = spec.prod || function(box) {
+        that.prod = function(box) {
             box.include(that.to);
         };
 
@@ -324,12 +324,12 @@ flux.op = function() {
 
     result.bezier = function(spec) {
         spec.method = 'bezierCurveTo';
-        spec.to = spec.to || $V([10, 10]);
+        spec.to = spec.to ? spec.to.dup() : $V([10, 10]);
 
         var that = result.base(spec);
 
-        that.control1 = spec.control1 || $V([0, 0]);
-        that.control2 = spec.control2 || $V([0, 0]);
+        that.control1 = spec.control1 ? spec.control1.dup() : $V([0, 0]);
+        that.control2 = spec.control2 ? spec.control2.dup() : $V([0, 0]);
 
         that.args = function() {
             return that.control1.elements.concat(that.control2.elements).concat(that.to.elements);
@@ -502,27 +502,31 @@ flux.tweenV = function(spec) {
 };
 
 flux.tweenEvent = function(spec) {
-    var that = {};
+    spec.obj = {count: 0};
+    spec.property = 'count';
 
-    that.obj = {count: 0};
-    that.property = 'count';
-    that.event = spec.event || function() {};
+    var that = flux.tween(spec);
+
     that.cycles = spec.cycles || 10;
+    that.event = spec.event || function() {};
 
     that.target = function(n) {
-        if (that.obj.count <= that.cycles) {
-            return false;
+        var met = true;
+
+        if (n < that.cycles) {
+            met = false;
         } else {
             that.event();
-            return true;
         }
+
+        return met;
     };
 
     that.step = function(n) {
         return n += 1;
     };
 
-    return flux.tween(that);
+    return that;
 };
 
 // representation of individual agents
@@ -838,6 +842,7 @@ flux.mote = function(spec) {
                                  moment(that);
                              });
             that.future = [];
+
         }
 
         that.tweens = that.tweens.select(function(tween) {

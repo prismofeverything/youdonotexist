@@ -138,7 +138,8 @@ var homeostasis = function(id) {
             });
 
             if (that === lowest) {
-                that.keyItem().showDescription(that.type + ' -- ' + that.state + '\n\n');
+                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.elements.map(function(x){return Math.round(x);});}) + '\n\n';
+                that.keyItem().showDescription(output);
             }
         };
 
@@ -741,7 +742,7 @@ var homeostasis = function(id) {
             if (exists(that.nearestPhosphate)) {
                 var distance = that.distance(that.nearestPhosphate);
 
-                if (distance < 20) {
+                if (distance < 50) {
                     that.phosphorylate(that.nearestPhosphate);
                 } else {
                     that.nearestPhosphate.pull(that);
@@ -853,8 +854,8 @@ var homeostasis = function(id) {
             {op: 'line', to: $V([-15, -1])}
         ]});
 
-        spec.color = spec.color || spec.inactiveColor.dup();
-        spec.shape = spec.shape || spec.inactiveShape.dup();
+        spec.color = spec.inactiveColor.dup();
+        spec.shape = spec.inactiveShape.dup();
 
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
@@ -899,9 +900,9 @@ var homeostasis = function(id) {
         };
 
         that.cut = function(env) {
-            that.tweenShape(that.activeShape, phosphorylationCycles/2);
-            that.tweenColor(that.activeColor, phosphorylationCycles/2);
-            that.tweenEvent(that.uncut, phosphorylationCycles/2);
+            that.tweenShape(that.activeShape, phosphorylationCycles/5);
+            that.tweenColor(that.activeColor, phosphorylationCycles/5);
+            that.tweenEvent(that.uncut, phosphorylationCycles/5);
             that.velocity = $V([0, 0]);
             that.future = [];
 
@@ -914,7 +915,6 @@ var homeostasis = function(id) {
             if (that.phosphorylated) {
                 that.phosphorylated.enzyme.dephosphorylate();
 
-                that.tweens = [];
                 that.tweenShape(that.inactiveShape, phosphorylationCycles);
                 that.tweenColor(that.inactiveColor, phosphorylationCycles);
                 that.velocity = $V([Math.random() - 0.5, Math.random() - 0.5]).x(globalVelocity);
@@ -947,7 +947,7 @@ var homeostasis = function(id) {
             {op: 'line', to: $V([0, -12])},
             {op: 'line', to: $V([11, -25])},
             {op: 'bezier', to: $V([0, -5]), control1: $V([25, -16]), control2: $V([30, 25])},
-            {op: 'bezier', to: $V([-13, -25]), control1: $V([-30, 25]), control2: $V([-25, -16])}
+            {op: 'bezier', to: $V([-11, -25]), control1: $V([-30, 25]), control2: $V([-25, -16])}
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
