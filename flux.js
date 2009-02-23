@@ -378,7 +378,7 @@ flux.shape = function(spec) {
     that.color = spec.color;
     that.fill = spec.fill || 'fill';
 
-    that.between = function(other, cycles) {
+    that.between = function(other, cycles, postcycle) {
         return that.ops.inject([], function(tweens, op, index) {
             return tweens.concat(op.between(other.ops[index], cycles));
         });
@@ -499,6 +499,30 @@ flux.tweenV = function(spec) {
     };
 
     return that;
+};
+
+flux.tweenEvent = function(spec) {
+    var that = {};
+
+    that.obj = {count: 0};
+    that.property = 'count';
+    that.event = spec.event || function() {};
+    that.cycles = spec.cycles || 10;
+
+    that.target = function(n) {
+        if (that.obj.count <= that.cycles) {
+            return false;
+        } else {
+            that.event();
+            return true;
+        }
+    };
+
+    that.step = function(n) {
+        return n += 1;
+    };
+
+    return flux.tween(that);
 };
 
 // representation of individual agents
@@ -628,7 +652,15 @@ flux.mote = function(spec) {
     };
 
     that.tweenShape = function(shape, cycles) {
-        that.tweens = that.tweens.concat(that.shape.between(shape, cycles));
+        var tween = that.shape.between(shape, cycles);
+        that.tweens = that.tweens.concat(tween);
+
+        return that;
+    };
+
+    that.tweenEvent = function(event, cycles) {
+        var tween = flux.tweenEvent({event: event, cycles: cycles});
+        that.tweens = that.tweens.concat(tween);
 
         return that;
     };
@@ -653,13 +685,18 @@ flux.mote = function(spec) {
     };
 
     that.detach = function(other) {
-        other.pos = other.absolute();
-        other.orientation += that.orientation;
-        other.supermote.submotes = other.supermote.submotes.without(other);
-        other.supermote = null;
-        other.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
-
         that.submotes = that.submotes.without(other);
+
+        other.orientation += that.orientation;
+//        other.pos = other.supermote.extrovert(other.pos);
+        other.supermote = null;
+
+        if (that.supermote) {
+//            other.pos = that.supermote.extrovert(other.pos);
+            that.supermote.attach(other);
+        }
+
+        other.absolute.expire();
     };
 
     that.addSubmotes = function(submotes) {

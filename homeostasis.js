@@ -545,12 +545,11 @@ var homeostasis = function(id) {
 
         var velocityScale = 5;
 
-        that.insideRadius = spec.insideRadius || 200;
+        that.insideRadius = spec.insideRadius || 300;
         that.tooCloseRadius = spec.tooCloseRadius || 20;
 
         that.nearestPhosphate = null;
         that.phosphate = null;
-        that.phosphorylated = false;
         that.activeCheW = null;
 
         that.outsideCheW = function() {};
@@ -662,6 +661,7 @@ var homeostasis = function(id) {
         };
 
         that.phosphorylate = function(enzyme) {
+            that.enzyme = enzyme;
             that.pos = enzyme.introvert(that.pos);
             that.absolute.expire();
 
@@ -683,10 +683,18 @@ var homeostasis = function(id) {
             that.rotation = 0;
             that.velocity = $V([0, 0]);
 //          that.neighbors = [];
-            that.attached = true;
-            that.phosphorylated = true;
 
             that.state = 'bound';
+        };
+
+        that.dephosphorylate = function() {
+            that.rotation = defaultRotation();
+            that.velocity = $V([Math.random()-0.5, Math.random()-0.5]);
+            that.pos = that.enzyme.extrovert(that.pos);
+            that.absolute.expire();
+            that.enzyme = null;
+
+            that.state = 'identifying';
         };
 
         return that;
@@ -713,6 +721,9 @@ var homeostasis = function(id) {
     };
 
     var cheWActor = function(spec) {
+        spec.color = spec.inactiveColor.dup();
+        spec.shape = spec.inactiveShape.dup();
+
         var that = cheWSeeker(spec);
 
         that.inactiveShape = spec.inactiveShape;
@@ -731,24 +742,50 @@ var homeostasis = function(id) {
                 var distance = that.distance(that.nearestPhosphate);
 
                 if (distance < 20) {
-                    that.phosphate = that.nearestPhosphate;
-                    that.attach(that.phosphate);
-
-                    that.tweenColor(that.activeColor, phosphorylationCycles);
-                    that.tweenShape(that.activeShape, phosphorylationCycles);
-
-                    that.phosphate.phosphorylate(that);
-                    that.phosphorylated = true;
-
-                    that.future.append(function(self) {
-                        self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
-                    });
-
-                    that.state = 'bound';
+                    that.phosphorylate(that.nearestPhosphate);
                 } else {
                     that.nearestPhosphate.pull(that);
                 }
             }
+        };
+
+        that.phosphorylate = function(phosph) {
+            that.phosphate = phosph;
+            that.attach(that.phosphate);
+
+            that.tweenColor(that.activeColor, phosphorylationCycles);
+            that.tweenShape(that.activeShape, phosphorylationCycles);
+
+            that.phosphate.phosphorylate(that);
+
+            that.future.append(function(self) {
+                self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
+            });
+
+            that.state = 'bound';
+        };
+
+        that.hold = function() {
+            that.velocity = $V([0, 0]);
+            that.state = 'waiting';
+        };
+
+        that.waiting = function(env) {
+
+        };
+
+        that.dephosphorylate = function() {
+            that.tweenColor(that.inactiveColor, phosphorylationCycles);
+            that.tweenShape(that.inactiveShape, phosphorylationCycles);
+
+            that.phosphate.dephosphorylate(that);
+
+            that.future.append(function(self) {
+                self.velocity = $V([Math.random() - 0.5, Math.random() - 0.5]).scaleTo(velocityScale);
+            });
+
+            that.detach(that.phosphate);
+            that.state = 'identifying';
         };
 
         return that;
@@ -782,9 +819,6 @@ var homeostasis = function(id) {
             {op: 'bezier', to: $V([-20, 0]), control1: $V([-10, -15]), control2: $V([-20, -15])}
         ]});
 
-        spec.color = spec.color || spec.inactiveColor.dup();
-        spec.shape = spec.shape || spec.inactiveShape.dup();
-
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
@@ -794,8 +828,10 @@ var homeostasis = function(id) {
 
     var cheZ = function(spec) {
         spec.type = 'cheZ';
-        spec.color = spec.color || $V([220, 30, 20, 1]);
-        spec.shape = spec.shape || flux.shape({ops: [
+        spec.inactiveColor = spec.inactiveColor || $V([220, 30, 20, 1]);
+        spec.activeColor = spec.activeColor || $V([250, 140, 50, 1]);
+
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
             {op: 'move', to: $V([-15, -15])},
             {op: 'line', to: $V([15, -15])},
             {op: 'line', to: $V([-5, 10])},
@@ -806,23 +842,89 @@ var homeostasis = function(id) {
             {op: 'line', to: $V([-15, -10])}
         ]});
 
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: $V([-15, -6])},
+            {op: 'line', to: $V([15, -6])},
+            {op: 'line', to: $V([-5, 1])},
+            {op: 'line', to: $V([15, 1])},
+            {op: 'line', to: $V([15, 6])},
+            {op: 'line', to: $V([-15, 6])},
+            {op: 'line', to: $V([5, -1])},
+            {op: 'line', to: $V([-15, -1])}
+        ]});
+
+        spec.color = spec.color || spec.inactiveColor.dup();
+        spec.shape = spec.shape || spec.inactiveShape.dup();
+
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = molecule(spec);
-        var phosphorylated = null;
-        var phosphoneighbors = null;
 
-        that.seekPhosphorylated = function() {
-            if (!phosphorylated) {
+        that.inactiveColor = spec.inactiveColor;
+        that.inactiveShape = spec.inactiveShape;
+        that.activeColor = spec.activeColor;
+        that.activeShape = spec.activeShape;
 
-            } else {
-                that.future.append(function(self) {
+        that.phosphorylated = null;
 
-                });
+        that.active = function(env) {};
+
+        that.seek = function(env) {
+            that.phosphorylated = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'phosphate' && neighbor.enzyme;
+            });
+
+            if (that.phosphorylated) {
+                that.state = 'target';
             }
         };
 
+        that.target = function(env) {
+            if (!that.phosphorylated.enzyme || that.phosphorylated.enzyme.state === 'waiting') {
+                that.phosphorylated = null;
+                that.state = 'seek';
+            } else {
+                var distance = that.distance(that.phosphorylated);
+
+                if (distance < 20) {
+                    that.state = 'cut';
+                    that.perceive(env);
+                } else {
+                    that.future.append(function(self) {
+                        that.velocity = that.velocity.add(that.to(that.phosphorylated)).scaleTo(globalVelocity);
+                    });
+                }
+            }
+        };
+
+        that.cut = function(env) {
+            that.tweenShape(that.activeShape, phosphorylationCycles/2);
+            that.tweenColor(that.activeColor, phosphorylationCycles/2);
+            that.tweenEvent(that.uncut, phosphorylationCycles/2);
+            that.velocity = $V([0, 0]);
+            that.future = [];
+
+            that.phosphorylated.enzyme.hold();
+
+            that.state = 'active';
+        };
+
+        that.uncut = function() {
+            if (that.phosphorylated) {
+                that.phosphorylated.enzyme.dephosphorylate();
+
+                that.tweens = [];
+                that.tweenShape(that.inactiveShape, phosphorylationCycles);
+                that.tweenColor(that.inactiveColor, phosphorylationCycles);
+                that.velocity = $V([Math.random() - 0.5, Math.random() - 0.5]).x(globalVelocity);
+
+                that.phosphorylated = null;
+                that.state = 'seek';
+            }
+        };
+
+        that.state = 'seek';
         return that;
     };
 
@@ -847,9 +949,6 @@ var homeostasis = function(id) {
             {op: 'bezier', to: $V([0, -5]), control1: $V([25, -16]), control2: $V([30, 25])},
             {op: 'bezier', to: $V([-13, -25]), control1: $V([-30, 25]), control2: $V([-25, -16])}
         ]});
-
-        spec.color = spec.color || spec.inactiveColor.dup();
-        spec.shape = spec.shape || spec.inactiveShape.dup();
 
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
