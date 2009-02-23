@@ -473,6 +473,7 @@ flux.tweenV = function(spec) {
     that.to = spec.to || $V([1, 1]);
     that.cycles = spec.cycles || 10;
     that.postcycle = spec.postcycle || function() {};
+    that.posttween = spec.posttween || function() {};
 
     that.vector = function() {
         return that.obj[that.property];
@@ -494,6 +495,10 @@ flux.tweenV = function(spec) {
     that.cycle = function() {
         that.tweens = that.tweens.select(function(tween) {return tween.cycle();});
         that.postcycle();
+
+        if (that.tweens.length === 0) {
+            that.posttween();
+        }
 
         return that.tweens.length > 0;
     };
@@ -630,15 +635,16 @@ flux.mote = function(spec) {
     that.color_spec = cache(findColorSpec('color'));
     that.outline_spec = cache(findColorSpec('outline'));
 
-    that.tweenColor = function(color, cycles) {
+    that.tweenColor = function(color, cycles, posttween) {
+        posttween = posttween || function() {};
+
         that.tweens.append(flux.tweenV({
             obj: that,
             property: 'color',
             to: color,
             cycles: cycles,
-            postcycle: function() {
-                that.color_spec.expire();
-            }
+            postcycle: function() {that.color_spec.expire();},
+            posttween: posttween
         }));
 
         return that;

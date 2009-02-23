@@ -902,7 +902,7 @@ var homeostasis = function(id) {
         that.cut = function(env) {
             that.tweenShape(that.activeShape, phosphorylationCycles/5);
             that.tweenColor(that.activeColor, phosphorylationCycles/5);
-            that.tweenEvent(that.uncut, phosphorylationCycles/5);
+            that.tweenEvent(function() {that.state = 'uncut';}, phosphorylationCycles/5);
             that.velocity = $V([0, 0]);
             that.future = [];
 
