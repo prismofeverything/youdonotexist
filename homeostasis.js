@@ -138,7 +138,8 @@ var homeostasis = function(id) {
             });
 
             if (that === lowest) {
-                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.elements.map(function(x){return Math.round(x);});}) + '\n\n';
+//                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.elements.map(function(x){return Math.round(x);});}) + '\n\n';
+                var output = that.type + ' -- ' + that.state + '\n\n';
                 that.keyItem().showDescription(output);
             }
         };
