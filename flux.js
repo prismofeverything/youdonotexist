@@ -153,10 +153,10 @@ flux.bounds = function(xlow, xhigh, ylow, yhigh) {
 
     that.shapeFor = function() {
         return flux.shape({ops: [
-            flux.op.move({to: $V([that.x[0], that.y[0]])}),
-            flux.op.line({to: $V([that.x[1], that.y[0]])}),
-            flux.op.line({to: $V([that.x[1], that.y[1]])}),
-            flux.op.line({to: $V([that.x[0], that.y[1]])})
+            {op: 'move', to: $V([that.x[0], that.y[0]])},
+            {op: 'line', to: $V([that.x[1], that.y[0]])},
+            {op: 'line', to: $V([that.x[1], that.y[1]])},
+            {op: 'line', to: $V([that.x[0], that.y[1]])}
         ]});
     };
 
@@ -183,6 +183,7 @@ flux.op = function() {
     result.base = function(spec) {
         var that = {};
 
+        that.op = spec.op;
         that.method = spec.method || 'lineTo';
         that.to = spec.to || $V([0, 0]);
 
@@ -373,7 +374,7 @@ flux.op = function() {
 flux.shape = function(spec) {
     var that = {};
 
-    that.ops = spec.ops || [];
+    that.ops = spec.ops ? spec.ops.map(function(op) {return flux.op[op.op](op);}) : null || [];
     that.color = spec.color;
     that.fill = spec.fill || 'fill';
 
@@ -510,7 +511,7 @@ flux.mote = function(spec) {
     that.submotes = spec.submotes || [];
 
     that.pos = spec.pos || $V([0, 0]);
-    that.shape = spec.shape || flux.shape({ops: [flux.op.arc({to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])})]});
+    that.shape = spec.shape || flux.shape({ops: [{op: 'arc', to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])}]});
     that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
     that.velocity = spec.velocity || $V([0, 0]);

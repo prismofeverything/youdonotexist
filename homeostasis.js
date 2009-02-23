@@ -93,7 +93,11 @@ var homeostasis = function(id) {
     var molecule = function(spec) {
         var that = flux.mote(spec);
         var oldVelocity = that.velocity;
+
         that.neighbors = [that];
+
+        that.state = 'base';
+        that.base = function(env) {};
 
         that.focus = function() {
             that.oldColor = that.color.dup();
@@ -134,12 +138,12 @@ var homeostasis = function(id) {
             });
 
             if (that === lowest) {
-                that.keyItem().showDescription();
+                that.keyItem().showDescription(that.type + ' -- ' + that.state + '\n\n');
             }
         };
 
         var hideDescription = function(mouse) {
-            that.keyItem().hideDescription();
+            that.keyItem().hideDescription(true);
         };
 
         that.findNeighbor = function(condition) {
@@ -157,6 +161,10 @@ var homeostasis = function(id) {
             }
 
             return found;
+        };
+
+        that.perceive = spec.perceive || function(env) {
+            that[that.state](env);
         };
 
         that.mouseDown = spec.mouseDown || showDescription;
@@ -202,6 +210,7 @@ var homeostasis = function(id) {
         that.detached = false;
 
         that.polarity = -1;
+        that.state = 'unattached';
 
         that.unattached = function(env) {
             if (!exists(that.closestReceptor) || that.closestReceptor.taken) {
@@ -224,7 +233,7 @@ var homeostasis = function(id) {
                     });
 
                     that.closestReceptor.take(that);
-                    that.perceive = that.attached;
+                    that.state = 'attached';
                 }
             }
         };
@@ -234,7 +243,7 @@ var homeostasis = function(id) {
                 that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity);
                 that.rotation = defaultRotation();
 
-                that.perceive = that.detached;
+                that.state = 'detached';
                 that.closestReceptor.release();
                 that.closestReceptor = null;
             }
@@ -244,12 +253,9 @@ var homeostasis = function(id) {
             if (!all.inside(that.absolute())) {
                 var realm = Math.random() - 0.5 < 0 ? above : below;
                 that.pos = randomPos(realm);
-                that.perceive = that.unattached;
+                that.state = 'unattached';
             }
         };
-
-        that.rest = that.unattached;
-        that.perceive = that.rest;
 
         return that;
     };
@@ -257,7 +263,7 @@ var homeostasis = function(id) {
     var attractant = function(spec) {
         spec.type = 'attractant';
         spec.color = spec.color || $V([140, 170, 100, 1]);
-        spec.shape = spec.shape || flux.shape({ops: [flux.op.arc({radius: 7})]});
+        spec.shape = spec.shape || flux.shape({ops: [{op: 'arc', radius: 7}]});
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = ligand(spec);
@@ -269,10 +275,10 @@ var homeostasis = function(id) {
         spec.type = 'repellent';
         spec.color = spec.color || $V([170, 70, 60, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-6, -6])}),
-            flux.op.line({to: $V([6, -6])}),
-            flux.op.line({to: $V([6, 6])}),
-            flux.op.line({to: $V([-6, 6])})
+            {op: 'move', to: $V([-6, -6])},
+            {op: 'line', to: $V([6, -6])},
+            {op: 'line', to: $V([6, 6])},
+            {op: 'line', to: $V([-6, 6])}
         ]});
         spec.rotation = defaultRotation();
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
@@ -290,11 +296,11 @@ var homeostasis = function(id) {
         spec.color = spec.color || $V([80, 20, 20, 1]);
 
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-1400, -700])}),
-            flux.op.line({to: $V([1400, -700])}),
-            flux.op.bezier({to: $V([1400, 700]), control1: $V([2450, -700]), control2: $V([2450, 700])}),
-            flux.op.line({to: $V([-1400, 700])}),
-            flux.op.bezier({to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])})
+            {op: 'move', to: $V([-1400, -700])},
+            {op: 'line', to: $V([1400, -700])},
+            {op: 'bezier', to: $V([1400, 700]), control1: $V([2450, -700]), control2: $V([2450, 700])},
+            {op: 'line', to: $V([-1400, 700])},
+            {op: 'bezier', to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])}
         ], fill: 'stroke'});
 
         var that = molecule(spec);
@@ -379,14 +385,14 @@ var homeostasis = function(id) {
         spec.outline = spec.outline || $V([0, 0, 0, 1]);
         spec.lineWidth = 3;
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-30, -50])}),
-            flux.op.bezier({to: $V([30, -50]), control1: $V([-30, 0]), control2: $V([30, 0])}),
-            flux.op.line({to: $V([50, -50])}),
-            flux.op.bezier({to: $V([10, 0]), control1: $V([60, -50]), control2: $V([40, 0])}),
-            flux.op.line({to: $V([10, 100])}),
-            flux.op.line({to: $V([-10, 100])}),
-            flux.op.line({to: $V([-10, 0])}),
-            flux.op.bezier({to: $V([-50, -50]), control1: $V([-40, 0]), control2: $V([-60, -50])})
+            {op: 'move', to: $V([-30, -50])},
+            {op: 'bezier', to: $V([30, -50]), control1: $V([-30, 0]), control2: $V([30, 0])},
+            {op: 'line', to: $V([50, -50])},
+            {op: 'bezier', to: $V([10, 0]), control1: $V([60, -50]), control2: $V([40, 0])},
+            {op: 'line', to: $V([10, 100])},
+            {op: 'line', to: $V([-10, 100])},
+            {op: 'line', to: $V([-10, 0])},
+            {op: 'bezier', to: $V([-50, -50]), control1: $V([-40, 0]), control2: $V([-60, -50])}
         ]});
 
         var that = molecule(spec);
@@ -402,6 +408,7 @@ var homeostasis = function(id) {
         that.addSubmotes([that.cheW].concat(that.receptors));
 
         that.level = 0;
+        that.state = 'inactive';
 
         that.active = function(env) {
             if (that.level <= 0) {
@@ -416,16 +423,14 @@ var homeostasis = function(id) {
         };
 
         that.activate = function() {
-            that.perceive = that.active;
+            that.state = 'active';
             that.cheW.activate();
         };
 
         that.deactivate = function() {
-            that.perceive = that.inactive;
+            that.state = 'inactive';
             that.cheW.deactivate();
         };
-
-        that.perceive = that.inactive;
 
         return that;
     };
@@ -434,7 +439,7 @@ var homeostasis = function(id) {
         spec.type = 'receptor';
         spec.visible = false;
         spec.color = $V([0, 0, 0, 0]);
-        spec.shape = flux.shape({ops: [flux.op.arc({to: $V([0, 0]), radius: 7})]});
+        spec.shape = flux.shape({ops: [{op: 'arc', to: $V([0, 0]), radius: 7}]});
 
         var that = molecule(spec);
 
@@ -501,9 +506,9 @@ var homeostasis = function(id) {
 
         spec.color = spec.color || inactiveColor.dup();
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-30, 0])}),
-            flux.op.bezier({to: $V([30, 0]), control1: $V([30, 30]), control2: $V([-30, 30])}),
-            flux.op.bezier({to: $V([-30, 0]), control1: $V([-30, -30]), control2: $V([30, -30])})
+            {op: 'move', to: $V([-30, 0])},
+            {op: 'bezier', to: $V([30, 0]), control1: $V([30, 30]), control2: $V([-30, 30])},
+            {op: 'bezier', to: $V([-30, 0]), control1: $V([-30, -30]), control2: $V([30, -30])}
         ]});
 
         var that = molecule(spec);
@@ -535,21 +540,126 @@ var homeostasis = function(id) {
         return that;
     };
 
+    var cheWSeeker = function(spec) {
+        var that = molecule(spec);
+
+        var velocityScale = 5;
+
+        that.insideRadius = spec.insideRadius || 200;
+        that.tooCloseRadius = spec.tooCloseRadius || 20;
+
+        that.nearestPhosphate = null;
+        that.phosphate = null;
+        that.phosphorylated = false;
+        that.activeCheW = null;
+
+        that.outsideCheW = function() {};
+        that.insideCheW = function() {};
+        that.tooCloseCheW = function() {};
+
+        that.bound = function(env) {};
+
+        that.state = 'identifying';
+
+        that.switchedOff = function() {
+            that.future.append(function(self) {
+                that.velocity = $V([(Math.random()-0.5)*velocityScale, (Math.random()-0.5)*velocityScale]);
+            });
+            that.state = 'identifying';
+        };
+
+        that.identifying = function(env) {
+            that.activeCheW = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW' && neighbor.active;
+            });
+
+            if (that.activeCheW) {
+                that.orient();
+                that.perceive(env);
+            }
+        };
+
+        that.orient = function() {
+            if (!that.activeCheW.active) {
+                that.switchedOff();
+            } else {
+                var distance = that.distance(that.activeCheW);
+
+                if (distance > that.insideRadius) {
+                    that.state = 'outside';
+                } else if (distance > that.tooCloseRadius) {
+                    that.state = 'inside';
+                } else {
+                    that.state = 'tooClose';
+                }
+            }
+        };
+
+        that.outside = function(env) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+            var turning = that.to(that.activeCheW).x(0.2/(distance));
+
+            that.future.append(function(self) {
+                that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
+            });
+
+            that.outsideCheW();
+        };
+
+        that.inside = function(env) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+            var turning = that.to(that.activeCheW).x(0.2/(distance));
+
+            that.future.append(function(self) {
+                that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
+            });
+
+            that.insideCheW();
+        };
+
+        that.tooClose = function(self) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+
+            that.future.append(function(self) {
+                that.velocity = that.velocity.scaleTo(distance / 50);
+            });
+
+            that.tooCloseCheW();
+        };
+
+        return that;
+    };
+
     var phosphate = function(spec) {
         spec.type = 'phosphate';
         spec.color = spec.color || $V([120, 80, 130, 1]);
+
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-10, -5])}),
-            flux.op.line({to: $V([10, -5])}),
-            flux.op.line({to: $V([10, 0])}),
-            flux.op.bezier({to: $V([1, 0]), control1: $V([10, 10]), control2: $V([1, 10])}),
-            flux.op.line({to: $V([-10, 0])})
+            {op: 'move', to: $V([-10, -5])},
+            {op: 'line', to: $V([10, -5])},
+            {op: 'line', to: $V([10, 0])},
+            {op: 'bezier', to: $V([1, 0]), control1: $V([10, 10]), control2: $V([1, 10])},
+            {op: 'line', to: $V([-10, 0])}
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = cheWSeeker(spec);
+
+        that.pull = function(enzyme) {
+            if (!that.state === 'bound') {
+                that.future.append(function(self) {
+                    self.velocity = self.velocity.add(self.to(enzyme).scaleTo(0.1));
+                });
+            }
+        };
 
         that.phosphorylate = function(enzyme) {
             that.pos = enzyme.introvert(that.pos);
@@ -575,10 +685,8 @@ var homeostasis = function(id) {
 //          that.neighbors = [];
             that.attached = true;
             that.phosphorylated = true;
-        };
 
-        that.whenPhosphorylated = function() {
-
+            that.state = 'bound';
         };
 
         return that;
@@ -588,13 +696,13 @@ var homeostasis = function(id) {
         spec.type = 'methyl';
         spec.color = spec.color || $V([130, 110, 70, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-5, 0])}),
-            flux.op.line({to: $V([6, 0])}),
-            flux.op.line({to: $V([13, -4])}),
-            flux.op.line({to: $V([19, 3])}),
-            flux.op.line({to: $V([13, 10])}),
-            flux.op.line({to: $V([6, 6])}),
-            flux.op.line({to: $V([-5, 6])})
+            {op: 'move', to: $V([-5, 0])},
+            {op: 'line', to: $V([6, 0])},
+            {op: 'line', to: $V([13, -4])},
+            {op: 'line', to: $V([19, 3])},
+            {op: 'line', to: $V([13, 10])},
+            {op: 'line', to: $V([6, 6])},
+            {op: 'line', to: $V([-5, 6])}
         ]});
 
         spec.rotation = defaultRotation()*0.2;
@@ -604,82 +712,41 @@ var homeostasis = function(id) {
         return that;
     };
 
-    var cheWSeeker = function(spec) {
-        var that = molecule(spec);
+    var cheWActor = function(spec) {
+        var that = cheWSeeker(spec);
 
-        var velocityScale = 5;
+        that.inactiveShape = spec.inactiveShape;
+        that.inactiveColor = spec.inactiveColor;
+        that.activeShape = spec.activeShape;
+        that.activeColor = spec.activeColor;
 
-        that.nearestPhosphate = null;
-        that.phosphate = null;
-        that.phosphorylated = false;
-        that.activeCheW = null;
+        var velocityScale = 3;
 
-        that.outsideCheW = function() {};
-        that.nearCheW = function() {};
-        that.tooCloseCheW = function() {};
-        that.offCheW = function() {};
-        that.whenPhosphorylated = function() {};
+        that.insideCheW = function() {
+            that.nearestPhosphate = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'phosphate' && !(neighbor.state === 'bound');
+            });
 
-        that.outside = function(env) {
+            if (exists(that.nearestPhosphate)) {
+                var distance = that.distance(that.nearestPhosphate);
 
-        };
+                if (distance < 20) {
+                    that.phosphate = that.nearestPhosphate;
+                    that.attach(that.phosphate);
 
-        that.perceive = function(env) {
-            var switchedOff = false;
+                    that.tweenColor(that.activeColor, phosphorylationCycles);
+                    that.tweenShape(that.activeShape, phosphorylationCycles);
 
-            if (that.phosphorylated) {
-                that.whenPhosphorylated();
-            } else {
-                if (!exists(that.activeCheW) || !that.activeCheW.active) {
-                    if (that.activeCheW && !that.activeCheW.active) {
-                        switchedOff = true;
-                    }
+                    that.phosphate.phosphorylate(that);
+                    that.phosphorylated = true;
 
-                    that.activeCheW = that.findClosest(membranes.first().cheWs, function(cheW) {
-                        return cheW.active;
-                    });
-                }
-
-                if (exists(that.activeCheW)) {
-                    var distance = that.distance(that.activeCheW);
-                    var turning = that.to(that.activeCheW).x(0.2/(distance));
-
-                    if (distance < 300) {
-                        if (distance > 50) {
-                            that.future.append(function(self) {
-                                that.velocity = that.velocity.add(turning).scaleTo(velocityScale);
-                            });
-                            that.near = false;
-
-                            that.outsideCheW();
-                        } else if (distance > 20) {
-                            that.future.append(function(self) {
-                                that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
-                            });
-                            that.near = true;
-
-                            that.nearCheW();
-                        } else {
-                            that.future.append(function(self) {
-                                that.velocity = that.velocity.scaleTo(distance / 50);
-                            });
-                            that.near = true;
-
-                            that.tooCloseCheW();
-                        }
-                    } else {
-                        that.future.append(function(self) {
-                            that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
-                        });
-                        that.near = false;
-                    }
-                } else if (switchedOff) {
                     that.future.append(function(self) {
-                        that.velocity = $V([(Math.random()-0.5)*velocityScale, (Math.random()-0.5)*velocityScale]);
+                        self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
                     });
-                    that.offCheW();
-                } else {
 
+                    that.state = 'bound';
+                } else {
+                    that.nearestPhosphate.pull(that);
                 }
             }
         };
@@ -692,74 +759,36 @@ var homeostasis = function(id) {
 
         var velocityScale = 3;
 
-        var activeColor = spec.activeColor || $V([150, 180, 190, 1]);
-        var inactiveColor = spec.inactiveColor || $V([40, 58, 64, 1]);
+        spec.activeColor = spec.activeColor || $V([150, 180, 190, 1]);
+        spec.inactiveColor = spec.inactiveColor || $V([40, 58, 64, 1]);
 
-        var activeShape = spec.activeShape || flux.shape({ops: [
-            flux.op.move({to: $V([-20, 0])}),
-            flux.op.bezier({to: $V([0, 3]), control1: $V([-10, 4]), control2: $V([-10, 4])}),
-            flux.op.bezier({to: $V([13, 19]), control1: $V([5, 17]), control2: $V([11, 20])}),
-            flux.op.bezier({to: $V([5, 0]), control1: $V([11, 11]), control2: $V([11, 9])}),
-            flux.op.bezier({to: $V([13, -19]), control1: $V([11, -9]), control2: $V([11, -11])}),
-            flux.op.bezier({to: $V([0, -3]), control1: $V([11, -20]), control2: $V([5, -17])}),
-            flux.op.bezier({to: $V([-20, 0]), control1: $V([-10, -4]), control2: $V([-10, -4])})
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: $V([-20, 0])},
+            {op: 'bezier', to: $V([0, 3]), control1: $V([-10, 4]), control2: $V([-10, 4])},
+            {op: 'bezier', to: $V([13, 19]), control1: $V([5, 17]), control2: $V([11, 20])},
+            {op: 'bezier', to: $V([5, 0]), control1: $V([11, 11]), control2: $V([11, 9])},
+            {op: 'bezier', to: $V([13, -19]), control1: $V([11, -9]), control2: $V([11, -11])},
+            {op: 'bezier', to: $V([0, -3]), control1: $V([11, -20]), control2: $V([5, -17])},
+            {op: 'bezier', to: $V([-20, 0]), control1: $V([-10, -4]), control2: $V([-10, -4])}
         ]});
 
-        var inactiveShape = spec.activeShape || flux.shape({ops: [
-            flux.op.move({to: $V([-20, 0])}),
-            flux.op.bezier({to: $V([0, 3]), control1: $V([-20, 15]), control2: $V([-10, 15])}),
-            flux.op.bezier({to: $V([11, 10]), control1: $V([5, 10]), control2: $V([11, 10])}),
-            flux.op.bezier({to: $V([11, 0]), control1: $V([11, 0]), control2: $V([11, 0])}),
-            flux.op.bezier({to: $V([11, -10]), control1: $V([11, -0]), control2: $V([11, -0])}),
-            flux.op.bezier({to: $V([0, -3]), control1: $V([11, -10]), control2: $V([5, -10])}),
-            flux.op.bezier({to: $V([-20, 0]), control1: $V([-10, -15]), control2: $V([-20, -15])})
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
+            {op: 'move', to: $V([-20, 0])},
+            {op: 'bezier', to: $V([0, 3]), control1: $V([-20, 15]), control2: $V([-10, 15])},
+            {op: 'bezier', to: $V([11, 10]), control1: $V([5, 10]), control2: $V([11, 10])},
+            {op: 'bezier', to: $V([11, 0]), control1: $V([11, 0]), control2: $V([11, 0])},
+            {op: 'bezier', to: $V([11, -10]), control1: $V([11, -0]), control2: $V([11, -0])},
+            {op: 'bezier', to: $V([0, -3]), control1: $V([11, -10]), control2: $V([5, -10])},
+            {op: 'bezier', to: $V([-20, 0]), control1: $V([-10, -15]), control2: $V([-20, -15])}
         ]});
 
-        spec.color = spec.color || inactiveColor.dup();
-        spec.shape = inactiveShape.dup();
+        spec.color = spec.color || spec.inactiveColor.dup();
+        spec.shape = spec.shape || spec.inactiveShape.dup();
 
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
-        var that = cheWSeeker(spec);
-
-        that.nearCheW = function() {
-            var switchedOff = false;
-
-            if (!exists(that.nearestPhosphate) || that.nearestPhosphate.attached) {
-                if (that.nearestPhosphate && that.nearestPhosphate.attached) {
-                    switchedOff = true;
-                }
-
-                that.nearestPhosphate = that.findClosest(membranes.first().phosphates, function(phosphate) {
-                    return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
-                });
-            }
-
-            if (exists(that.nearestPhosphate)) {
-                var distance = that.distance(that.nearestPhosphate);
-
-                if (distance < 20) {
-                    that.phosphate = that.nearestPhosphate;
-                    that.attach(that.phosphate);
-
-                    that.tweenColor(activeColor, phosphorylationCycles);
-                    that.tweenShape(activeShape, phosphorylationCycles);
-
-                    that.phosphate.phosphorylate(that);
-                    that.phosphorylated = true;
-
-                    that.future.append(function(self) {
-                        self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
-                    });
-                } else {
-                    that.nearestPhosphate.future.append(function(self) {
-                        self.velocity = self.velocity.add(self.to(that).scaleTo(0.1));
-                    });
-                }
-            }
-        };
-
+        var that = cheWActor(spec);
         return that;
     };
 
@@ -767,14 +796,14 @@ var homeostasis = function(id) {
         spec.type = 'cheZ';
         spec.color = spec.color || $V([220, 30, 20, 1]);
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-15, -15])}),
-            flux.op.line({to: $V([15, -15])}),
-            flux.op.line({to: $V([-5, 10])}),
-            flux.op.line({to: $V([15, 10])}),
-            flux.op.line({to: $V([15, 15])}),
-            flux.op.line({to: $V([-15, 15])}),
-            flux.op.line({to: $V([5, -10])}),
-            flux.op.line({to: $V([-15, -10])})
+            {op: 'move', to: $V([-15, -15])},
+            {op: 'line', to: $V([15, -15])},
+            {op: 'line', to: $V([-5, 10])},
+            {op: 'line', to: $V([15, 10])},
+            {op: 'line', to: $V([15, 15])},
+            {op: 'line', to: $V([-15, 15])},
+            {op: 'line', to: $V([5, -10])},
+            {op: 'line', to: $V([-15, -10])}
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
@@ -800,77 +829,32 @@ var homeostasis = function(id) {
     var cheB = function(spec) {
         spec.type = 'cheB';
 
-        var activeColor = spec.activeColor || $V([100, 140, 230, 1]);
-        var inactiveColor = spec.inactiveColor || $V([80, 80, 90, 1]);
-        var velocityScale = 0.9;
+        spec.activeColor = spec.activeColor || $V([100, 140, 230, 1]);
+        spec.inactiveColor = spec.inactiveColor || $V([80, 80, 90, 1]);
 
-        spec.color = spec.color || inactiveColor.dup();
-
-        var inactiveShape = spec.inactiveShape || flux.shape({ops: [
-            flux.op.move({to: $V([-15, -15])}),
-            flux.op.line({to: $V([0, -15])}),
-            flux.op.line({to: $V([15, -15])}),
-            flux.op.bezier({to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])}),
-            flux.op.bezier({to: $V([-15, -15]), control1: $V([0, 15]), control2: $V([-15, 15])})
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
+            {op: 'move', to: $V([-15, -15])},
+            {op: 'line', to: $V([0, -15])},
+            {op: 'line', to: $V([15, -15])},
+            {op: 'bezier', to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])},
+            {op: 'bezier', to: $V([-15, -15]), control1: $V([0, 15]), control2: $V([-15, 15])}
         ]});
 
-        var activeShape = spec.activeShape || flux.shape({ops: [
-            flux.op.move({to: $V([-11, -25])}),
-            flux.op.line({to: $V([0, -12])}),
-            flux.op.line({to: $V([11, -25])}),
-            flux.op.bezier({to: $V([0, -5]), control1: $V([25, -16]), control2: $V([30, 25])}),
-            flux.op.bezier({to: $V([-13, -25]), control1: $V([-30, 25]), control2: $V([-25, -16])})
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: $V([-11, -25])},
+            {op: 'line', to: $V([0, -12])},
+            {op: 'line', to: $V([11, -25])},
+            {op: 'bezier', to: $V([0, -5]), control1: $V([25, -16]), control2: $V([30, 25])},
+            {op: 'bezier', to: $V([-13, -25]), control1: $V([-30, 25]), control2: $V([-25, -16])}
         ]});
 
-        spec.shape = inactiveShape.dup();
+        spec.color = spec.color || spec.inactiveColor.dup();
+        spec.shape = spec.shape || spec.inactiveShape.dup();
+
         spec.rotation = Math.random()*0.02-0.01;
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
-        var that = cheWSeeker(spec);
-
-        that.nearCheW = function() {
-            var switchedOff = false;
-
-            if (that.nearestPhosphate === null || that.nearestPhosphate.attached) {
-                if (that.nearestPhosphate && that.nearestPhosphate.attached) {
-                    switchedOff = true;
-                }
-
-                that.nearestPhosphate = that.findClosest(membranes.first().phosphates, function(phosphate) {
-                    return phosphate.activeCheW === that.activeCheW && !phosphate.attached;
-                });
-            }
-
-            if (exists(that.nearestPhosphate)) {
-                var distance = that.distance(that.nearestPhosphate);
-
-                if (distance < 20) {
-                    that.phosphate = that.nearestPhosphate;
-                    that.attach(that.phosphate);
-
-                    that.tweens.append(flux.tweenV({
-                        obj: that,
-                        property: 'color',
-                        to: activeColor,
-                        cycles: 40
-                    }));
-
-                    that.tweenColor(activeColor, phosphorylationCycles);
-                    that.tweenShape(activeShape, phosphorylationCycles);
-
-                    that.phosphate.phosphorylate(that);
-                    that.phosphorylated = true;
-
-                    that.future.append(function(self) {
-                        self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
-                    });
-                } else {
-                    that.nearestPhosphate.future.append(function(self) {
-                        self.velocity = self.velocity.add(self.to(that).scaleTo(0.1));
-                    });
-                }
-            }
-        };
+        var that = cheWActor(spec);
 
         return that;
     };
@@ -880,13 +864,13 @@ var homeostasis = function(id) {
         spec.color = spec.color || $V([180, 180, 220, 1]);
 
         spec.shape = spec.shape || flux.shape({ops: [
-            flux.op.move({to: $V([-15, -15])}),
-            flux.op.line({to: $V([15, -15])}),
-            flux.op.line({to: $V([15, -10])}),
-            flux.op.bezier({to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])}),
-            flux.op.line({to: $V([-10, -5])}),
-            flux.op.line({to: $V([-10, 15])}),
-            flux.op.line({to: $V([-15, 15])})
+            {op: 'move', to: $V([-15, -15])},
+            {op: 'line', to: $V([15, -15])},
+            {op: 'line', to: $V([15, -10])},
+            {op: 'bezier', to: $V([0, -5]), control1: $V([15, 15]), control2: $V([0, 15])},
+            {op: 'line', to: $V([-10, -5])},
+            {op: 'line', to: $V([-10, 15])},
+            {op: 'line', to: $V([-15, 15])}
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
@@ -964,10 +948,10 @@ var homeostasis = function(id) {
         var keyspec = {
             pos: $V([0.72, 0.1]),
             shape: flux.shape({ops: [
-                flux.op.move({to: $V([0, 0])}),
-                flux.op.line({to: $V([200, 0])}),
-                flux.op.line({to: $V([200, 410])}),
-                flux.op.line({to: $V([0, 410])})
+                {op: 'move', to: $V([0, 0])},
+                {op: 'line', to: $V([200, 0])},
+                {op: 'line', to: $V([200, 410])},
+                {op: 'line', to: $V([0, 410])}
             ]}),
             orientation: 0,
             lineWidth: 2,
@@ -983,20 +967,29 @@ var homeostasis = function(id) {
             spec.lineWidth = 2;
             spec.transform = 'screen';
 
-            var ops = spec.description.split('\n').map(function(line, index) {
-                return flux.op.text({to: spec.pos.add($V([0, index*23])), size: 12, string: line});
-            });
-
-            var text = flux.shape({ops: ops, fill: 'stroke'});
-            var background = text.box.scale(1.1).shapeFor();
-
-            spec.shapes = [background, text];
-
             var desc = flux.mote(spec);
 
+            desc.setDescription = function(description) {
+                var text = desc.findText(description);
+                var background = text.box.scale(1.1).shapeFor();
+                background.color = $V([20, 20, 20, 1]);
+
+                desc.description = description;
+                desc.shapes = [background, text];
+                desc.findBox();
+            };
+
+            desc.findText = function(string) {
+                var ops = string.split('\n').map(function(line, index) {
+                    return {op: 'text', to: desc.pos.add($V([0, index*23])), size: 12, string: line};
+                });
+
+                return flux.shape({ops: ops, fill: 'stroke'});
+            };
+
+            desc.setDescription(spec.description);
             desc.item = spec.item;
             desc.mouseDown = desc.item.hideDescription;
-            background.color = $V([20, 20, 20, 1]);
 
             return desc;
         };
@@ -1009,7 +1002,7 @@ var homeostasis = function(id) {
             spec.orientation = 0;
             spec.fill = 'stroke';
             spec.shape = spec.shape || flux.shape({ops: [
-                flux.op.text({to: $V([0, 0]), size: 14, string: spec.name})
+                {op: 'text', to: $V([0, 0]), size: 14, string: spec.name}
             ], fill: 'stroke'});
 
             var item = flux.mote(spec);
@@ -1047,19 +1040,33 @@ var homeostasis = function(id) {
                 }
             };
 
-            item.showDescription = function() {
+            item.showDescription = function(info) {
+                if (info) {
+                    item.description.setDescription(info + descriptions[item.name]);
+                }
                 world.addActiveDescription(item.description);
             };
 
-            item.hideDescription = function() {
+            item.hideDescription = function(info) {
+                if (info) {
+                    item.description.setDescription(descriptions[item.name]);
+                }
                 world.removeActiveDescription();
+            };
+
+            item.mouseDownDescription = function() {
+                item.showDescription();
+            };
+
+            item.mouseUpDescription = function() {
+                item.hideDescription();
             };
 
             if (!spec.inactive) {
                 item.mouseIn = item.activate;
                 item.mouseOut = item.deactivate;
-                item.mouseDown = item.showDescription;
-                item.mouseUp = item.hideDescription;
+                item.mouseDown = item.mouseDownDescription;
+                item.mouseUp = item.mouseUpDescription;
             }
 
             return item;
