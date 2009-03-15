@@ -872,18 +872,40 @@ var homeostasis = function(id) {
 
         that.active = function(env) {};
 
-        that.seek = function(env) {
-            that.phosphorylated = that.findNeighbor(function(neighbor) {
-                return neighbor.type === 'phosphate' && neighbor.enzyme;
+        that.avoidCheW = function() {
+            var cheWNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW';
             });
 
-            if (that.phosphorylated) {
-                that.state = 'target';
+            if (cheWNeighbor) {
+                that.future.append(function(self) {
+                    that.velocity = that.velocity.subtract(that.to(cheWNeighbor)).scaleTo(globalVelocity);
+                });
+            }
+
+            return cheWNeighbor;
+        };
+
+        that.seek = function(env) {
+            var cheWNeighbor = that.avoidCheW();
+            if (cheWNeighbor) {
+
+            } else {
+                that.phosphorylated = that.findNeighbor(function(neighbor) {
+                    return neighbor.type === 'phosphate' && neighbor.enzyme ;
+                });
+
+                if (that.phosphorylated) {
+                    that.state = 'target';
+                }
             }
         };
 
         that.target = function(env) {
-            if (!that.phosphorylated.enzyme || that.phosphorylated.enzyme.state === 'waiting') {
+            var cheWNeighbor = that.avoidCheW();
+            if (cheWNeighbor) {
+
+            } else if (!that.phosphorylated.enzyme || that.phosphorylated.enzyme.state === 'waiting') {
                 that.phosphorylated = null;
                 that.state = 'seek';
             } else {
