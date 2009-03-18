@@ -760,13 +760,23 @@ var homeostasis = function(id) {
             that.rotation = 0;
             that.velocity = $V([0, 0]);
 
-            var column = that.enzyme.cheWNeighbor.column;
-            var modifier = column.introvert(that.site).elements[0] < 0 ? Math.PI : 0;
+            that.column = that.enzyme.cheWNeighbor.column;
+            var modifier = that.column.introvert(that.site).elements[0] < 0 ? Math.PI : 0;
 
             that.tweenPos(that.site, phosphorylationCycles*2, function() {
-                that.orientation = column.orientation + modifier;
+                that.orientation = that.column.orientation + modifier;
                 that.state = 'bound';
             });
+        };
+
+        that.cut = function() {
+            that.enzyme = null;
+            that.site = null;
+            that.column = null;
+            that.rotation = defaultRotation()*0.2;
+            that.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
+
+            that.state = 'free';
         };
 
         that.free = function(env) {
@@ -1040,6 +1050,33 @@ var homeostasis = function(id) {
 
         var that = cheWActor(spec);
 
+        that.bound = function(env) {
+            that.methylNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'methyl' && neighbor.state === 'bound' && neighbor.column.state === 'active' && (neighbor.column != that.lastColumn);
+            });
+
+            if (that.methylNeighbor) {
+                that.state = 'targeting';
+                that.column = methylNeighbor.column;
+            }
+        };
+
+        that.targeting = function(env) {
+            if (that.methylNeighbor.column.state === 'inactive') {
+                that.methylNeighbor = null;
+                that.state = 'bound';
+            } else if (that.distance(that.methylNeighbor) < 30) {
+                that.methylNeighbor.cut();
+                that.state = 'bound';
+                that.lastColumn = that.column;
+                that.column = null;
+            } else {
+                that.future.append(function(self) {
+                    self.velocity = self.to(self.methylNeighbor).scaleTo(5);
+                });
+            }
+        };
+
         return that;
     };
 
@@ -1217,26 +1254,6 @@ var homeostasis = function(id) {
             var next = phases[index % phases.length];
             that[p] = that.statemaker(next);
         });
-
-//         that.inverting = function(env) {
-//             if (theta < cycle) {
-//                 theta += 1;
-//             } else {
-//                 that.tweenShape(spec.reverse, cycle);
-//                 that.state = 'reverting';
-//                 theta = 0;
-//             }
-//         };
-
-//         that.reverting = function(env) {
-//             if (theta < cycle) {
-//                 theta += 1;
-//             } else {
-//                 that.tweenShape(spec.inverse, cycle);
-//                 that.state = 'inverting';
-//                 theta = 0;
-//             }
-//         };
 
         return that;
     };
