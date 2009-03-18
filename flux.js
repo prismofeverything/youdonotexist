@@ -650,6 +650,19 @@ flux.mote = function(spec) {
         return that;
     };
 
+    that.tweenPos = function(to, cycles, posttween) {
+        that.tweens.append(flux.tweenV({
+            obj: that,
+            property: 'pos',
+            to: to,
+            cycles: cycles,
+            postcycle: function() {that.absolute.expire();},
+            posttween: posttween
+        }));
+
+        return that;
+    };
+
     that.tweenScale = function(scale, cycles) {
         that.tweens.append(flux.tweenV({
             obj: that,

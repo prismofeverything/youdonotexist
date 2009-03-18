@@ -9,6 +9,7 @@ var homeostasis = function(id) {
     var globalVelocity = 5;
     var timeZoom = 10;
     var dragging = false;
+    var showingState = false;
 
     var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -32,6 +33,12 @@ var homeostasis = function(id) {
             + 'the inside of the cell from the outside.  The cell\n'
             + 'maintains an electric potential across this membrane\n'
             + 'and then harnesses that potential to do work.',
+        flagella: 'When the flagella spin in one direction the cell is\n'
+            + 'propelled forward.  In the other direction, the cell tumbles\n'
+            + 'erratically.  Because of the chemotaxis system, the cell will\n'
+            + 'travel forwards mostly, and tumble infrequently, unless in the\n'
+            + 'presence of repellents, where it\'s tendency to tumble will\n'
+            + 'lead it away from the potentially harmful source.',
         column: 'The column spans the membrane, allowing for communication\n'
             + 'across the otherwise impenetrable barrier.  This way also\n'
             + 'transportation of materials across the membrane is strictly\n'
@@ -139,7 +146,9 @@ var homeostasis = function(id) {
 
             if (that === lowest) {
 //                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.elements.map(function(x){return Math.round(x);});}) + '\n\n';
-                var output = that.type + ' -- ' + that.state + '\n\n';
+
+                var state = showingState ? ' -- ' + that.state : '';
+                var output = that.type + state + '\n\n';
                 that.keyItem().showDescription(output);
             }
         };
@@ -190,13 +199,13 @@ var homeostasis = function(id) {
         }
     };
 
-    var randomColumn = function(box) {
+    var randomColumn = function(box, adjustment) {
         var up = (Math.random() - 0.5) > 0;
         var x = box.randomPoint()[0] * 0.6;
         var y = up ? box[1][0] - 20 : box[1][1] + 20;
         var orientation = up ? 0 : Math.PI;
 
-        return column({pos: $V([x, y]), orientation: orientation});
+        return column({pos: $V([x, y]), orientation: orientation + adjustment});
     };
 
     var randomMolecule = function(type, box) {
@@ -296,7 +305,6 @@ var homeostasis = function(id) {
         spec.fill = 'stroke';
         spec.lineWidth = 30;
         spec.color = spec.color || $V([80, 20, 20, 1]);
-
         spec.shape = spec.shape || flux.shape({ops: [
             {op: 'move', to: $V([-1400, -700])},
             {op: 'line', to: $V([1400, -700])},
@@ -305,17 +313,22 @@ var homeostasis = function(id) {
             {op: 'bezier', to: $V([-1400, -700]), control1: $V([-2450, 700]), control2: $V([-2450, -700])}
         ], fill: 'stroke'});
 
+//        spec.orientation = Math.random() * Math.PI;
+
         var that = molecule(spec);
 
         var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 100, that.box[1][1] - 100);
 
         that.columns = $R(0, 12).map(function(index) {
-            return randomColumn(that.box);
+            return randomColumn(that.box, that.orientation);
         });
 
         // receptors and cheWs are part of columns, but we make a reference for them here
         that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
         that.cheWs = that.columns.map(function(column) {return column.cheW;});
+
+//         that.flagella = flagella({pos: $V([2190, 0]), orientation: that.orientation});
+//         that.attach(that.flagella);
 
         that.phosphates = $R(0, 20).map(function(index) {
             return randomMolecule(phosphate, inside);
@@ -399,7 +412,7 @@ var homeostasis = function(id) {
 
         var that = molecule(spec);
 
-        that.cheW = cheW({pos: $V([0, 100]), orientation: 0, column: that});
+        that.cheW = cheW({pos: $V([0, 100]), orientation: that.orientation, column: that});
         that.receptors = [
             receptor({pos: $V([0, -18]), column: that, cheW: that.cheW}),
             receptor({pos: $V([-25, -42]), column: that, cheW: that.cheW}),
@@ -813,12 +826,12 @@ var homeostasis = function(id) {
 
         spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
             {op: 'move', to: $V([-20, 0])},
-            {op: 'bezier', to: $V([0, 3]), control1: $V([-20, 15]), control2: $V([-10, 15])},
+            {op: 'bezier', to: $V([-8, 0]), control1: $V([-20, 15]), control2: $V([-0, 5])},
             {op: 'bezier', to: $V([11, 10]), control1: $V([5, 10]), control2: $V([11, 10])},
-            {op: 'bezier', to: $V([11, 0]), control1: $V([11, 0]), control2: $V([11, 0])},
-            {op: 'bezier', to: $V([11, -10]), control1: $V([11, -0]), control2: $V([11, -0])},
-            {op: 'bezier', to: $V([0, -3]), control1: $V([11, -10]), control2: $V([5, -10])},
-            {op: 'bezier', to: $V([-20, 0]), control1: $V([-10, -15]), control2: $V([-20, -15])}
+            {op: 'bezier', to: $V([20, 0]), control1: $V([20, 0]), control2: $V([20, 0])},
+            {op: 'bezier', to: $V([11, -10]), control1: $V([20, -0]), control2: $V([20, -0])},
+            {op: 'bezier', to: $V([-8, 0]), control1: $V([11, -10]), control2: $V([5, -10])},
+            {op: 'bezier', to: $V([-20, 0]), control1: $V([-0, -5]), control2: $V([-20, -15])}
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
@@ -1002,6 +1015,144 @@ var homeostasis = function(id) {
         return that;
     };
 
+    var flagella = function(spec) {
+        spec.type = 'flagella';
+//        spec.color = spec.color || $V([60, 70, 170, 1]);
+        spec.color = spec.color || $V([20, 30, 70, 1]);
+
+        spec.revertingshape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: $V([-50, -110])},
+            {op: 'line', to: $V([30, -100])},
+            {op: 'line', to: $V([30, -40])},
+            {op: 'line', to: $V([60, -40])},
+            {op: 'line', to: $V([60, -70])},
+            {op: 'bezier', to: $V([1100, -10]), control1: $V([400, -270]), control2: $V([700, -250])},
+            {op: 'bezier', to: $V([2700, -60]), control1: $V([1700, 260]), control2: $V([2200, 260])},
+            {op: 'bezier', to: $V([3400, 0]), control1: $V([2900, -180]), control2: $V([3000, -150])},
+            {op: 'bezier', to: $V([2700, 50]), control1: $V([3000, -80]), control2: $V([2900, -80])},
+            {op: 'bezier', to: $V([1100, 150]), control1: $V([2300, 370]), control2: $V([1700, 370])},
+            {op: 'bezier', to: $V([60, 100]), control1: $V([700, -70]), control2: $V([400, -40])},
+            {op: 'line', to: $V([60, 40])},
+            {op: 'line', to: $V([30, 40])},
+            {op: 'line', to: $V([30, 100])},
+            {op: 'line', to: $V([-50, 110])}
+        ]});
+
+        spec.waxingshape = flux.shape({ops: [
+            {op: 'move', to: $V([-50, -110])},
+            {op: 'line', to: $V([30, -100])},
+            {op: 'line', to: $V([30, -40])},
+            {op: 'line', to: $V([60, -40])},
+            {op: 'line', to: $V([60, -70])},
+            {op: 'bezier', to: $V([1100, -50]), control1: $V([400, -80]), control2: $V([700, -80])},
+            {op: 'bezier', to: $V([2700, -40]), control1: $V([1700, 10]), control2: $V([2200, 10])},
+            {op: 'bezier', to: $V([3400, -30]), control1: $V([2900, -60]), control2: $V([3000, -50])},
+            {op: 'bezier', to: $V([2700, 30]), control1: $V([3000, 60]), control2: $V([2900, 80])},
+            {op: 'bezier', to: $V([1100, 40]), control1: $V([2300, 20]), control2: $V([1700, 30])},
+            {op: 'bezier', to: $V([60, 50]), control1: $V([700, 80]), control2: $V([400, 80])},
+            {op: 'line', to: $V([60, 40])},
+            {op: 'line', to: $V([30, 40])},
+            {op: 'line', to: $V([30, 100])},
+            {op: 'line', to: $V([-50, 110])}
+        ]});
+
+        spec.invertingshape = flux.shape({ops: [
+            {op: 'move', to: $V([-50, -110])},
+            {op: 'line', to: $V([30, -100])},
+            {op: 'line', to: $V([30, -40])},
+            {op: 'line', to: $V([60, -40])},
+            {op: 'line', to: $V([60, -70])},
+            {op: 'bezier', to: $V([1100, 10]), control1: $V([400, 270]), control2: $V([700, 250])},
+            {op: 'bezier', to: $V([2700, 60]), control1: $V([1700, -260]), control2: $V([2200, -260])},
+            {op: 'bezier', to: $V([3400, 0]), control1: $V([2900, 180]), control2: $V([3000, 150])},
+            {op: 'bezier', to: $V([2700, -50]), control1: $V([3000, 80]), control2: $V([2900, 80])},
+            {op: 'bezier', to: $V([1100, -150]), control1: $V([2300, -370]), control2: $V([1700, -370])},
+            {op: 'bezier', to: $V([60, -100]), control1: $V([700, 70]), control2: $V([400, 40])},
+            {op: 'line', to: $V([60, 40])},
+            {op: 'line', to: $V([30, 40])},
+            {op: 'line', to: $V([30, 100])},
+            {op: 'line', to: $V([-50, 110])}
+        ]});
+
+        spec.waningshape = flux.shape({ops: [
+            {op: 'move', to: $V([-50, -110])},
+            {op: 'line', to: $V([30, -100])},
+            {op: 'line', to: $V([30, -40])},
+            {op: 'line', to: $V([60, -40])},
+            {op: 'line', to: $V([60, -70])},
+            {op: 'bezier', to: $V([1100, 50]), control1: $V([400, 20]), control2: $V([700, 10])},
+            {op: 'bezier', to: $V([2700, 40]), control1: $V([1700, 80]), control2: $V([2200, 90])},
+            {op: 'bezier', to: $V([3400, 30]), control1: $V([2900, 0]), control2: $V([3000, 10])},
+            {op: 'bezier', to: $V([2700, -30]), control1: $V([3000, 0]), control2: $V([2900, 0])},
+            {op: 'bezier', to: $V([1100, -40]), control1: $V([2300, -90]), control2: $V([1700, -80])},
+            {op: 'bezier', to: $V([60, 50]), control1: $V([700, -10]), control2: $V([400, -20])},
+            {op: 'line', to: $V([60, 40])},
+            {op: 'line', to: $V([30, 40])},
+            {op: 'line', to: $V([30, 100])},
+            {op: 'line', to: $V([-50, 110])}
+        ]});
+
+        spec.shape = spec.revertingshape.dup();
+
+        var that = molecule(spec);
+        var cycle = 3;
+        var theta = 0;
+
+        var phases = ['waxing', 'inverting', 'waning', 'reverting'];
+        var phase = 0;
+
+        that.state = phases[phase];
+        that.tweenShape(spec[that.state + 'shape'], cycle);
+
+        that.statemaker = function(symbol) {
+            var state = function(env) {
+                if (theta < cycle) {
+                    theta += 1;
+                } else {
+                    phase += 1;
+                    if (phase >= phases.length) {
+                        phase = 0;
+                    }
+
+                    that.state = symbol;
+                    that.tweenShape(spec[that.state + 'shape'], cycle);
+                    theta = 0;
+                }
+            };
+
+            return state;
+        };
+
+        var index = 0;
+        phases.each(function(p) {
+            index += 1;
+            var next = phases[index % phases.length];
+            that[p] = that.statemaker(next);
+        });
+
+//         that.inverting = function(env) {
+//             if (theta < cycle) {
+//                 theta += 1;
+//             } else {
+//                 that.tweenShape(spec.reverse, cycle);
+//                 that.state = 'reverting';
+//                 theta = 0;
+//             }
+//         };
+
+//         that.reverting = function(env) {
+//             if (theta < cycle) {
+//                 theta += 1;
+//             } else {
+//                 that.tweenShape(spec.inverse, cycle);
+//                 that.state = 'inverting';
+//                 theta = 0;
+//             }
+//         };
+
+        return that;
+    };
+
     var ligands = {
         attractant: [],
         repellent: []
@@ -1022,6 +1173,7 @@ var homeostasis = function(id) {
     var focusGroups = [
         {name: 'membrane', path: 'membrane'},
         {name: 'column', path: 'membrane.0.columns'},
+//        {name: 'flagella', path: 'membrane.0.flagella'},
         {name: 'repellent', path: 'ligand.repellent'},
         {name: 'attractant', path: 'ligand.attractant'},
         {name: 'cheW', path: 'membrane.0.cheWs'},
@@ -1139,8 +1291,14 @@ var homeostasis = function(id) {
                 item: item,
                 pos: item.outer,
                 color: item.descriptionColor,
-                description: descriptions[item.name]
+                description: descriptions[item.name] || ''
             });
+
+            item.changeText = function(text) {
+                item.shapes = [flux.shape({ops: [
+                    {op: 'text', to: $V([0, 0]), size: 14, string: text}
+                ], fill: 'stroke'})];
+            };
 
             item.activate = function() {
                 if (!item.active) {
@@ -1219,6 +1377,29 @@ var homeostasis = function(id) {
             descriptionColor: $V([150, 150, 210, 1])
         });
 
+        divider.activate = function() {
+            divider.changeText('__________________hide________');
+        };
+
+        divider.deactivate = function() {
+            divider.changeText('______________________________');
+        };
+
+        var hideCycle = 7;
+
+        divider.hide = function() {
+            key.tweenPos($V([0.72, -0.9]), hideCycle);
+        };
+
+        divider.show = function() {
+            key.tweenPos($V([0.72, 0.1]), hideCycle);
+        };
+
+        divider.mouseIn = divider.activate;
+        divider.mouseOut = divider.deactivate;
+        divider.mouseDown = divider.hide;
+        divider.mouseUp = divider.hide;
+
         key.itemhash = {};
         key.keyitems = [homeostatic, about, divider].concat(focusGroups.map(function(group, index) {
             group.pos = $V([10, index*30+100]);
@@ -1239,7 +1420,9 @@ var homeostasis = function(id) {
         id: id,
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).append(moleculeKey),
         scale: $V([0.17, 0.17]),
+
         translation: $V([500, 200]),
+//        translation: $V([0, 200]),
 
         move: function(mouse) {
             if (mouse.down) {
