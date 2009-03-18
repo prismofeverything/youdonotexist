@@ -317,7 +317,7 @@ var homeostasis = function(id) {
 
         var that = molecule(spec);
 
-        var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 100, that.box[1][1] - 100);
+        var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 50, that.box[1][1] - 50);
 
         that.columns = $R(0, 12).map(function(index) {
             return randomColumn(that.box, that.orientation);
@@ -425,6 +425,22 @@ var homeostasis = function(id) {
         that.level = 0;
         that.state = 'inactive';
 
+        that.openMethylSites = [
+            $V([10, 50]),
+            $V([10, 70]),
+            $V([-10, 70]),
+            $V([-10, 50])
+        ];
+
+        that.takenMethylSites = [];
+
+        that.claimMethylSite = function() {
+            var site = that.openMethylSites.shift();
+            that.takenMethylSites.push(site);
+
+            return that.extrovert(site);
+        };
+
         that.active = function(env) {
             if (that.level <= 0) {
                 that.deactivate();
@@ -529,6 +545,7 @@ var homeostasis = function(id) {
         var that = molecule(spec);
 
         that.active = false;
+        that.column = spec.column;
 
         that.activate = function() {
             that.active = true;
@@ -670,7 +687,7 @@ var homeostasis = function(id) {
         that.pull = function(enzyme) {
             if (!that.state === 'bound') {
                 that.future.append(function(self) {
-                    self.velocity = self.velocity.add(self.to(enzyme).scaleTo(0.1));
+                    self.velocity = self.velocity.add(self.to(enzyme).scaleTo(0.2));
                 });
             }
         };
@@ -732,6 +749,38 @@ var homeostasis = function(id) {
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = molecule(spec);
+
+        that.state = 'free';
+        that.enzyme = null;
+
+        that.bind = function(enzyme, site) {
+            that.state = 'binding';
+            that.enzyme = enzyme;
+            that.site = site;
+            that.rotation = 0;
+            that.velocity = $V([0, 0]);
+
+            var column = that.enzyme.cheWNeighbor.column;
+            var modifier = column.introvert(that.site).elements[0] < 0 ? Math.PI : 0;
+
+            that.tweenPos(that.site, phosphorylationCycles*2, function() {
+                that.orientation = column.orientation + modifier;
+                that.state = 'bound';
+            });
+        };
+
+        that.free = function(env) {
+
+        };
+
+        that.binding = function(env) {
+
+        };
+
+        that.bound = function(env) {
+
+        };
+
         return that;
     };
 
@@ -953,7 +1002,7 @@ var homeostasis = function(id) {
 
                 that.tweenShape(that.inactiveShape, phosphorylationCycles);
                 that.tweenColor(that.inactiveColor, phosphorylationCycles);
-                that.velocity = $V([Math.random() - 0.5, Math.random() - 0.5]).x(globalVelocity);
+                that.velocity = $V([Math.random() - 0.5, Math.random() - 0.5]).scaleTo(globalVelocity);
 
                 that.phosphorylated = null;
                 that.state = 'seek';
@@ -1012,6 +1061,45 @@ var homeostasis = function(id) {
         spec.velocity = $V([Math.random()-0.5, Math.random()-0.5]).x(globalVelocity);
 
         var that = molecule(spec);
+
+        that.methylNeighbor = null;
+        that.cheWNeighbor = null;
+        that.lastCheW = null;
+        that.state = 'looking';
+
+        that.looking = function(env) {
+            that.methylNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'methyl' && neighbor.state === 'free';
+            });
+            that.cheWNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW' && (neighbor != that.lastCheW);
+            });
+
+            if (that.methylNeighbor && that.cheWNeighbor && that.cheWNeighbor.column.openMethylSites.length > 0) {
+                var column = that.cheWNeighbor.column;
+
+                that.targetSite = column.claimMethylSite();
+                that.methylNeighbor.bind(that, that.targetSite);
+                that.velocity = $V([0, 0]);
+
+                that.tweenPos(column.extrovert(that.cheWNeighbor.pos), phosphorylationCycles*2, function() {
+                    that.state = 'looking';
+                    that.future.append(function() {
+                        that.velocity = $V([Math.random()-0.5, Math.random()-0.5]).scaleTo(globalVelocity);
+                    });
+                });
+                that.lastCheW = that.cheWNeighbor;
+                that.methylNeighbor = null;
+                that.cheWNeighbor = null;
+
+                that.state = 'binding';
+            }
+        };
+
+        that.binding = function(env) {
+
+        };
+
         return that;
     };
 

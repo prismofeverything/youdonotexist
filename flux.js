@@ -663,6 +663,18 @@ flux.mote = function(spec) {
         return that;
     };
 
+    that.tweenOrientation = function(orientation, cycles, posttween) {
+        that.tweens.append(flux.tweenN({
+            obj: that,
+            property: 'orientation',
+            to: orientation,
+            cycles: cycles,
+            posttween: posttween
+        }));
+
+        return that;
+    };
+
     that.tweenScale = function(scale, cycles) {
         that.tweens.append(flux.tweenV({
             obj: that,
