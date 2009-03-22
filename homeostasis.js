@@ -317,7 +317,7 @@ var homeostasis = function(id) {
 
         var that = molecule(spec);
 
-        var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 50, that.box[1][1] - 50);
+        var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 20, that.box[1][1] - 20);
 
         that.columns = $R(0, 12).map(function(index) {
             return randomColumn(that.box, that.orientation);
@@ -327,8 +327,8 @@ var homeostasis = function(id) {
         that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
         that.cheWs = that.columns.map(function(column) {return column.cheW;});
 
-//         that.flagella = flagella({pos: $V([2190, 0]), orientation: that.orientation});
-//         that.attach(that.flagella);
+        that.flagella = flagella({pos: $V([2190, 0]), orientation: that.orientation});
+        that.attach(that.flagella);
 
         that.phosphates = $R(0, 20).map(function(index) {
             return randomMolecule(phosphate, inside);
@@ -1224,6 +1224,7 @@ var homeostasis = function(id) {
         var theta = 0;
 
         var phases = ['waxing', 'inverting', 'waning', 'reverting'];
+//        var phases = ['inverting', 'reverting'];
         var phase = 0;
 
         that.state = phases[phase];
@@ -1278,7 +1279,7 @@ var homeostasis = function(id) {
     var focusGroups = [
         {name: 'membrane', path: 'membrane'},
         {name: 'column', path: 'membrane.0.columns'},
-//        {name: 'flagella', path: 'membrane.0.flagella'},
+        {name: 'flagella', path: 'membrane.0.flagella'},
         {name: 'repellent', path: 'ligand.repellent'},
         {name: 'attractant', path: 'ligand.attractant'},
         {name: 'cheW', path: 'membrane.0.cheWs'},
