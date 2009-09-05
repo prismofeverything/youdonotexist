@@ -331,7 +331,7 @@ var Enumerable = {
 		this.each(function(value, index) {
             var key = iterator(value, index);
             if (!result[key]) result[key] = [];
-            result[key].append(value);
+            result[key].push(value);
         });
         return result;
     },
