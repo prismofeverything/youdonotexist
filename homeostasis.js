@@ -179,7 +179,7 @@ var homeostasis = function(id) {
         };
 
         that.mouseDown = spec.mouseDown || showDescription;
-        that.mouseUp = spec.mouseUp || hideDescription;
+//        that.mouseUp = spec.mouseUp || hideDescription;
 
         return that;
     };
@@ -1444,9 +1444,9 @@ var homeostasis = function(id) {
                 item.showDescription();
             };
 
-            item.mouseUpDescription = function() {
-                item.hideDescription();
-            };
+//             item.mouseUpDescription = function() {
+//                 item.hideDescription();
+//             };
 
             if (!spec.inactive) {
                 item.mouseIn = item.activate;
@@ -1531,10 +1531,10 @@ var homeostasis = function(id) {
 //        translation: $V([0, 200]),
 
         move: function(mouse) {
-            if (mouse.down) {
-                world.removeActiveDescription();
-                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
+            world.removeActiveDescription();
 
+            if (mouse.down) {
+                this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
                 dragging = true;
             }
         },
