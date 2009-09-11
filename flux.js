@@ -38,136 +38,138 @@ var flux = function() {
     }
   }
 
-  var range = function(low, high) {
+  var range = function(l, h) {
+    var low = l;
+    var high = h;
+
+    var getLow = function() { return low; };
+    var getHigh = function() { return high; };
+
     var between = function() {
       return high - low;
     }
 
+    var randomValue = function() {
+      return Math.random()*between()+low;
+    }
+
+    var union = function(other) {
+      low = Math.min(low, other.low());
+      high = Math.max(high, other.high());
+    }
+
+    var include = function(value) {
+      low = Math.min(low, value);
+      high = Math.max(high, value);
+    }
+
+    var translate = function(value) {
+      low += value;
+      high += value;
+    }
+
+    var check = function(value) {
+      return value >= low ? value <= high ? 0 : 1 : -1
+    }
+
     return {
-      low: low,
-      high: high,
-      between: between
+      low: getLow,
+      high: getHigh,
+      between: between,
+      randomValue: randomValue,
+      union: union,
+      include: include,
+      translate: translate,
+      check: check
     };
   };
 
   // very much a two-dimensional object
   var bounds = function(xlow, xhigh, ylow, yhigh) {
-    var that = [];
-    var checks = [Math.min, Math.max];
+    var x = range(xlow, xhigh);
+    var y = range(ylow, yhigh);
 
-//     var x = range(xlow, xhigh);
-//     var y = range(ylow, yhigh);
-
-    that.x = [xlow, xhigh];
-    that.y = [ylow, yhigh];
-    that[0] = that.x;
-    that[1] = that.y;
-
-    that.copy = function() {
-      return bounds(that.x[0], that.x[1], that.y[0], that.y[1]);
+    var copy = function() {
+      return bounds(x.low(), x.high(), y.low(), y.high());
     };
 
-    that.extreme = function(way) {
-      return [that[0][way], that[1][way]];
+    var width = function() {
+      return x.between();
     };
 
-    that.range = function(axis) {
-      return that[axis][1] - that[axis][0];
+    var height = function() {
+      return y.between();
     };
 
-    that.low = function() {
-      return that.extreme(0);
-    };
-
-    that.high = function() {
-      return that.extreme(1);
-    };
-
-    that.width = function() {
-      return that.range(0);
-    };
-
-    that.height = function() {
-      return that.range(1);
-    };
-
-    that.randomValue = function(axis) {
-      return Math.random()*that.range(axis)+that[axis][0];
-    };
-
-    that.randomPoint = function() {
-      return [0, 1].map(that.randomValue);
+    var randomPoint = function() {
+      return [x.randomValue(), y.randomValue()];
     };
 
     // unions with another bounds object
-    that.union = function(other) {
-      for (var a = 0; a < 2; a++) {
-        for (var b = 0; b < 2; b++) {
-          that[a][b] = checks[b](that[a][b], other[a][b]);
-        }
-      }
-
-      return that;
+    var union = function(other) {
+      x.union(other.x);
+      y.union(other.y);
     };
 
     // grows to ensure it encloses the given point
-    that.include = function(point) {
-      for (var a = 0; a < 2; a++) {
-        for (var b = 0; b < 2; b++) {
-          that[a][b] = checks[b](that[a][b], point.o(a));
-        }
-      }
-
-      return that;
+    var include = function(point) {
+      x.include(point.o(0));
+      y.include(point.o(1));
     };
 
     // shifts the entire object by the given vector
-    that.translate = function(point) {
-      for (var a = 0; a < 2; a++) {
-        for (var b = 0; b < 2; b++) {
-          that[a][b] += point.o(a);
-        }
-      }
-
-      return that;
+    var translate = function(point) {
+      x.translate(point.o(0));
+      y.translate(point.o(1));
     };
 
     // check whether the given point is within these bounds
     // returning a list of comparision values by axis
-    that.check = function(point) {
-      return point.elements.map(function(a, index) {
-        return (a < that[index][0]) ? - 1 : (a > that[index][1]) ? 1 : 0;
-      });
+    var check = function(point) {
+      return [x.check(point.o(0)), y.check(point.o(1))];
     };
 
     // check whether the given point is within these bounds
     // returning a boolean
-    that.inside = function(point) {
-      return that.check(point).inject(true, function(side, a, index) {
-        return side && a === 0;
-      });
+    var inside = function(point) {
+      return x.check(point.o(0)) === 0 && y.check(point.o(1)) === 0;
     };
 
-    that.shapeFor = function() {
+    var shapeFor = function() {
       return shape({ops: [
-        {op: 'move', to: $V([that.x[0], that.y[0]])},
-        {op: 'line', to: $V([that.x[1], that.y[0]])},
-        {op: 'line', to: $V([that.x[1], that.y[1]])},
-        {op: 'line', to: $V([that.x[0], that.y[1]])}
+        {op: 'move', to: $V([x.low(), y.low()])},
+        {op: 'line', to: $V([x.high(), y.low()])},
+        {op: 'line', to: $V([x.high(), y.high()])},
+        {op: 'line', to: $V([x.low(), y.high()])}
       ]});
     };
 
-    that.scale = function(factor) {
-      var w = that.width();
-      var h = that.height();
+    var scale = function(factor) {
+      var w = width();
+      var h = height();
       var wfactor = (w*factor-w)*0.5;
       var hfactor = (h*factor-h)*0.5;
 
-      return bounds(that.x[0]-wfactor, that.x[1]+wfactor, that.y[0]-hfactor, that.y[1]+hfactor);
+      return bounds(x.low()-wfactor, x.high()+wfactor, y.low()-hfactor, y.high()+hfactor);
     };
 
-    return that;
-  };
+    return {
+      x: x,
+      y: y,
+      copy: copy,
+      range: range,
+      width: width,
+      height: height,
+      randomPoint: randomPoint,
+      union: union,
+      include: include,
+      translate: translate,
+      check: check,
+      inside: inside,
+      shapeFor: shapeFor,
+      scale: scale
+    }
+  }
 
   var op = function() {
     result = {};
@@ -599,7 +601,8 @@ var flux = function() {
       var box = bounds(0, 0, 0, 0);
 
       box = that.shapes.inject(box, function(grow, shape) {
-        return grow.union(shape.box);
+        grow.union(shape.box);
+        return grow;
       });
 
       that.submotes.each(function(submote) {
@@ -1293,6 +1296,7 @@ var flux = function() {
 
   return {
     browser: browser, 
+    range: range,
     bounds: bounds, 
     op: op,
     shape: shape,

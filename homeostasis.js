@@ -1,7 +1,8 @@
 var homeostasis = function(id) {
   var above = flux.bounds(-1700, 1700, -450, 250);
   var below = flux.bounds(-1700, 1700, 1700, 2400);
-  var all = above.copy().union(below);
+  var all = above.copy();
+  all.union(below);
 
   var receptorGrip = 0.996;
   var attractantRepellentRatio = 0.5;
@@ -202,7 +203,7 @@ var homeostasis = function(id) {
   var randomColumn = function(box, adjustment) {
     var up = (Math.random() - 0.5) > 0;
     var x = box.randomPoint()[0] * 0.6;
-    var y = up ? box[1][0] - 20 : box[1][1] + 20;
+    var y = up ? box.y.low() - 20 : box.y.high() + 20;
     var orientation = up ? 0 : Math.PI;
 
     return column({pos: $V([x, y]), orientation: orientation + adjustment});
@@ -317,7 +318,7 @@ var homeostasis = function(id) {
 
     var that = molecule(spec);
 
-    var inside = flux.bounds(that.box[0][0] + 700, that.box[0][1] - 700, that.box[1][0] + 20, that.box[1][1] - 20);
+    var inside = flux.bounds(that.box.x.low() + 700, that.box.x.high() - 700, that.box.y.low() + 20, that.box.y.high() - 20);
 
     that.columns = $R(0, 12).map(function(index) {
       return randomColumn(that.box, that.orientation);
@@ -1351,7 +1352,8 @@ var homeostasis = function(id) {
 
       desc.setDescription = function(description) {
         var text = desc.findText(description);
-        var background = text.box.scale(1.1).shapeFor();
+        text.box.scale(1.1);
+        var background = text.box.shapeFor();
         background.color = $V([20, 20, 20, 1]);
 
         desc.description = description;
