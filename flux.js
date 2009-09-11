@@ -1,8 +1,3 @@
-Array.prototype.push = function(el) {
-  this[this.length] = el;
-  return this;
-};
-
 var exists = function(value) {
   return !(value === null || value === undefined);
 };
@@ -43,21 +38,37 @@ var flux = function() {
     }
   }
 
+  var range = function(low, high) {
+    var between = function() {
+      return high - low;
+    }
+
+    return {
+      low: low,
+      high: high,
+      between: between
+    };
+  };
+
+  // very much a two-dimensional object
   var bounds = function(xlow, xhigh, ylow, yhigh) {
     var that = [];
     var checks = [Math.min, Math.max];
+
+//     var x = range(xlow, xhigh);
+//     var y = range(ylow, yhigh);
 
     that.x = [xlow, xhigh];
     that.y = [ylow, yhigh];
     that[0] = that.x;
     that[1] = that.y;
 
-    that.extreme = function(way) {
-      return [that[0][way], that[1][way]];
+    that.copy = function() {
+      return bounds(that.x[0], that.x[1], that.y[0], that.y[1]);
     };
 
-    that.copy = function() {
-      return flux.bounds(that.x[0], that.x[1], that.y[0], that.y[1]);
+    that.extreme = function(way) {
+      return [that[0][way], that[1][way]];
     };
 
     that.range = function(axis) {
@@ -138,7 +149,7 @@ var flux = function() {
     };
 
     that.shapeFor = function() {
-      return flux.shape({ops: [
+      return shape({ops: [
         {op: 'move', to: $V([that.x[0], that.y[0]])},
         {op: 'line', to: $V([that.x[1], that.y[0]])},
         {op: 'line', to: $V([that.x[1], that.y[1]])},
@@ -152,14 +163,14 @@ var flux = function() {
       var wfactor = (w*factor-w)*0.5;
       var hfactor = (h*factor-h)*0.5;
 
-      return flux.bounds(that.x[0]-wfactor, that.x[1]+wfactor, that.y[0]-hfactor, that.y[1]+hfactor);
+      return bounds(that.x[0]-wfactor, that.x[1]+wfactor, that.y[0]-hfactor, that.y[1]+hfactor);
     };
 
     return that;
   };
 
   var op = function() {
-    var result = {};
+    result = {};
 
     result.base = function(spec) {
       var that = {};
@@ -181,7 +192,7 @@ var flux = function() {
       };
 
       that.between = function(other, cycles) {
-        return [flux.tweenV({
+        return [tweenV({
           obj: that,
           property: 'to',
           to: other.to,
@@ -246,7 +257,7 @@ var flux = function() {
           }
         }
 
-        box.union(flux.bounds(
+        box.union(bounds(
           that.to.o(0),
           that.to.o(0) + longest.length,
           that.to.o(1) - that.size,
@@ -272,15 +283,15 @@ var flux = function() {
 
       that.between = function(other, cycles) {
         return [
-          flux.tweenV({obj: that,
+          tweenV({obj: that,
                        property: 'to',
                        to: other.to,
                        cycles: cycles}),
-          flux.tweenN({obj: that,
+          tweenN({obj: that,
                        property: 'radius',
                        to: other.radius,
                        cycles: cycles}),
-          flux.tweenN({obj: that,
+          tweenN({obj: that,
                        property: 'arc',
                        to: other.arc,
                        cycles: cycles})
@@ -288,7 +299,7 @@ var flux = function() {
       };
 
       that.prod = function(box) {
-        box.union(flux.bounds(
+        box.union(bounds(
           that.to.o(0) - that.radius,
           that.to.o(0) + that.radius,
           that.to.o(1) - that.radius,
@@ -324,17 +335,17 @@ var flux = function() {
 
       that.between = function(other, cycles) {
         return [
-          flux.tweenV({
+          tweenV({
             obj: that,
             property: 'to',
             to: other.to,
             cycles: cycles}),
-          flux.tweenV({
+          tweenV({
             obj: that,
             property: 'control1',
             to: other.control1,
             cycles: cycles}),
-          flux.tweenV({
+          tweenV({
             obj: that,
             property: 'control2',
             to: other.control2,
@@ -356,7 +367,7 @@ var flux = function() {
   var shape = function(spec) {
     var that = {};
 
-    that.ops = spec.ops ? spec.ops.map(function(op) {return flux.op[op.op](op);}) : null || [];
+    that.ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : null || [];
     that.color = spec.color;
     that.fill = spec.fill || 'fill';
 
@@ -367,12 +378,12 @@ var flux = function() {
     };
 
     that.dup = function() {
-      return flux.shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
+      return shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
     };
 
     // construct a simple bounding box to tell if further bounds checking is necessary
     that.boxFor = function() {
-      var box = flux.bounds(0, 0, 0, 0);
+      var box = bounds(0, 0, 0, 0);
 
       that.ops.each(function(vertex) {
         vertex.prod(box);
@@ -426,7 +437,7 @@ var flux = function() {
 
   // tween object for numbers
   var tweenN = function(spec) {
-    var that = flux.tween(spec);
+    var that = tween(spec);
     var increment = spec.increment || (spec.cycles ? ((spec.to - spec.obj[spec.property]) / spec.cycles) : 1);
 
     var greater = function(where, to) {return where >= to;};
@@ -466,7 +477,7 @@ var flux = function() {
     });
 
     that.tweens = differing.map(function(index) {
-      return flux.tweenN({
+      return tweenN({
         obj: that.vector().elements,
         property: index,
         to: that.to.o(index),
@@ -492,7 +503,7 @@ var flux = function() {
     spec.obj = {count: 0};
     spec.property = 'count';
 
-    var that = flux.tween(spec);
+    var that = tween(spec);
 
     that.cycles = spec.cycles || 10;
     that.event = spec.event || function() {};
@@ -526,7 +537,7 @@ var flux = function() {
     that.submotes = spec.submotes || [];
 
     that.pos = spec.pos || $V([0, 0]);
-    that.shape = spec.shape || flux.shape({ops: [{op: 'arc', to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])}]});
+    that.shape = spec.shape || shape({ops: [{op: 'arc', to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])}]});
     that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
     that.velocity = spec.velocity || $V([0, 0]);
@@ -562,7 +573,7 @@ var flux = function() {
     // rise takes a position and recursively applies the transformations of
     // all supermotes onto it
     that.rise = function(pos) {
-      pos = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos;
+      pos = that.transform === 'screen' ? pos.add(that.pos.times(browser.dim())) : pos;
       return that.supermote ? that.supermote.rise(that.supermote.extrovert(pos)) : pos;
     };
 
@@ -585,7 +596,7 @@ var flux = function() {
 
     // construct a simple bounding box to tell if further bounds checking is necessary
     that.findBox = function() {
-      var box = flux.bounds(0, 0, 0, 0);
+      var box = bounds(0, 0, 0, 0);
 
       box = that.shapes.inject(box, function(grow, shape) {
         return grow.union(shape.box);
@@ -620,7 +631,7 @@ var flux = function() {
     that.tweenColor = function(color, cycles, posttween) {
       posttween = posttween || function() {};
 
-      that.tweens.push(flux.tweenV({
+      that.tweens.push(tweenV({
         obj: that,
         property: 'color',
         to: color,
@@ -633,7 +644,7 @@ var flux = function() {
     };
 
     that.tweenPos = function(to, cycles, posttween) {
-      that.tweens.push(flux.tweenV({
+      that.tweens.push(tweenV({
         obj: that,
         property: 'pos',
         to: to,
@@ -646,7 +657,7 @@ var flux = function() {
     };
 
     that.tweenOrientation = function(orientation, cycles, posttween) {
-      that.tweens.push(flux.tweenN({
+      that.tweens.push(tweenN({
         obj: that,
         property: 'orientation',
         to: orientation,
@@ -658,7 +669,7 @@ var flux = function() {
     };
 
     that.tweenScale = function(scale, cycles) {
-      that.tweens.push(flux.tweenV({
+      that.tweens.push(tweenV({
         obj: that,
         property: 'scale',
         to: scale,
@@ -676,7 +687,7 @@ var flux = function() {
     };
 
     that.tweenEvent = function(event, cycles) {
-      var tween = flux.tweenEvent({event: event, cycles: cycles});
+      var tween = tweenEvent({event: event, cycles: cycles});
       that.tweens = that.tweens.concat(tween);
 
       return that;
@@ -727,7 +738,7 @@ var flux = function() {
     };
 
     that.extrovert = function(pos) {
-      //        var transform = that.transform === 'screen' ? pos.add(that.pos.times(flux.browser.dim())) : pos.add(that.pos);
+      //        var transform = that.transform === 'screen' ? pos.add(that.pos.times(browser.dim())) : pos.add(that.pos);
       var transform = pos.add(that.pos);
       return transform.rotate(that.orientation, that.pos).times(that.scale);
     };
@@ -915,7 +926,7 @@ var flux = function() {
       context.lineWidth = that.lineWidth;
 
       if (that.transform === 'screen') {
-        context.translate(Math.floor(that.pos.o(0)*flux.browser.w), Math.floor(that.pos.o(1)*flux.browser.h));
+        context.translate(Math.floor(that.pos.o(0)*browser.w), Math.floor(that.pos.o(1)*browser.h));
       } else {
         context.translate.apply(context, that.pos.elements);
       }
@@ -1039,7 +1050,7 @@ var flux = function() {
     };
 
     that.tweenScale = function(scale, cycles) {
-      var tween = flux.tweenV({
+      var tween = tweenV({
         obj: that,
         property: 'scale',
         to: scale,
@@ -1051,7 +1062,7 @@ var flux = function() {
     };
 
     that.tweenTranslation = function(translation, cycles) {
-      var tween = flux.tweenV({
+      var tween = tweenV({
         obj: that,
         property: 'translation',
         to: translation,
@@ -1083,7 +1094,7 @@ var flux = function() {
     };
 
     var draw = function() {
-      context.clearRect(0, 0, flux.browser.w, flux.browser.h);
+      context.clearRect(0, 0, browser.w, browser.h);
       that.predraw(context);
 
       if (that.transforms['pos']) {
@@ -1230,11 +1241,11 @@ var flux = function() {
     that.init = function() {
       // resize
       var resize = function(e) {
-        flux.browser.dim(window.innerWidth, window.innerHeight);
-        canvas.width = flux.browser.w;
-        canvas.height = flux.browser.h;
+        browser.dim(window.innerWidth, window.innerHeight);
+        canvas.width = browser.w;
+        canvas.height = browser.h;
 
-        that.resize(flux.browser);
+        that.resize(browser);
       };
       window.onresize = resize;
 
@@ -1263,9 +1274,9 @@ var flux = function() {
       window.addEventListener('keyup', keyUp, false);
 
       // dimensions
-      flux.browser.dim(window.innerWidth, window.innerHeight);
-      canvas.width = flux.browser.w;
-      canvas.height = flux.browser.h;
+      browser.dim(window.innerWidth, window.innerHeight);
+      canvas.width = browser.w;
+      canvas.height = browser.h;
 
       // provide a reference to the actual canvas object
       that.canvas = canvas;
