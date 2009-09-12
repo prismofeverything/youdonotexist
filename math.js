@@ -1,39 +1,39 @@
 Math.greater = function(where, to) {return where >= to;};
 Math.less = function(where, to) {return where <= to;};
 
-Vector.prototype.o = function(i) {
-  return (i < 0 || i >= this.elements.length) ? null : this.elements[i];
+Array.prototype.o = function(i) {
+  return (i < 0 || i >= this.length) ? null : this[i];
 };
 
-Vector.prototype.magnitude = function() {
-  return Math.sqrt(this.elements.inject(0, function(sum, element) {
+Array.prototype.magnitude = function() {
+  return Math.sqrt(this.inject(0, function(sum, element) {
 	return sum + element * element;
   }));
 };
 
-Vector.prototype.scaleTo = function(magnitude) {
-  return this.toUnitVector().x(magnitude);
+Array.prototype.scaleTo = function(magnitude) {
+  return this.toUnitVector().multiply(magnitude);
 };
 
-Vector.prototype.inverse = function() {
-  return $V(this.elements.map(function(el) {
+Array.prototype.inverse = function() {
+  return this.map(function(el) {
 	return -el;
-  }));
+  });
 };
 
-Vector.prototype.times = function(other) {
+Array.prototype.times = function(other) {
   var result = [];
-  for (var o=0; o<this.elements.length; o++) {
-	result[o] = this.elements[o] * other.elements[o];
+  for (var o=0; o<this.length; o++) {
+  	result[o] = this[o] * other[o];
   }
 
-  return $V(result);
+  return result;
 };
 
-Vector.prototype.nonrootDistance = function(other) {
+Array.prototype.nonrootDistance = function(other) {
   var result = 0;
-  for (var n = 0; n < this.elements.length; n++) {
-	result += Math.square(this.elements[n] - other.elements[n]);
+  for (var n = 0; n < this.length; n++) {
+	result += Math.square(this[n] - other[n]);
   }
 
   return result;
@@ -85,10 +85,10 @@ Math.pointWithin = function(point, polygon) {
 Math.kdtree = function(elements, property) {
   if (elements.length === 0) {return null;};
 
-  var dimension = elements.first()[property]().elements.length;
+  var dimension = elements.first()[property]().length;
 
   var along = function(el, axis) {
-	return el[property]().elements[axis];
+	return el[property]()[axis];
   };
 
   var mirror = function(way) {
@@ -150,13 +150,13 @@ Math.kdtree = function(elements, property) {
 		if (at === null) {return best;}
 
 		var axis = depth % dimension;
-		var index = pos.dup();
-		index.elements[axis] = at.value[property]().o(axis);
+		var index = pos.clone();
+		index[axis] = at.value[property]()[axis];
 
 		var distance = pos.nonrootDistance(index);
 		if (distance < best.farthest()) {
 		  best = check(at, best, depth);
-		  var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
+		  var way = pos[axis] < along(at.value, axis) ? 'left' : 'right';
 
 		  return within(at[way], best, depth+1);
 		} else {
@@ -170,7 +170,7 @@ Math.kdtree = function(elements, property) {
 		}
 
 		var axis = depth % dimension;
-		var way = pos.o(axis) < along(at.value, axis) ? 'left' : 'right';
+		var way = pos[axis] < along(at.value, axis) ? 'left' : 'right';
 
 		best = recur(at[way], best, depth+1);
 		check(at, best, depth);

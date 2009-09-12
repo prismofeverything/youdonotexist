@@ -4,7 +4,7 @@ var exists = function(value) {
 
 var vector_to_rgba = function(v) {
   if (v) {
-    var inner = v.elements.map(function(component) {
+    var inner = v.map(function(component) {
       return Math.floor(component);
     }).join(', ');
 
@@ -25,11 +25,11 @@ var flux = function() {
       if (w && h) {
         this.w = w;
         this.h = h;
-        this.dimension = $V([w, h]);
+        this.dimension = [w, h];
         // if only one, it is a vector
       } else if (w) {
-        this.w = w.elements[0];
-        this.h = w.elements[1];
+        this.w = w[0];
+        this.h = w[1];
         this.dimension = w;
       }
 
@@ -113,34 +113,34 @@ var flux = function() {
 
     // grows to ensure it encloses the given point
     var include = function(point) {
-      x.include(point.o(0));
-      y.include(point.o(1));
+      x.include(point[0]);
+      y.include(point[1]);
     };
 
     // shifts the entire object by the given vector
     var translate = function(point) {
-      x.translate(point.o(0));
-      y.translate(point.o(1));
+      x.translate(point[0]);
+      y.translate(point[1]);
     };
 
     // check whether the given point is within these bounds
     // returning a list of comparision values by axis
     var check = function(point) {
-      return [x.check(point.o(0)), y.check(point.o(1))];
+      return [x.check(point[0]), y.check(point[1])];
     };
 
     // check whether the given point is within these bounds
     // returning a boolean
     var inside = function(point) {
-      return x.check(point.o(0)) === 0 && y.check(point.o(1)) === 0;
+      return x.check(point[0]) === 0 && y.check(point[1]) === 0;
     };
 
     var shapeFor = function() {
       return shape({ops: [
-        {op: 'move', to: $V([x.low(), y.low()])},
-        {op: 'line', to: $V([x.high(), y.low()])},
-        {op: 'line', to: $V([x.high(), y.high()])},
-        {op: 'line', to: $V([x.low(), y.high()])}
+        {op: 'move', to: [x.low(), y.low()]},
+        {op: 'line', to: [x.high(), y.low()]},
+        {op: 'line', to: [x.high(), y.high()]},
+        {op: 'line', to: [x.low(), y.high()]}
       ]});
     };
 
@@ -172,25 +172,23 @@ var flux = function() {
   }
 
   var op = function() {
-    result = {};
-
-    result.base = function(spec) {
+    var base = function(spec) {
       var that = {};
 
       that.op = spec.op;
       that.method = spec.method || 'lineTo';
-      that.to = spec.to ? $V([spec.to.elements[0], spec.to.elements[1]]) : $V([0, 0]);
+      that.to = spec.to ? [spec.to[0], spec.to[1]] : [0, 0];
 
       that.args = function() {
-        return that.to.elements;
+        return that.to;
       };
 
       that.prod = function(box) {
         box.include(that.to);
       };
 
-      that.dup = function() {
-        return result.base(that);
+      that.clone = function() {
+        return base(that);
       };
 
       that.between = function(other, cycles) {
@@ -205,43 +203,43 @@ var flux = function() {
       return that;
     };
 
-    result.line = function(spec) {
+    var line = function(spec) {
       spec.method = 'lineTo';
 
-      var that = result.base(spec);
+      var that = base(spec);
 
-      that.dup = function() {
-        return result.line(that);
+      that.clone = function() {
+        return line(that);
       };
 
       return that;
     };
 
-    result.move = function(spec) {
+    var move = function(spec) {
       spec.method = 'moveTo';
 
-      var that = result.base(spec);
+      var that = base(spec);
 
-      that.dup = function() {
-        return result.move(that);
+      that.clone = function() {
+        return move(that);
       };
 
       return that;
     };
 
-    result.text = function(spec) {
+    var text = function(spec) {
       spec.method = 'opText';
-      var that = result.base(spec);
+      var that = base(spec);
 
       that.size = spec.size || 12;
       that.string = spec.string || '';
 
-      that.dup = function() {
-        return result.text(that);
+      that.clone = function() {
+        return text(that);
       };
 
       that.args = function() {
-        return [true, that.size, that.to.o(0), that.to.o(1), that.string];
+        return [true, that.size, that.to[0], that.to[1], that.string];
       };
 
       that.prod = function(box) {
@@ -260,27 +258,27 @@ var flux = function() {
         }
 
         box.union(bounds(
-          that.to.o(0),
-          that.to.o(0) + longest.length,
-          that.to.o(1) - that.size,
-          that.to.o(1) + that.size*lines.length
+          that.to[0],
+          that.to[0] + longest.length,
+          that.to[1] - that.size,
+          that.to[1] + that.size*lines.length
         ));
       };
 
       return that;
     };
 
-    result.arc = function(spec) {
+    var arc = function(spec) {
       spec.method = 'arc';
 
-      var that = result.base(spec);
+      var that = base(spec);
 
       that.radius = spec.radius || 10;
-      that.arc = spec.arc || $V([0, Math.PI*2]);
+      that.arc = spec.arc || [0, Math.PI*2];
       that.clockwise = spec.clockwise || true;
 
       that.args = function() {
-        return that.to.elements.concat([that.radius].concat(that.arc.elements).push(that.clockwise));
+        return that.to.concat([that.radius].concat(that.arc).push(that.clockwise));
       };
 
       that.between = function(other, cycles) {
@@ -302,31 +300,31 @@ var flux = function() {
 
       that.prod = function(box) {
         box.union(bounds(
-          that.to.o(0) - that.radius,
-          that.to.o(0) + that.radius,
-          that.to.o(1) - that.radius,
-          that.to.o(1) + that.radius
+          that.to[0] - that.radius,
+          that.to[0] + that.radius,
+          that.to[1] - that.radius,
+          that.to[1] + that.radius
         ));
       };
 
-      that.dup = function() {
-        return result.arc(that);
+      that.clone = function() {
+        return arc(that);
       };
 
       return that;
     };
 
-    result.bezier = function(spec) {
+    var bezier = function(spec) {
       spec.method = 'bezierCurveTo';
-      spec.to = spec.to ? spec.to.dup() : $V([10, 10]);
+      spec.to = spec.to ? spec.to.clone() : [10, 10];
 
-      var that = result.base(spec);
+      var that = base(spec);
 
-      that.control1 = spec.control1 ? spec.control1.dup() : $V([0, 0]);
-      that.control2 = spec.control2 ? spec.control2.dup() : $V([0, 0]);
+      that.control1 = spec.control1 ? spec.control1.clone() : [0, 0];
+      that.control2 = spec.control2 ? spec.control2.clone() : [0, 0];
 
       that.args = function() {
-        return that.control1.elements.concat(that.control2.elements).concat(that.to.elements);
+        return that.control1.concat(that.control2).concat(that.to);
       };
 
       that.prod = function(box) {
@@ -355,14 +353,21 @@ var flux = function() {
         ];
       };
 
-      that.dup = function() {
-        return result.bezier(that);
+      that.clone = function() {
+        return bezier(that);
       };
 
       return that;
     };
 
-    return result;
+    return {
+      base: base,
+      line: line,
+      move: move,
+      text: text,
+      arc: arc,
+      bezier: bezier
+    }
   }();
 
   // provide objects to represent atomic drawing operations
@@ -379,8 +384,8 @@ var flux = function() {
       });
     };
 
-    that.dup = function() {
-      return shape({ops: that.ops.map(function(vertex) {return vertex.dup();})});
+    that.clone = function() {
+      return shape({ops: that.ops.map(function(vertex) {return vertex.clone();})});
     };
 
     // construct a simple bounding box to tell if further bounds checking is necessary
@@ -465,7 +470,7 @@ var flux = function() {
 
     that.obj = spec.obj || spec;
     that.property = spec.property || 'this';
-    that.to = spec.to || $V([1, 1]);
+    that.to = spec.to || [1, 1];
     that.cycles = spec.cycles || 10;
     that.postcycle = spec.postcycle || function() {};
     that.posttween = spec.posttween || function() {};
@@ -474,15 +479,15 @@ var flux = function() {
       return that.obj[that.property];
     };
 
-    var differing = $R(0, that.vector().dimensions() - 1).select(function(index) {
-      return !(that.vector().o(index) === that.to.o(index));
+    var differing = $R(0, that.vector().length - 1).select(function(index) {
+      return !(that.vector()[index] === that.to[index]);
     });
 
     that.tweens = differing.map(function(index) {
       return tweenN({
-        obj: that.vector().elements,
+        obj: that.vector(),
         property: index,
-        to: that.to.o(index),
+        to: that.to[index],
         cycles: that.cycles
       });
     });
@@ -538,17 +543,17 @@ var flux = function() {
     that.supermote = spec.supermote || null;
     that.submotes = spec.submotes || [];
 
-    that.pos = spec.pos || $V([0, 0]);
-    that.shape = spec.shape || shape({ops: [{op: 'arc', to: $V([500, 500]), radius: 50, arc: $V([0, Math.PI*2])}]});
+    that.pos = spec.pos || [0, 0];
+    that.shape = spec.shape || shape({ops: [{op: 'arc', to: [500, 500], radius: 50, arc: [0, Math.PI*2]}]});
     that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
-    that.velocity = spec.velocity || $V([0, 0]);
+    that.velocity = spec.velocity || [0, 0];
 
     that.shapes = spec.shapes || [that.shape];
     that.visible = spec.visible === undefined ? true : spec.visible;
 
-    that.color = spec.color || $V([200, 200, 200, 1]);
-    that.scale = spec.scale || $V([1, 1]);
+    that.color = spec.color || [200, 200, 200, 1];
+    that.scale = spec.scale || [1, 1];
     that.fill = spec.fill || 'fill';
     that.lineWidth = spec.lineWidth || 1;
     that.outline = spec.outline || null;
@@ -861,8 +866,8 @@ var flux = function() {
           that.orientation += Math.PI*2;
         }
 
-        for (var dim=0; dim < that.pos.dimensions(); dim++) {
-          that.pos.elements[dim] += that.velocity.o(dim);
+        for (var dim=0; dim < that.pos.length; dim++) {
+          that.pos[dim] += that.velocity[dim];
         }
 
         that.future.each(function(moment) {
@@ -885,7 +890,7 @@ var flux = function() {
 
         check.each(function(result, index) {
           if (!(result === 0)) {
-            that.velocity.elements[index] = -that.velocity.elements[index];
+            that.velocity[index] = -that.velocity[index];
           }
         });
       }
@@ -913,8 +918,8 @@ var flux = function() {
           context.lineWidth = 3;
           context.strokeStyle = that.color_spec();
           context.beginPath();
-          context.moveTo.apply(context, that.pos.elements);
-          context.lineTo.apply(context, that.relativePos(neighbor).elements);
+          context.moveTo.apply(context, that.pos);
+          context.lineTo.apply(context, that.relativePos(neighbor));
           context.closePath();
           context.stroke();
         });
@@ -929,13 +934,13 @@ var flux = function() {
       context.lineWidth = that.lineWidth;
 
       if (that.transform === 'screen') {
-        context.translate(Math.floor(that.pos.o(0)*browser.w), Math.floor(that.pos.o(1)*browser.h));
+        context.translate(Math.floor(that.pos[0]*browser.w), Math.floor(that.pos[1]*browser.h));
       } else {
-        context.translate.apply(context, that.pos.elements);
+        context.translate.apply(context, that.pos);
       }
 
       context.rotate(that.orientation);
-      context.scale.apply(context, that.scale.elements);
+      context.scale.apply(context, that.scale);
 
       if (that.visible) {
         var len = that.shapes.length;
@@ -977,9 +982,9 @@ var flux = function() {
     that.up = spec.up || function(m){return null;};
     that.move = spec.move || function(m){return null;};
 
-    that.translation = spec.translation || $V([0, 0]);
+    that.translation = spec.translation || [0, 0];
     that.orientation = spec.orientation || 0;
-    that.scale = spec.scale || $V([1, 1]);
+    that.scale = spec.scale || [1, 1];
 
     that.tweens = [];
 
@@ -1014,11 +1019,11 @@ var flux = function() {
     keys.up = spec.keyUp || function(th, key) {};
 
     var mouse = {
-      pos: $V([0, 0]),
-      prevpos: $V([0, 0]),
+      pos: [0, 0],
+      prevpos: [0, 0],
 
-      screen: $V([0, 0]),
-      prevscreen: $V([0, 0]),
+      screen: [0, 0],
+      prevscreen: [0, 0],
 
       down: false,
       inside: [],
@@ -1102,8 +1107,8 @@ var flux = function() {
 
       if (that.transforms['pos']) {
         context.save();
-        context.translate(that.translation.o(0), that.translation.o(1));
-        context.scale(that.scale.o(0), that.scale.o(1));
+        context.translate(that.translation[0], that.translation[1]);
+        context.scale(that.scale[0], that.scale[1]);
         context.rotate(that.orientation);
 
         that.transforms['pos'].invoke('draw', context);
@@ -1156,7 +1161,7 @@ var flux = function() {
       var y = (e.clientY - canvas.offsetTop + scrollY);
 
       mouse.prevscreen = mouse.screen;
-      mouse.screen = $V([x, y]);
+      mouse.screen = [x, y];
 
       mouse.prevpos = mouse.pos;
       mouse.pos = mouse.posify(mouse.screen);
@@ -1235,7 +1240,7 @@ var flux = function() {
     // works by finding the vector from the mouse position to the top left corner,
     // then scaling it to the new zoom factor.
     that.zoom = function(factor) {
-      var buffer = mouse.pos.subtract(mouse.posify($V([0, 0]))).x(1.0/factor);
+      var buffer = mouse.pos.subtract(mouse.posify([0, 0])).x(1.0/factor);
 
       that.scale = that.scale.x(factor);
       that.translation = that.translation.subtract(mouse.deposify(mouse.pos.subtract(buffer)));
@@ -1310,5 +1315,5 @@ var flux = function() {
 }();
 
 
-//  that.shape = spec.shape || [$V([-20, 0]), $V([20, 20]), $V([30, -10]), $V([-20, -20])];
-//  that.shape = spec.shape || [$V([0, 0]), $V([100, 10]), $V([200, -10])];
+//  that.shape = spec.shape || [[-20, 0], [20, 20], [30, -10], [-20, -20]];
+//  that.shape = spec.shape || [[0, 0], [100, 10], [200, -10]];

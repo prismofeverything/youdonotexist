@@ -603,6 +603,120 @@ Object.extend(Array.prototype, {
     return this;
   },
 
+  // borrowed from sylvester ------------------------
+
+  // Returns the result of adding the argument to the vector
+  add: function(vector) {
+    var V = vector;
+    if (this.length != V.length) { return null; }
+    return this.map(function(x, i) { return x + V[i]; });
+  },
+
+  // Returns the result of subtracting the argument from the vector
+  subtract: function(vector) {
+    var V = vector;
+    if (this.length != V.length) { return null; }
+    return this.map(function(x, i) { return x - V[i]; });
+  },
+
+  // Returns the result of multiplying the elements of the vector by the argument
+  multiply: function(k) {
+    return this.map(function(x) { return x*k; });
+  },
+
+  // Returns the scalar product of the vector with the argument
+  // Both vectors must have equal dimensionality
+  dot: function(vector) {
+    var V = vector
+    var i, product = 0, n = this.length;
+    if (n != V.length) { return null; }
+    do { product += this[n-1] * V[n-1]; } while (--n);
+    return product;
+  },
+
+  // Returns the vector's distance from the argument, when considered as a point in space
+  distanceFrom: function(obj) {
+    if (obj.anchor) { return obj.distanceFrom(this); }
+    var V = obj;
+    if (V.length != this.length) { return null; }
+    var sum = 0, part;
+    this.each(function(x, i) {
+      part = x - V[i];
+      sum += part * part;
+    });
+    return Math.sqrt(sum);
+  },
+
+  // Returns a new vector created by normalizing the receiver
+  toUnitVector: function() {
+    var r = this.modulus();
+    if (r === 0) { return this.clone(); }
+    return this.map(function(x) { return x/r; });
+  },
+
+  // Returns the modulus ('length') of the vector
+  modulus: function() {
+    return Math.sqrt(this.dot(this));
+  },
+
+  // Rotation matrix about some axis. If no axis is
+  // supplied, assume we're after a 2D transform
+  rotation_matrix: function(theta, a) {
+    if (!a) {
+      return [
+        [Math.cos(theta),  -Math.sin(theta)],
+        [Math.sin(theta),   Math.cos(theta)]
+      ];
+    }
+    var axis = a.clone();
+    if (axis.length != 3) { return null; }
+    var mod = axis.modulus();
+    var x = axis[0]/mod, y = axis[1]/mod, z = axis[2]/mod;
+    var s = Math.sin(theta), c = Math.cos(theta), t = 1 - c;
+    // Formula derived here: http://www.gamedev.net/reference/articles/article1199.asp
+    // That proof rotates the co-ordinate system so theta
+    // becomes -theta and sin becomes -sin here.
+    return [
+      [ t*x*x + c, t*x*y - s*z, t*x*z + s*y ],
+      [ t*x*y + s*z, t*y*y + c, t*y*z - s*x ],
+      [ t*x*z - s*y, t*y*z + s*x, t*z*z + c ]
+    ];
+  },
+
+  // Rotates the vector about the given object. The object should be a
+  // point if the vector is 2D, and a line if it is 3D. Be careful with line directions!
+  rotate: function(t, obj) {
+    var V, R, x, y, z;
+    switch (this.length) {
+      case 2:
+        V = obj || obj;
+        if (V.length != 2) { return null; }
+        R = this.rotation_matrix(t);
+        x = this[0] - V[0];
+        y = this[1] - V[1];
+        return [
+          V[0] + R[0][0] * x + R[0][1] * y,
+          V[1] + R[1][0] * x + R[1][1] * y
+        ];
+        break;
+      case 3:
+        if (!obj.direction) { return null; }
+        var C = obj.pointClosestTo(this);
+        R = this.rotation_matrix(t, obj.direction);
+        x = this[0] - C[0];
+        y = this[1] - C[1];
+        z = this[2] - C[2];
+        return [
+          C[0] + R[0][0] * x + R[0][1] * y + R[0][2] * z,
+          C[1] + R[1][0] * x + R[1][1] * y + R[1][2] * z,
+          C[2] + R[2][0] * x + R[2][1] * y + R[2][2] * z
+        ];
+        break;
+      default:
+        return null;
+    }
+  },
+
   toJSON: function() {
     var results = [];
     this.each(function(object) {
