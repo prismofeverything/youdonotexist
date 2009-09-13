@@ -21,14 +21,15 @@ end
 def render_plasma(action, env={})
   begin
     template = open_template(action) || open_template('404')
-    plasma = PLASMA.interpret(template)
-    cache = File.join(CACHE_DIR, "#{action}.html")
 
-    unless File.exists?(cache)
-      File.open(cache, 'w').write(plasma)
-    end
+#     plasma = PLASMA.interpret(template)
+#     cache = File.join(CACHE_DIR, "#{action}.html")
 
-    plasma
+#     unless File.exists?(cache)
+#       File.open(cache, 'w').write(plasma)
+#     end
+
+#     plasma
   rescue
     puts $!
   end

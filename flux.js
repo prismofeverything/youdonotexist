@@ -2,9 +2,69 @@ var exists = function(value) {
   return !(value === null || value === undefined);
 };
 
+function rgbToHsl(r, g, b){
+    r /= 255, g /= 255, b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+
+    if(max == min){
+        h = s = 0; // achromatic
+    }else{
+        var d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max){
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+
+    return [h, s, l];
+}
+
+function hslToRgb(h, s, l){
+    var r, g, b;
+
+    if(s == 0){
+        r = g = b = l; // achromatic
+    }else{
+        function hue2rgb(p, q, t){
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return [r * 255, g * 255, b * 255];
+}
+
+Array.prototype.groupBy = function(iterator, context) {
+  var result = {};
+  this.each(function(value, index) {
+    var key = iterator(value, index);
+    if (!result[key]) result[key] = [];
+    result[key].push(value);
+  });
+  return result;
+}
+
+var inversePi = 0.5 / (Math.PI);
+
 var vector_to_rgba = function(v) {
   if (v) {
-    var inner = v.map(function(component) {
+    var rgb = hslToRgb(v[0]*inversePi, v[1], v[2]);
+    rgb.push(v[3]);
+    var inner = rgb.map(function(component) {
       return Math.floor(component);
     }).join(', ');
 
@@ -372,49 +432,54 @@ var flux = function() {
 
   // provide objects to represent atomic drawing operations
   var shape = function(spec) {
-    var that = {};
+    spec = spec || {};
+    var ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : [] || [];
+    var color = spec.color;
+    var fill = spec.fill || 'fill';
 
-    that.ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : null || [];
-    that.color = spec.color;
-    that.fill = spec.fill || 'fill';
-
-    that.between = function(other, cycles, postcycle) {
-      return that.ops.inject([], function(tweens, op, index) {
+    var between = function(other, cycles, postcycle) {
+      return ops.inject([], function(tweens, op, index) {
         return tweens.concat(op.between(other.ops[index], cycles));
       });
     };
 
-    that.clone = function() {
-      return shape({ops: that.ops.map(function(vertex) {return vertex.clone();})});
+    var clone = function() {
+      return shape({ops: ops.map(function(vertex) {return vertex.clone();})});
     };
 
     // construct a simple bounding box to tell if further bounds checking is necessary
-    that.boxFor = function() {
+    var boxFor = function() {
       var box = bounds(0, 0, 0, 0);
-
-      that.ops.each(function(vertex) {
+      ops.each(function(vertex) {
         vertex.prod(box);
       });
-
       return box;
     };
 
-    that.box = that.boxFor();
+    var box = boxFor();
 
-    that.draw = function(context) {
+    var draw = function(context) {
       context.beginPath();
+      if (color) { context[fill+'Style'] = vector_to_rgba(color) };
 
-      if (that.color) context[that.fill+'Style'] = vector_to_rgba(that.color);
-
-      that.ops.each(function(vertex) {
+      ops.each(function(vertex) {
         context[vertex.method].apply(context, vertex.args());
       });
 
       context.closePath();
-      context[that.fill]();
+      context[fill]();
     };
 
-    return that;
+    return {
+      ops: ops,
+      color: color,
+      fill: fill,
+      between: between,
+      clone: clone,
+      boxFor: boxFor,
+      box: box,
+      draw: draw
+    }
   };
 
   // generic base tween object
@@ -544,7 +609,7 @@ var flux = function() {
     that.submotes = spec.submotes || [];
 
     that.pos = spec.pos || [0, 0];
-    that.shape = spec.shape || shape({ops: [{op: 'arc', to: [500, 500], radius: 50, arc: [0, Math.PI*2]}]});
+    that.shape = spec.shape || shape(); 
     that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
     that.velocity = spec.velocity || [0, 0];
@@ -590,7 +655,7 @@ var flux = function() {
     var find_absolute = function() {
       return that.rise(that.pos);
     };
-    that.absolute = cache(find_absolute);
+    that.absolute = linkage.cache(find_absolute);
     that.absolute.expiring = function() {
       that.submotes.each(function(submote) {
         submote.absolute.expire();
@@ -633,8 +698,8 @@ var flux = function() {
       return function() {return vector_to_rgba(that[prop]);};
     };
 
-    that.color_spec = cache(findColorSpec('color'));
-    that.outline_spec = cache(findColorSpec('outline'));
+    that.color_spec = linkage.cache(findColorSpec('color'));
+    that.outline_spec = linkage.cache(findColorSpec('outline'));
 
     that.tweenColor = function(color, cycles, posttween) {
       posttween = posttween || function() {};
@@ -755,7 +820,7 @@ var flux = function() {
       return (that.supermote === null) ? [] : that.supermote.supermotes().slice().push(that.supermote);
     };
 
-    that.supermotes = cache(that.find_supermotes);
+    that.supermotes = linkage.cache(that.find_supermotes);
 
     that.commonSupermote = function(other) {
       if (that.supermote === null || other.supermote === null) {
@@ -968,6 +1033,9 @@ var flux = function() {
   var canvas = function(spec) {
     var that = {};
 
+    var width = spec.width;
+    var height = spec.height;
+
     var canvas, context;
     var now, before, interval;
 
@@ -991,7 +1059,11 @@ var flux = function() {
     that.predraw = spec.predraw || function(context) {};
     that.postdraw = spec.postdraw || function(context) {};
 
-    that.resize = spec.resize || function(browser) {};
+    that.resize = spec.resize || function(browser, canvas) {
+      canvas.width = width || browser.w;
+      canvas.height = height || browser.h;
+    };
+
     that.wheel = spec.wheel || function(delta) {};
     that.preventKeys = spec.preventKeys || false;
 
@@ -1240,9 +1312,9 @@ var flux = function() {
     // works by finding the vector from the mouse position to the top left corner,
     // then scaling it to the new zoom factor.
     that.zoom = function(factor) {
-      var buffer = mouse.pos.subtract(mouse.posify([0, 0])).x(1.0/factor);
+      var buffer = mouse.pos.subtract(mouse.posify([0, 0])).multiply(1.0/factor);
 
-      that.scale = that.scale.x(factor);
+      that.scale = that.scale.multiply(factor);
       that.translation = that.translation.subtract(mouse.deposify(mouse.pos.subtract(buffer)));
     };
 
@@ -1250,10 +1322,8 @@ var flux = function() {
       // resize
       var resize = function(e) {
         browser.dim(window.innerWidth, window.innerHeight);
-        canvas.width = browser.w;
-        canvas.height = browser.h;
 
-        that.resize(browser);
+        that.resize(browser, canvas);
       };
       window.onresize = resize;
 
@@ -1281,10 +1351,8 @@ var flux = function() {
       window.addEventListener('keydown', keyDown, false);
       window.addEventListener('keyup', keyUp, false);
 
-      // dimensions
-      browser.dim(window.innerWidth, window.innerHeight);
-      canvas.width = browser.w;
-      canvas.height = browser.h;
+      // set initial sizes
+      resize();
 
       // provide a reference to the actual canvas object
       that.canvas = canvas;

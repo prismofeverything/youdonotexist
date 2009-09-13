@@ -326,16 +326,6 @@ var Enumerable = {
     return result;
   },
 
-  groupBy: function(iterator, context) {
-    var result = {};
-    this.each(function(value, index) {
-      var key = iterator(value, index);
-      if (!result[key]) result[key] = [];
-      result[key].push(value);
-    });
-    return result;
-  },
-
   any: function(iterator, context) {
     var result = false;
     this.each(function(value, index) {
