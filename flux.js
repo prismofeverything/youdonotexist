@@ -3,49 +3,49 @@ var exists = function(value) {
 };
 
 function rgbToHsl(r, g, b){
-    r /= 255, g /= 255, b /= 255;
-    var max = Math.max(r, g, b), min = Math.min(r, g, b);
-    var h, s, l = (max + min) / 2;
+  r /= 255, g /= 255, b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
 
-    if(max == min){
-        h = s = 0; // achromatic
-    }else{
-        var d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max){
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
+  if(max == min){
+    h = s = 0; // achromatic
+  } else {
+    var d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch(max){
+    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+    case g: h = (b - r) / d + 2; break;
+    case b: h = (r - g) / d + 4; break;
     }
+    h /= 6;
+  }
 
-    return [h, s, l];
+  return [h, s, l];
 }
 
 function hslToRgb(h, s, l){
-    var r, g, b;
+  var r, g, b;
 
-    if(s == 0){
-        r = g = b = l; // achromatic
-    }else{
-        function hue2rgb(p, q, t){
-            if(t < 0) t += 1;
-            if(t > 1) t -= 1;
-            if(t < 1/6) return p + (q - p) * 6 * t;
-            if(t < 1/2) return q;
-            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-        }
-
-        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        var p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
+  if(s == 0){
+    r = g = b = l; // achromatic
+  } else {
+    function hue2rgb(p, q, t){
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1/6) return p + (q - p) * 6 * t;
+      if(t < 1/2) return q;
+      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
     }
 
-    return [r * 255, g * 255, b * 255];
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    var p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  return [r * 255, g * 255, b * 255];
 }
 
 Array.prototype.groupBy = function(iterator, context) {
@@ -74,6 +74,20 @@ var vector_to_rgba = function(v) {
   }
 };
 
+var defineClass = function(methods) {
+  var fn = function(args) {
+    if (!(this instanceof arguments.callee)) {
+      return new arguments.callee(arguments);
+    } 
+    if (typeof this.init == "function") {
+      this.init.apply( this, args.callee ? args : arguments );
+    }
+  }; 
+
+  fn.prototype = methods; 
+  return fn;
+}
+
 // basic framework namespace
 var flux = function() {
   var browser = {
@@ -98,51 +112,85 @@ var flux = function() {
     }
   }
 
-  var range = function(l, h) {
-    var low = l;
-    var high = h;
+  var range = defineClass({
+    init: function(low, high) {
+      this.low = low;
+      this.high = high;
+    },
 
-    var getLow = function() { return low; };
-    var getHigh = function() { return high; };
+    between: function() {
+      return this.high - this.low;
+    },
 
-    var between = function() {
-      return high - low;
+    randomValue: function() {
+      return Math.random()*this.between()+this.low;
+    },
+
+    union: function(other) {
+      this.low = Math.min(this.low, other.low);
+      this.high = Math.max(this.high, other.high);
+    },
+
+    include: function(value) {
+      this.low = Math.min(this.low, value);
+      this.high = Math.max(this.high, value);
+    },
+
+    translate: function(value) {
+      this.low += value;
+      this.high += value;
+    },
+
+    check: function(value) {
+      return value >= this.low ? value <= this.high ? 0 : 1 : -1
     }
+  });
 
-    var randomValue = function() {
-      return Math.random()*between()+low;
-    }
+//   var range = function(l, h) {
+//     var low = l;
+//     var high = h;
 
-    var union = function(other) {
-      low = Math.min(low, other.low());
-      high = Math.max(high, other.high());
-    }
+//     var getLow = function() { return low; };
+//     var getHigh = function() { return high; };
 
-    var include = function(value) {
-      low = Math.min(low, value);
-      high = Math.max(high, value);
-    }
+//     var between = function() {
+//       return high - low;
+//     }
 
-    var translate = function(value) {
-      low += value;
-      high += value;
-    }
+//     var randomValue = function() {
+//       return Math.random()*between()+low;
+//     }
 
-    var check = function(value) {
-      return value >= low ? value <= high ? 0 : 1 : -1
-    }
+//     var union = function(other) {
+//       low = Math.min(low, other.low());
+//       high = Math.max(high, other.high());
+//     }
 
-    return {
-      low: getLow,
-      high: getHigh,
-      between: between,
-      randomValue: randomValue,
-      union: union,
-      include: include,
-      translate: translate,
-      check: check
-    };
-  };
+//     var include = function(value) {
+//       low = Math.min(low, value);
+//       high = Math.max(high, value);
+//     }
+
+//     var translate = function(value) {
+//       low += value;
+//       high += value;
+//     }
+
+//     var check = function(value) {
+//       return value >= low ? value <= high ? 0 : 1 : -1
+//     }
+
+//     return {
+//       low: getLow,
+//       high: getHigh,
+//       between: between,
+//       randomValue: randomValue,
+//       union: union,
+//       include: include,
+//       translate: translate,
+//       check: check
+//     };
+//   };
 
   // very much a two-dimensional object
   var bounds = function(xlow, xhigh, ylow, yhigh) {
@@ -150,7 +198,7 @@ var flux = function() {
     var y = range(ylow, yhigh);
 
     var copy = function() {
-      return bounds(x.low(), x.high(), y.low(), y.high());
+      return bounds(x.low, x.high, y.low, y.high);
     };
 
     var width = function() {
@@ -197,10 +245,10 @@ var flux = function() {
 
     var shapeFor = function() {
       return shape({ops: [
-        {op: 'move', to: [x.low(), y.low()]},
-        {op: 'line', to: [x.high(), y.low()]},
-        {op: 'line', to: [x.high(), y.high()]},
-        {op: 'line', to: [x.low(), y.high()]}
+        {op: 'move', to: [x.low, y.low]},
+        {op: 'line', to: [x.high, y.low]},
+        {op: 'line', to: [x.high, y.high]},
+        {op: 'line', to: [x.low, y.high]}
       ]});
     };
 
@@ -210,7 +258,7 @@ var flux = function() {
       var wfactor = (w*factor-w)*0.5;
       var hfactor = (h*factor-h)*0.5;
 
-      return bounds(x.low()-wfactor, x.high()+wfactor, y.low()-hfactor, y.high()+hfactor);
+      return bounds(x.low - wfactor, x.high + wfactor, y.low - hfactor, y.high + hfactor);
     };
 
     return {

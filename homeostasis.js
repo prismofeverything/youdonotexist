@@ -207,7 +207,7 @@ var homeostasis = function(id) {
   var randomColumn = function(box, adjustment) {
     var up = (Math.random() - 0.5) > 0;
     var x = box.randomPoint()[0] * 0.6;
-    var y = up ? box.y.low() - 20 : box.y.high() + 20;
+    var y = up ? box.y.low - 20 : box.y.high + 20;
     var orientation = up ? 0 : Math.PI;
 
     return column({pos: [x, y], orientation: orientation + adjustment});
@@ -322,7 +322,7 @@ var homeostasis = function(id) {
 
     var that = molecule(spec);
 
-    var inside = flux.bounds(that.box.x.low() + 700, that.box.x.high() - 700, that.box.y.low() + 20, that.box.y.high() - 20);
+    var inside = flux.bounds(that.box.x.low + 700, that.box.x.high - 700, that.box.y.low + 20, that.box.y.high - 20);
 
     that.columns = $R(0, 12).map(function(index) {
       return randomColumn(that.box, that.orientation);
