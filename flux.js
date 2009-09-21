@@ -74,19 +74,12 @@ var vector_to_rgba = function(v) {
   }
 };
 
-var defineClass = function(methods) {
-  var fn = function(args) {
-    if (!(this instanceof arguments.callee)) {
-      return new arguments.callee(arguments);
-    } 
-    if (typeof this.init == "function") {
-      this.init.apply( this, args.callee ? args : arguments );
-    }
-  }; 
-
-  fn.prototype = methods; 
-  return fn;
-}
+// Object.prototype.wrap = function(function_name) {
+//   var that = this;
+//   return function() {
+//     that[function_name].apply(that, arguments);
+//   };
+// };
 
 // basic framework namespace
 var flux = function() {
@@ -145,52 +138,6 @@ var flux = function() {
       return value >= this.low ? value <= this.high ? 0 : 1 : -1
     }
   });
-
-//   var range = function(l, h) {
-//     var low = l;
-//     var high = h;
-
-//     var getLow = function() { return low; };
-//     var getHigh = function() { return high; };
-
-//     var between = function() {
-//       return high - low;
-//     }
-
-//     var randomValue = function() {
-//       return Math.random()*between()+low;
-//     }
-
-//     var union = function(other) {
-//       low = Math.min(low, other.low());
-//       high = Math.max(high, other.high());
-//     }
-
-//     var include = function(value) {
-//       low = Math.min(low, value);
-//       high = Math.max(high, value);
-//     }
-
-//     var translate = function(value) {
-//       low += value;
-//       high += value;
-//     }
-
-//     var check = function(value) {
-//       return value >= low ? value <= high ? 0 : 1 : -1
-//     }
-
-//     return {
-//       low: getLow,
-//       high: getHigh,
-//       between: between,
-//       randomValue: randomValue,
-//       union: union,
-//       include: include,
-//       translate: translate,
-//       check: check
-//     };
-//   };
 
   // very much a two-dimensional object
   var bounds = function(xlow, xhigh, ylow, yhigh) {

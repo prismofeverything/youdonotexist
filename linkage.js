@@ -92,3 +92,35 @@ var linkage = function() {
 // 		return this;
 // 	}
 // };
+
+var defineClass = function(methods) {
+  var fn = function(args) {
+    if (!(this instanceof arguments.callee)) {
+      return new arguments.callee(arguments);
+    } 
+
+    if (typeof this.init == "function") {
+      this.init.apply(this, args.callee ? args : arguments);
+    }
+  }; 
+
+  fn.prototype = methods;
+
+  //     for (method in methods) {
+  //       var attach = function(method) {
+  //         fn.prototype[method] = function() {
+  //           var self = this;
+  //           var stamp = eval(methods[method]);
+  //           var result = stamp.apply(this, arguments);
+  //           this[method] = stamp;
+
+  //           return result;
+  //         };
+  //       };
+
+  //       attach(method);
+  //     }
+
+  return fn;
+}
+

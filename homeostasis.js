@@ -1588,6 +1588,7 @@ var homeostasis = function(id) {
   world.key = moleculeKey;
 
 
+//  return {init: function () {}};
   return world;
 };
 
