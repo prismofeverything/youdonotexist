@@ -62,9 +62,7 @@ var inversePi = 0.5 / (Math.PI);
 
 var vector_to_rgba = function(v) {
   if (v) {
-    var rgb = hslToRgb(v[0]*inversePi, v[1], v[2]);
-    rgb.push(v[3]);
-    var inner = rgb.map(function(component) {
+    var inner = v.map(function(component) {
       return Math.floor(component);
     }).join(', ');
 
@@ -73,13 +71,6 @@ var vector_to_rgba = function(v) {
     return '';
   }
 };
-
-// Object.prototype.wrap = function(function_name) {
-//   var that = this;
-//   return function() {
-//     that[function_name].apply(that, arguments);
-//   };
-// };
 
 // basic framework namespace
 var flux = function() {
@@ -140,91 +131,76 @@ var flux = function() {
   });
 
   // very much a two-dimensional object
-  var bounds = function(xlow, xhigh, ylow, yhigh) {
-    var x = range(xlow, xhigh);
-    var y = range(ylow, yhigh);
+  var bounds = defineClass({
+    init: function(xlow, xhigh, ylow, yhigh) {
+      this.x = range(xlow, xhigh);
+      this.y = range(ylow, yhigh);
+    },
 
-    var copy = function() {
-      return bounds(x.low, x.high, y.low, y.high);
-    };
+    copy: function() {
+      return bounds(this.x.low, this.x.high, this.y.low, this.y.high);
+    },
 
-    var width = function() {
-      return x.between();
-    };
+    width: function() {
+      return this.x.between();
+    },
 
-    var height = function() {
-      return y.between();
-    };
+    height: function() {
+      return this.y.between();
+    },
 
-    var randomPoint = function() {
-      return [x.randomValue(), y.randomValue()];
-    };
+    randomPoint: function() {
+      return [this.x.randomValue(), this.y.randomValue()];
+    },
 
     // unions with another bounds object
-    var union = function(other) {
-      x.union(other.x);
-      y.union(other.y);
-    };
+    union: function(other) {
+      this.x.union(other.x);
+      this.y.union(other.y);
+    },
 
     // grows to ensure it encloses the given point
-    var include = function(point) {
-      x.include(point[0]);
-      y.include(point[1]);
-    };
+    include: function(point) {
+      this.x.include(point[0]);
+      this.y.include(point[1]);
+    },
 
     // shifts the entire object by the given vector
-    var translate = function(point) {
-      x.translate(point[0]);
-      y.translate(point[1]);
-    };
+    translate: function(point) {
+      this.x.translate(point[0]);
+      this.y.translate(point[1]);
+    },
 
-    // check whether the given point is within these bounds
+    // check whether the given point is within these bound,
     // returning a list of comparision values by axis
-    var check = function(point) {
-      return [x.check(point[0]), y.check(point[1])];
-    };
+    check: function(point) {
+      return [this.x.check(point[0]), this.y.check(point[1])];
+    },
 
-    // check whether the given point is within these bounds
+    // check whether the given point is within these bound,
     // returning a boolean
-    var inside = function(point) {
-      return x.check(point[0]) === 0 && y.check(point[1]) === 0;
-    };
+    inside: function(point) {
+      return this.x.check(point[0]) === 0 && this.y.check(point[1]) === 0;
+    },
 
-    var shapeFor = function() {
+    shapeFor: function() {
       return shape({ops: [
-        {op: 'move', to: [x.low, y.low]},
-        {op: 'line', to: [x.high, y.low]},
-        {op: 'line', to: [x.high, y.high]},
-        {op: 'line', to: [x.low, y.high]}
+        {op: 'move', to: [this.x.low, this.y.low]},
+        {op: 'line', to: [this.x.high, this.y.low]},
+        {op: 'line', to: [this.x.high, this.y.high]},
+        {op: 'line', to: [this.x.low, this.y.high]}
       ]});
-    };
+    },
 
-    var scale = function(factor) {
-      var w = width();
-      var h = height();
+    scale: function(factor) {
+      var w = this.width();
+      var h = this.height();
       var wfactor = (w*factor-w)*0.5;
       var hfactor = (h*factor-h)*0.5;
 
-      return bounds(x.low - wfactor, x.high + wfactor, y.low - hfactor, y.high + hfactor);
-    };
-
-    return {
-      x: x,
-      y: y,
-      copy: copy,
-      range: range,
-      width: width,
-      height: height,
-      randomPoint: randomPoint,
-      union: union,
-      include: include,
-      translate: translate,
-      check: check,
-      inside: inside,
-      shapeFor: shapeFor,
-      scale: scale
+      return bounds(this.x.low - wfactor, this.x.high + wfactor, this.y.low - hfactor, this.y.high + hfactor);
     }
-  }
+  });
 
   var op = function() {
     var base = function(spec) {
@@ -428,6 +404,7 @@ var flux = function() {
   // provide objects to represent atomic drawing operations
   var shape = function(spec) {
     spec = spec || {};
+
     var ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : [] || [];
     var color = spec.color;
     var fill = spec.fill || 'fill';
@@ -453,6 +430,19 @@ var flux = function() {
 
     var box = boxFor();
 
+    var addOp = function(newop) {
+      ops.push(op[newop.op](newop));
+      console.log(ops.map(function(o) {return o.to.toString()}));
+    };
+
+    var updateColor = function(newcolor) {
+      for (var ee = 0; ee < color.length; ee++) {
+        if (!(newcolor[ee] === undefined) && !(newcolor[ee] === null)) {
+          color[ee] = newcolor[ee];
+        }
+      }
+    }
+
     var draw = function(context) {
       context.beginPath();
       if (color) { context[fill+'Style'] = vector_to_rgba(color) };
@@ -473,6 +463,8 @@ var flux = function() {
       clone: clone,
       boxFor: boxFor,
       box: box,
+      addOp: addOp,
+      updateColor: updateColor,
       draw: draw
     }
   };
@@ -605,7 +597,8 @@ var flux = function() {
 
     that.pos = spec.pos || [0, 0];
     that.shape = spec.shape || shape(); 
-    that.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
+    that.scale = spec.scale || [1, 1];
+    that.orientation = (spec.orientation === undefined) ? 0 : spec.orientation;
     that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
     that.velocity = spec.velocity || [0, 0];
 
@@ -613,7 +606,6 @@ var flux = function() {
     that.visible = spec.visible === undefined ? true : spec.visible;
 
     that.color = spec.color || [200, 200, 200, 1];
-    that.scale = spec.scale || [1, 1];
     that.fill = spec.fill || 'fill';
     that.lineWidth = spec.lineWidth || 1;
     that.outline = spec.outline || null;

@@ -103,6 +103,8 @@ var homeostasis = function(id) {
   };
 
   var molecule = function(spec) {
+    spec.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
+
     var that = flux.mote(spec);
     var oldVelocity = that.velocity;
 
@@ -309,6 +311,7 @@ var homeostasis = function(id) {
     spec.type = 'membrane';
     spec.fill = 'stroke';
     spec.lineWidth = 30;
+    spec.orientation = 0;
     spec.color = spec.color || [80, 20, 20, 1];
     spec.shape = spec.shape || flux.shape({ops: [
       {op: 'move', to: [-1400, -700]},
@@ -1528,6 +1531,8 @@ var homeostasis = function(id) {
 
   // creation of flux canvas -------------------
 
+  var world;
+
   var spec = {
     id: id,
     motes: membranes.concat(ligands.attractant).concat(ligands.repellent).push(moleculeKey),
@@ -1566,7 +1571,7 @@ var homeostasis = function(id) {
     }
   };
 
-  var world = flux.canvas(spec);
+  world = flux.canvas(spec);
   world.activeDescription = null;
 
   world.addActiveDescription = function(description) {

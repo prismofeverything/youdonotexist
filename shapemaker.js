@@ -1,24 +1,42 @@
 var shapemaker = function() {
   var shape_index = 0;
 
-  var mote = flux.mote({
-    shapes: [flux.shape()],
-    
+  var shape = flux.shape({
+    color: [255, 255, 255, 255]
   });
+
+  var mote = flux.mote({
+    shapes: [shape]
+  });
+
+  var moteCursor = mote;
+  var shapeCursor = shape;
+
   var world = flux.canvas({
     id: 'shapemaker',
 
     resize: function(browser, canvas) {
       canvas.width = browser.w - 500;
       canvas.height = browser.h;
-    }
+    },
+
+    down: function(mouse) {
+      shapeCursor.addOp({op: 'line', to: mouse.pos});
+    },
   });
+
+  world.colorChange = function(color) {
+    shapeCursor.updateColor(color);
+  }
+
+  world.addMote(mote);
 
   var start = function() {
     world.init();
   }
 
   return {
+    world: world,
     start: start
   }
 }();

@@ -165,17 +165,14 @@
 	  </div>
     </div>
 	  
-	<script type="text/javascript">
-	  
-	  Event.observe(window,'load',function() {
-	    cp1 = new Refresh.Web.ColorPicker('cp1',{startHex: 'ffcc00', startMode:'s'});
-	  });
-	  
-	</script>
-
   </body>
 </html>
 
 <script type="text/javascript">
-  window.onload = shapemaker.start;
+  window.onload = function() {
+    cp1 = new Refresh.Web.ColorPicker('cp1', {startHex: 'ffcc00', startMode: 's'});
+    cp1.addObserver(shapemaker.world);
+    cp1.emit();
+    shapemaker.start();
+  }
 </script>
