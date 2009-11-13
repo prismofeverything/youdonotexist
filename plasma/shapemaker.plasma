@@ -19,6 +19,16 @@
     <div id="shell">
 	  <canvas id="shapemaker"></canvas>
 	</div>
+
+    <div id="options">
+	  <label for="mote_name">name:</label>
+      <input type="text" id="mote_name" name="mote_name" />
+      <label for="op_type">op:</label>
+    </div>
+
+    <br />
+    <hr />
+
     <div id="color">
 	  <table>
 	    <tr>
@@ -126,6 +136,15 @@
 			    </td>
 			  </tr>
 	          
+              <tr>
+                <td>
+                  A:
+                </td>
+			    <td colspan="2">
+				  <input type="text" id="cp1_Alpha" value="255" style="width: 60px;" />
+			    </td>
+              </tr>
+
 		    </table>
 		  </td>
 	    </tr>

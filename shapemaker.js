@@ -27,18 +27,50 @@ var shapemaker = function() {
 
   world.colorChange = function(color) {
     shapeCursor.updateColor(color);
-  }
+  };
 
   world.addMote(mote);
 
   var start = function() {
     world.init();
-  }
+  };
+
+  var potentialMoteElaboration = {
+    name: 'potential',
+    cycles: {
+      resting: {
+        phases: [ // each phase is a shape
+          {
+            color: [255, 255, 255, 255],
+            ops: [
+              {
+                op: 'line',
+                to: [10, 90]
+              },
+              {
+                op: 'bezier',
+                to: [22, 77],
+                control1: [33, 66],
+                control2: [99, 88]
+              }
+            ]
+          },
+          {
+            // these could go on forever...
+          }
+        ]
+      },
+      breathing: {
+        // same here...
+      }
+    },
+    submotes: []
+  };
 
   return {
     world: world,
     start: start
-  }
+  };
 }();
 
 

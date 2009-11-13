@@ -74,10 +74,28 @@ var linkage = function() {
 	return that;
   };
   
+  var type = function(methods) {
+    var fn = function(args) {
+      if (!(this instanceof arguments.callee)) {
+        return new arguments.callee(arguments);
+      } 
+
+      if (typeof this.init == "function") {
+        this.init.apply(this, args.callee ? args : arguments);
+      }
+    }; 
+
+    fn.prototype = methods;
+    return fn;
+  }
+
   return {
     cache: cache,
-    link: link
+    link: link,
+    type: type
   }
+
+
 }();
 
 // Object.prototype.access = function(entry) {
@@ -93,34 +111,34 @@ var linkage = function() {
 // 	}
 // };
 
-var defineClass = function(methods) {
-  var fn = function(args) {
-    if (!(this instanceof arguments.callee)) {
-      return new arguments.callee(arguments);
-    } 
+// var defineClass = function(methods) {
+//   var fn = function(args) {
+//     if (!(this instanceof arguments.callee)) {
+//       return new arguments.callee(arguments);
+//     } 
 
-    if (typeof this.init == "function") {
-      this.init.apply(this, args.callee ? args : arguments);
-    }
-  }; 
+//     if (typeof this.init == "function") {
+//       this.init.apply(this, args.callee ? args : arguments);
+//     }
+//   }; 
 
-  fn.prototype = methods;
+//   fn.prototype = methods;
 
-  //     for (method in methods) {
-  //       var attach = function(method) {
-  //         fn.prototype[method] = function() {
-  //           var self = this;
-  //           var stamp = eval(methods[method]);
-  //           var result = stamp.apply(this, arguments);
-  //           this[method] = stamp;
+//   //     for (method in methods) {
+//   //       var attach = function(method) {
+//   //         fn.prototype[method] = function() {
+//   //           var self = this;
+//   //           var stamp = eval(methods[method]);
+//   //           var result = stamp.apply(this, arguments);
+//   //           this[method] = stamp;
 
-  //           return result;
-  //         };
-  //       };
+//   //           return result;
+//   //         };
+//   //       };
 
-  //       attach(method);
-  //     }
+//   //       attach(method);
+//   //     }
 
-  return fn;
-}
+//   return fn;
+// }
 

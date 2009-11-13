@@ -709,14 +709,14 @@ var homeostasis = function(id) {
         obj: that,
         property: 'pos',
         to: [-15, 10],
-        cycles: phosphorylationCycles
+        ticks: phosphorylationCycles
       }));
 
       that.tweens.push(flux.tweenN({
         obj: that,
         property: 'orientation',
         to: Math.PI*0.5,
-        cycles: phosphorylationCycles
+        ticks: phosphorylationCycles
       }));
 
       that.future = [];
@@ -1228,7 +1228,7 @@ var homeostasis = function(id) {
     spec.shape = spec.revertingshape.clone();
 
     var that = molecule(spec);
-    var cycle = 3;
+    var tick = 3;
     var theta = 0;
 
     var phases = ['waxing', 'inverting', 'waning', 'reverting'];
@@ -1236,11 +1236,11 @@ var homeostasis = function(id) {
     var phase = 0;
 
     that.state = phases[phase];
-    that.tweenShape(spec[that.state + 'shape'], cycle);
+    that.tweenShape(spec[that.state + 'shape'], tick);
 
     that.statemaker = function(symbol) {
       var state = function(env) {
-        if (theta < cycle) {
+        if (theta < tick) {
           theta += 1;
         } else {
           phase += 1;
@@ -1249,7 +1249,7 @@ var homeostasis = function(id) {
           }
 
           that.state = symbol;
-          that.tweenShape(spec[that.state + 'shape'], cycle);
+          that.tweenShape(spec[that.state + 'shape'], tick);
           theta = 0;
         }
       };
@@ -1500,14 +1500,14 @@ var homeostasis = function(id) {
       divider.changeText('______________________________');
     };
 
-    var hideCycle = 7;
+    var hideTick = 7;
 
     divider.hide = function() {
-      key.tweenPos([0.72, -0.9], hideCycle);
+      key.tweenPos([0.72, -0.9], hideTick);
     };
 
     divider.show = function() {
-      key.tweenPos([0.72, 0.1], hideCycle);
+      key.tweenPos([0.72, 0.1], hideTick);
     };
 
     divider.mouseIn = divider.activate;

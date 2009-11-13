@@ -23,6 +23,7 @@ Refresh.Web.ColorValuePicker.prototype = {
 	this._blueInput = $(this.id + '_Blue');
 
 	this._hexInput = $(this.id + '_Hex');
+    this._alphaInput = $(this.id + '_Alpha');
 
 	// assign events
 

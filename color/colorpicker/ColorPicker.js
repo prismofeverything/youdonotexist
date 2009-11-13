@@ -155,7 +155,7 @@ Refresh.Web.ColorPicker.prototype = {
   },
 
   emit: function() {
-    var color = [parseInt(this._cvp._redInput.value), parseInt(this._cvp._greenInput.value), parseInt(this._cvp._blueInput.value), 255];
+    var color = [parseInt(this._cvp._redInput.value), parseInt(this._cvp._greenInput.value), parseInt(this._cvp._blueInput.value), parseInt(this._cvp._alphaInput.value)];
     this.observers.each(function(observer) {
       observer.colorChange(color);
     });

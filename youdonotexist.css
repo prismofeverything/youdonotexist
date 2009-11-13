@@ -109,6 +109,11 @@ a.nothingness:hover
     color: #aaaaaa;
 }
 
+#options input {
+    background: #000000;
+    color: #aaaaaa;
+}
+
 #shapemaker {
     float: right;
 }

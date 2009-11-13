@@ -96,7 +96,7 @@ var flux = function() {
     }
   }
 
-  var range = defineClass({
+  var range = linkage.type({
     init: function(low, high) {
       this.low = low;
       this.high = high;
@@ -131,7 +131,7 @@ var flux = function() {
   });
 
   // very much a two-dimensional object
-  var bounds = defineClass({
+  var bounds = linkage.type({
     init: function(xlow, xhigh, ylow, yhigh) {
       this.x = range(xlow, xhigh);
       this.y = range(ylow, yhigh);
@@ -222,12 +222,12 @@ var flux = function() {
         return base(that);
       };
 
-      that.between = function(other, cycles) {
+      that.between = function(other, ticks) {
         return [tweenV({
           obj: that,
           property: 'to',
           to: other.to,
-          cycles: cycles
+          ticks: ticks
         })];
       };
 
@@ -312,20 +312,20 @@ var flux = function() {
         return that.to.concat([that.radius].concat(that.arc).push(that.clockwise));
       };
 
-      that.between = function(other, cycles) {
+      that.between = function(other, ticks) {
         return [
           tweenV({obj: that,
                        property: 'to',
                        to: other.to,
-                       cycles: cycles}),
+                       ticks: ticks}),
           tweenN({obj: that,
                        property: 'radius',
                        to: other.radius,
-                       cycles: cycles}),
+                       ticks: ticks}),
           tweenN({obj: that,
                        property: 'arc',
                        to: other.arc,
-                       cycles: cycles})
+                       ticks: ticks})
         ];
       };
 
@@ -364,23 +364,23 @@ var flux = function() {
         box.include(that.control2);
       };
 
-      that.between = function(other, cycles) {
+      that.between = function(other, ticks) {
         return [
           tweenV({
             obj: that,
             property: 'to',
             to: other.to,
-            cycles: cycles}),
+            ticks: ticks}),
           tweenV({
             obj: that,
             property: 'control1',
             to: other.control1,
-            cycles: cycles}),
+            ticks: ticks}),
           tweenV({
             obj: that,
             property: 'control2',
             to: other.control2,
-            cycles: cycles})
+            ticks: ticks})
         ];
       };
 
@@ -409,9 +409,9 @@ var flux = function() {
     var color = spec.color;
     var fill = spec.fill || 'fill';
 
-    var between = function(other, cycles, postcycle) {
+    var between = function(other, ticks, posttick) {
       return ops.inject([], function(tweens, op, index) {
-        return tweens.concat(op.between(other.ops[index], cycles));
+        return tweens.concat(op.between(other.ops[index], ticks));
       });
     };
 
@@ -482,7 +482,7 @@ var flux = function() {
       return that.obj[that.property];
     };
 
-    that.cycle = function() {
+    that.tick = function() {
       if (that.target(that.value())) {
         return false;
       } else {
@@ -497,7 +497,7 @@ var flux = function() {
   // tween object for numbers
   var tweenN = function(spec) {
     var that = tween(spec);
-    var increment = spec.increment || (spec.cycles ? ((spec.to - spec.obj[spec.property]) / spec.cycles) : 1);
+    var increment = spec.increment || (spec.ticks ? ((spec.to - spec.obj[spec.property]) / spec.ticks) : 1);
 
     var greater = function(where, to) {return where >= to;};
     var less = function(where, to) {return where <= to;};
@@ -523,8 +523,8 @@ var flux = function() {
     that.obj = spec.obj || spec;
     that.property = spec.property || 'this';
     that.to = spec.to || [1, 1];
-    that.cycles = spec.cycles || 10;
-    that.postcycle = spec.postcycle || function() {};
+    that.ticks = spec.ticks || 10;
+    that.posttick = spec.posttick || function() {};
     that.posttween = spec.posttween || function() {};
 
     that.vector = function() {
@@ -540,13 +540,13 @@ var flux = function() {
         obj: that.vector(),
         property: index,
         to: that.to[index],
-        cycles: that.cycles
+        ticks: that.ticks
       });
     });
 
-    that.cycle = function() {
-      that.tweens = that.tweens.select(function(tween) {return tween.cycle();});
-      that.postcycle();
+    that.tick = function() {
+      that.tweens = that.tweens.select(function(tween) {return tween.tick();});
+      that.posttick();
 
       if (that.tweens.length === 0) {
         that.posttween();
@@ -558,19 +558,20 @@ var flux = function() {
     return that;
   };
 
+  // place a onetime event sometime in the future
   var tweenEvent = function(spec) {
     spec.obj = {count: 0};
     spec.property = 'count';
 
     var that = tween(spec);
 
-    that.cycles = spec.cycles || 10;
+    that.ticks = spec.ticks || 10;
     that.event = spec.event || function() {};
 
     that.target = function(n) {
       var met = true;
 
-      if (n < that.cycles) {
+      if (n < that.ticks) {
         met = false;
       } else {
         that.event();
@@ -688,66 +689,66 @@ var flux = function() {
     that.color_spec = linkage.cache(findColorSpec('color'));
     that.outline_spec = linkage.cache(findColorSpec('outline'));
 
-    that.tweenColor = function(color, cycles, posttween) {
+    that.tweenColor = function(color, ticks, posttween) {
       posttween = posttween || function() {};
 
       that.tweens.push(tweenV({
         obj: that,
         property: 'color',
         to: color,
-        cycles: cycles,
-        postcycle: function() {that.color_spec.expire();},
+        ticks: ticks,
+        posttick: function() {that.color_spec.expire();},
         posttween: posttween
       }));
 
       return that;
     };
 
-    that.tweenPos = function(to, cycles, posttween) {
+    that.tweenPos = function(to, ticks, posttween) {
       that.tweens.push(tweenV({
         obj: that,
         property: 'pos',
         to: to,
-        cycles: cycles,
-        postcycle: function() {that.absolute.expire();},
+        ticks: ticks,
+        posttick: function() {that.absolute.expire();},
         posttween: posttween
       }));
 
       return that;
     };
 
-    that.tweenOrientation = function(orientation, cycles, posttween) {
+    that.tweenOrientation = function(orientation, ticks, posttween) {
       that.tweens.push(tweenN({
         obj: that,
         property: 'orientation',
         to: orientation,
-        cycles: cycles,
+        ticks: ticks,
         posttween: posttween
       }));
 
       return that;
     };
 
-    that.tweenScale = function(scale, cycles) {
+    that.tweenScale = function(scale, ticks) {
       that.tweens.push(tweenV({
         obj: that,
         property: 'scale',
         to: scale,
-        cycles: cycles
+        ticks: ticks
       }));
 
       return that;
     };
 
-    that.tweenShape = function(shape, cycles) {
-      var tween = that.shape.between(shape, cycles);
+    that.tweenShape = function(shape, ticks) {
+      var tween = that.shape.between(shape, ticks);
       that.tweens = that.tweens.concat(tween);
 
       return that;
     };
 
-    that.tweenEvent = function(event, cycles) {
-      var tween = tweenEvent({event: event, cycles: cycles});
+    that.tweenEvent = function(event, ticks) {
+      var tween = tweenEvent({event: event, ticks: ticks});
       that.tweens = that.tweens.concat(tween);
 
       return that;
@@ -930,7 +931,7 @@ var flux = function() {
       }
 
       that.tweens = that.tweens.select(function(tween) {
-        return tween.cycle();
+        return tween.tick();
       });
 
       that.submotes.invoke('adjust');
@@ -1116,33 +1117,33 @@ var flux = function() {
       that.motes = that.motes.without(mote);
     };
 
-    that.tweenScale = function(scale, cycles) {
+    that.tweenScale = function(scale, ticks) {
       var tween = tweenV({
         obj: that,
         property: 'scale',
         to: scale,
-        cycles: cycles
+        ticks: ticks
       });
 
       that.tweens.push(tween);
       return that;
     };
 
-    that.tweenTranslation = function(translation, cycles) {
+    that.tweenTranslation = function(translation, ticks) {
       var tween = tweenV({
         obj: that,
         property: 'translation',
         to: translation,
-        cycles: cycles
+        ticks: ticks
       });
 
       that.tweens.push(tween);
       return that;
     };
 
-    that.tweenViewport = function(spec, cycles) {
-      if (spec.scale) that.tweenScale(spec.scale, cycles);
-      if (spec.translation) that.tweenTranslation(spec.translation, cycles);
+    that.tweenViewport = function(spec, ticks) {
+      if (spec.scale) that.tweenScale(spec.scale, ticks);
+      if (spec.translation) that.tweenTranslation(spec.translation, ticks);
     };
 
     var update = function() {
@@ -1154,7 +1155,7 @@ var flux = function() {
       that.motes.invoke('adjust');
 
       that.tweens = that.tweens.select(function(tween) {
-        return tween.cycle();
+        return tween.tick();
       });
 
       draw();
