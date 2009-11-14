@@ -74,14 +74,6 @@ var linkage = function() {
 	return that;
   };
   
-  // recursively apply the various uber-functions
-  var call_ubers = function(uber, args) {
-    if (typeof uber.uber == 'function') {
-      call_ubers.call(this, uber.uber, args);
-    }
-    uber.apply(this, args);
-  }
-
   // add properties from one object to another.
   var extend = function() {
     var target = arguments[0];
@@ -100,16 +92,7 @@ var linkage = function() {
           // on the new version that references the function it is overwriting.
           if (src && typeof src == 'function') {
             // the reference to the actual overwritten object
-            copy.uber = function(uber) {
-              return uber;
-            }(src);
-            // a function which iterates through all uber functions,
-            // calling the last one first.
-            copy.uber_chain = function(uber) {
-              return function() {
-                call_ubers.call(this, uber, arguments);
-              }
-            }(copy.uber);
+            copy.uber = src;
           }
 
           // Recurse if we're merging object values (from jquery)
