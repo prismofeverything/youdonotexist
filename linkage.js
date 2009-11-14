@@ -74,7 +74,15 @@ var linkage = function() {
 	return that;
   };
   
-  // modified jquery extend function
+  // recursively apply the various uber-functions
+  var call_ubers = function(uber, args) {
+    if (typeof uber.__uber == 'function') {
+      call_ubers.call(this, uber.__uber, args);
+    }
+    uber.apply(this, args);
+  }
+
+  // add properties from one object to another.
   var extend = function() {
     var target = arguments[0];
     var len = arguments.length;
@@ -91,14 +99,20 @@ var linkage = function() {
           // provide access to overwritten methods by attaching an 'uber' property 
           // on the new version that references the function it is overwriting.
           if (src && typeof src == 'function') {
+            // the reference to the actual overwritten object
+            copy.__uber = function(uber) {
+              return uber;
+            }(src);
+            // a function which iterates through all uber functions,
+            // calling the last one first.
             copy.uber = function(uber) {
               return function() {
-                return uber.apply(target, arguments);
-              };
-            }(src);
+                call_ubers.call(this, uber, arguments);
+              }
+            }(copy.__uber);
           }
 
-          // Recurse if we're merging object values
+          // Recurse if we're merging object values (from jquery)
           if (copy && typeof copy == "object" && !copy.nodeType) {
             target[name] = extend( // Never move original objects, clone them
               src || (copy.length != null ? [] : {}), 
@@ -111,7 +125,6 @@ var linkage = function() {
       }
     }
 
-    // Return the modified object and the overwritten methods
     return target;
   };
 
@@ -134,8 +147,9 @@ var linkage = function() {
         return new arguments.callee(arguments);
       } 
 
-      if (typeof this.init == "function") {
-        this.init.apply(this, args.callee ? args : arguments);
+      if (typeof this.init == 'function') {
+        var ultimate_args = args.callee ? args : arguments;
+        call_ubers.call(this, this.init, ultimate_args);
       }
     }; 
     
@@ -147,6 +161,11 @@ var linkage = function() {
 
     // add the methods
     extend(fn.prototype, methods);
+    fn.prototype.uber = function() {
+      arguments.splice = Array.prototype.splice;
+      var base = arguments.splice(0, 1)[0];
+      call_ubers.call(this, base.uber, arguments);
+    }
     return fn;
   };
 

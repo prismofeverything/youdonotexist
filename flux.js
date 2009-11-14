@@ -203,11 +203,11 @@ var flux = function() {
   });
 
   var op = function() {
-    var base = linkage.type({
+    var uberbase = linkage.type({
       init: function(spec) {
+        this.method = 'base';
         this.op = spec.op;
-        this.method = spec.method || 'lineTo';
-        this.to = spec.to ? [spec.to[0], spec.to[1]] : [0, 0];
+        this.to = spec.to ? spec.to.clone() : [0, 0];
       },
 
       args: function() {
@@ -232,27 +232,37 @@ var flux = function() {
       }
     });
 
-    var line = linkage.type([base], {
-      method: 'lineTo',
+    var base = linkage.type([uberbase], {
+      init: function(spec) {
+//        this.init.uber.call(this, spec);
+        this.animal = 'mockingbird';
+      }
+    });
 
+    var line = linkage.type([base], {
+      init: function(spec) {
+        this.init.uber.call(this, spec);
+        this.method = 'lineTo';
+      },
       clone: function() {
         return line(this);
       }
     });
 
     var move = linkage.type([base], {
-      method: 'moveTo',
-
+      init: function(spec) {
+        this.init.uber.call(this, spec);
+        this.method = 'moveTo';
+      },
       clone: function() {
         return move(this);
       }
     });
 
     var text = linkage.type([base], {
-      method: 'opText',
-
       init: function(spec) {
-        this.init.uber(spec);
+        this.init.uber.call(this, spec);
+        this.method = 'opText';
 
         this.size = spec.size || 12;
         this.string = spec.string || '';
@@ -290,97 +300,94 @@ var flux = function() {
       }
     });
 
-    var arc = function(spec) {
-      spec.method = 'arc';
+    var arc = linkage.type([base], {
+      init: function(spec) {
+        this.init.uber.call(this, spec);
+        this.method = 'arc';
 
-      var that = base(spec);
+        this.radius = spec.radius || 10;
+        this.arc = spec.arc || [0, Math.PI*2];
+        this.clockwise = spec.clockwise || true;
+      },
 
-      that.radius = spec.radius || 10;
-      that.arc = spec.arc || [0, Math.PI*2];
-      that.clockwise = spec.clockwise || true;
+      args: function() {
+        return this.to.concat([this.radius].concat(this.arc).push(this.clockwise));
+      },
 
-      that.args = function() {
-        return that.to.concat([that.radius].concat(that.arc).push(that.clockwise));
-      };
-
-      that.between = function(other, ticks) {
+      between: function(other, ticks) {
         return [
-          tweenV({obj: that,
+          tweenV({obj: this,
                        property: 'to',
                        to: other.to,
                        ticks: ticks}),
-          tweenN({obj: that,
+          tweenN({obj: this,
                        property: 'radius',
                        to: other.radius,
                        ticks: ticks}),
-          tweenN({obj: that,
+          tweenN({obj: this,
                        property: 'arc',
                        to: other.arc,
                        ticks: ticks})
         ];
-      };
+      },
 
-      that.prod = function(box) {
+      prod: function(box) {
         box.union(bounds(
-          that.to[0] - that.radius,
-          that.to[0] + that.radius,
-          that.to[1] - that.radius,
-          that.to[1] + that.radius
+          this.to[0] - this.radius,
+          this.to[0] + this.radius,
+          this.to[1] - this.radius,
+          this.to[1] + this.radius
         ));
-      };
+      },
 
-      that.clone = function() {
-        return arc(that);
-      };
+      clone: function() {
+        return arc(this);
+      }
+    });
 
-      return that;
-    };
+    var bezier = linkage.type([base], {
+      init: function(spec) {
+        this.init.uber.call(this, spec);
+        this.method = 'bezierCurveTo';
 
-    var bezier = function(spec) {
-      spec.method = 'bezierCurveTo';
-      spec.to = spec.to ? spec.to.clone() : [10, 10];
+        this.control1 = spec.control1 ? spec.control1.clone() : [0, 0];
+        this.control2 = spec.control2 ? spec.control2.clone() : [0, 0];
+      },
 
-      var that = base(spec);
+      args: function() {
+        return this.control1.concat(this.control2).concat(this.to);
+      },
 
-      that.control1 = spec.control1 ? spec.control1.clone() : [0, 0];
-      that.control2 = spec.control2 ? spec.control2.clone() : [0, 0];
+      prod: function(box) {
+        box.include(this.to);
+        box.include(this.control1);
+        box.include(this.control2);
+      },
 
-      that.args = function() {
-        return that.control1.concat(that.control2).concat(that.to);
-      };
-
-      that.prod = function(box) {
-        box.include(that.to);
-        box.include(that.control1);
-        box.include(that.control2);
-      };
-
-      that.between = function(other, ticks) {
+      between: function(other, ticks) {
         return [
           tweenV({
-            obj: that,
+            obj: this,
             property: 'to',
             to: other.to,
             ticks: ticks}),
           tweenV({
-            obj: that,
+            obj: this,
             property: 'control1',
             to: other.control1,
             ticks: ticks}),
           tweenV({
-            obj: that,
+            obj: this,
             property: 'control2',
             to: other.control2,
             ticks: ticks})
         ];
-      };
+      },
 
-      that.clone = function() {
-        return bezier(that);
-      };
-
-      return that;
-    };
+      clone: function() {
+        return bezier(this);
+      }
+    });
 
     return {
       base: base,
