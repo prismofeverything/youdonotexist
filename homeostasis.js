@@ -1065,7 +1065,7 @@ var homeostasis = function(id) {
 
       if (that.methylNeighbor) {
         that.state = 'targeting';
-        that.column = methylNeighbor.column;
+        that.column = that.methylNeighbor.column;
       }
     };
 

@@ -203,85 +203,78 @@ var flux = function() {
   });
 
   var op = function() {
-    var base = function(spec) {
-      var that = {};
+    var base = linkage.type({
+      init: function(spec) {
+        this.op = spec.op;
+        this.method = spec.method || 'lineTo';
+        this.to = spec.to ? [spec.to[0], spec.to[1]] : [0, 0];
+      },
 
-      that.op = spec.op;
-      that.method = spec.method || 'lineTo';
-      that.to = spec.to ? [spec.to[0], spec.to[1]] : [0, 0];
+      args: function() {
+        return this.to;
+      },
 
-      that.args = function() {
-        return that.to;
-      };
+      prod: function(box) {
+        box.include(this.to);
+      },
 
-      that.prod = function(box) {
-        box.include(that.to);
-      };
+      clone: function() {
+        return base(this);
+      },
 
-      that.clone = function() {
-        return base(that);
-      };
-
-      that.between = function(other, ticks) {
+      between: function(other, ticks) {
         return [tweenV({
-          obj: that,
+          obj: this,
           property: 'to',
           to: other.to,
           ticks: ticks
         })];
-      };
+      }
+    });
 
-      return that;
-    };
+    var line = linkage.type([base], {
+      method: 'lineTo',
 
-    var line = function(spec) {
-      spec.method = 'lineTo';
+      clone: function() {
+        return line(this);
+      }
+    });
 
-      var that = base(spec);
+    var move = linkage.type([base], {
+      method: 'moveTo',
 
-      that.clone = function() {
-        return line(that);
-      };
+      clone: function() {
+        return move(this);
+      }
+    });
 
-      return that;
-    };
+    var text = linkage.type([base], {
+      method: 'opText',
 
-    var move = function(spec) {
-      spec.method = 'moveTo';
+      init: function(spec) {
+        this.init.uber(spec);
 
-      var that = base(spec);
+        this.size = spec.size || 12;
+        this.string = spec.string || '';
+      },
 
-      that.clone = function() {
-        return move(that);
-      };
+      clone: function() {
+        return text(this);
+      },
 
-      return that;
-    };
+      args: function() {
+        return [true, this.size, this.to[0], this.to[1], this.string];
+      },
 
-    var text = function(spec) {
-      spec.method = 'opText';
-      var that = base(spec);
-
-      that.size = spec.size || 12;
-      that.string = spec.string || '';
-
-      that.clone = function() {
-        return text(that);
-      };
-
-      that.args = function() {
-        return [true, that.size, that.to[0], that.to[1], that.string];
-      };
-
-      that.prod = function(box) {
+      prod: function(box) {
         var renderLength = function(string) {
-          return CanvasTextFunctions.measure(true, that.size, string);
+          return CanvasTextFunctions.measure(true, this.size, string);
         };
 
         // find the longest line to use as the outermost horizontal boundary
-        var lines = that.string.split('\n');
+        var lines = this.string.split('\n');
         var longest = {length: renderLength(lines[0]), line: lines[0]};
-        for (var index=1; index < lines.length; index++) {
+        for (var index = 1; index < lines.length; index++) {
           var possible = renderLength(line[index]);
           if (possible > longest.length) {
             longest = {length: possible, line: line[index]};
@@ -289,15 +282,13 @@ var flux = function() {
         }
 
         box.union(bounds(
-          that.to[0],
-          that.to[0] + longest.length,
-          that.to[1] - that.size,
-          that.to[1] + that.size*lines.length
+          this.to[0],
+          this.to[0] + longest.length,
+          this.to[1] - this.size,
+          this.to[1] + this.size*lines.length
         ));
-      };
-
-      return that;
-    };
+      }
+    });
 
     var arc = function(spec) {
       spec.method = 'arc';
@@ -448,7 +439,12 @@ var flux = function() {
       if (color) { context[fill+'Style'] = vector_to_rgba(color) };
 
       ops.each(function(vertex) {
-        context[vertex.method].apply(context, vertex.args());
+        try {
+          context[vertex.method].apply(context, vertex.args());
+        } catch(err) {
+          console.log(vertex.method);
+          console.log(vertex.args());
+        }
       });
 
       context.closePath();

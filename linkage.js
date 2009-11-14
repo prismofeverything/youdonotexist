@@ -74,7 +74,61 @@ var linkage = function() {
 	return that;
   };
   
-  var type = function(methods) {
+  // modified jquery extend function
+  var extend = function() {
+    var target = arguments[0];
+    var len = arguments.length;
+
+    for (var i = 1; i < len; i++) {
+      if ((options = arguments[i]) != null) {
+        for (var name in options) {
+          var src = target[name];
+          var copy = options[name];
+
+          if (!options.hasOwnProperty(name)) {continue}; // avoid random things
+          if (target === copy) {continue}; // Prevent never-ending loop
+
+          // provide access to overwritten methods by attaching an 'uber' property 
+          // on the new version that references the function it is overwriting.
+          if (src && typeof src == 'function') {
+            copy.uber = function(uber) {
+              return function() {
+                return uber.apply(target, arguments);
+              };
+            }(src);
+          }
+
+          // Recurse if we're merging object values
+          if (copy && typeof copy == "object" && !copy.nodeType) {
+            target[name] = extend( // Never move original objects, clone them
+              src || (copy.length != null ? [] : {}), 
+              copy
+            );
+          } else if (copy !== undefined) {
+            target[name] = copy;
+          }
+        }
+      }
+    }
+
+    // Return the modified object and the overwritten methods
+    return target;
+  };
+
+  var type = function() {
+    var methods = {};
+    var ancestors = [];
+
+    // if one argument is given, it is the methods.
+    // if two, the first is the list of ancestors, the second the methods.
+    if (arguments.length === 1) {
+      methods = arguments[0];
+    } else if (arguments.length === 2) {
+      ancestors = arguments[0];
+      methods = arguments[1];
+    }
+
+    // encapsulate the creation of the function object type.
     var fn = function(args) {
       if (!(this instanceof arguments.callee)) {
         return new arguments.callee(arguments);
@@ -84,61 +138,40 @@ var linkage = function() {
         this.init.apply(this, args.callee ? args : arguments);
       }
     }; 
+    
+    // extend the type with the ancestor types' prototypes.
+    var y, len = ancestors.length;
+    for (y = 0; y < len; y++) {
+      extend(fn.prototype, ancestors[y].prototype);
+    }
 
-    fn.prototype = methods;
+    // add the methods
+    extend(fn.prototype, methods);
     return fn;
-  }
+  };
 
+  // provide a means to call any chain of properties or functions by string
+  var access = function(obj, entry) {
+	if (entry) {
+	  var path = entry.split('.');
+	  var component = path.shift();
+	  var parts = component.match(/([^\(]+)\(([^\)]*)\)/);
+	  var found = parts === null ? obj[component] : obj[parts[1]](parts[2]);
+
+	  return found.access(path.join('.'));
+	} else {
+		return obj;
+	}
+  };
+  
   return {
     cache: cache,
     link: link,
-    type: type
+    type: type,
+    extend: extend,
+    access: access
   }
 
 
 }();
-
-// Object.prototype.access = function(entry) {
-// 	if (entry) {
-// 		var path = entry.split('.');
-// 		var component = path.shift();
-// 		var parts = component.match(/([^\(]+)\(([^\)]*)\)/);
-// 		var found = parts === null ? this[component] : this[parts[1]](parts[2]);
-
-// 		return found.access(path.join('.'));
-// 	} else {
-// 		return this;
-// 	}
-// };
-
-// var defineClass = function(methods) {
-//   var fn = function(args) {
-//     if (!(this instanceof arguments.callee)) {
-//       return new arguments.callee(arguments);
-//     } 
-
-//     if (typeof this.init == "function") {
-//       this.init.apply(this, args.callee ? args : arguments);
-//     }
-//   }; 
-
-//   fn.prototype = methods;
-
-//   //     for (method in methods) {
-//   //       var attach = function(method) {
-//   //         fn.prototype[method] = function() {
-//   //           var self = this;
-//   //           var stamp = eval(methods[method]);
-//   //           var result = stamp.apply(this, arguments);
-//   //           this[method] = stamp;
-
-//   //           return result;
-//   //         };
-//   //       };
-
-//   //       attach(method);
-//   //     }
-
-//   return fn;
-// }
 
