@@ -400,52 +400,53 @@ var flux = function() {
   }();
 
   // provide objects to represent atomic drawing operations
-  var shape = function(spec) {
-    spec = spec || {};
+  var shape = linkage.type({
+    init: function(spec) {
+      spec = spec || {};
 
-    var ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : [] || [];
-    var color = spec.color;
-    var fill = spec.fill || 'fill';
+      this.ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : [] || [];
+      this.color = spec.color;
+      this.fill = spec.fill || 'fill';
+      this.box = this.boxFor();
+    },
 
-    var between = function(other, ticks, posttick) {
-      return ops.inject([], function(tweens, op, index) {
+    between: function(other, ticks, posttick) {
+      return this.ops.inject([], function(tweens, op, index) {
         return tweens.concat(op.between(other.ops[index], ticks));
       });
-    };
+    },
 
-    var clone = function() {
-      return shape({ops: ops.map(function(vertex) {return vertex.clone();})});
-    };
+    clone: function() {
+      return shape({ops: this.ops.map(function(vertex) {return vertex.clone();})});
+    },
 
     // construct a simple bounding box to tell if further bounds checking is necessary
-    var boxFor = function() {
+    boxFor: function() {
       var box = bounds(0, 0, 0, 0);
-      ops.each(function(vertex) {
+      this.ops.each(function(vertex) {
         vertex.prod(box);
       });
       return box;
-    };
+    },
 
-    var box = boxFor();
+    addOp: function(newop) {
+      this.ops.push(op[newop.op](newop));
+      console.log(this.ops.map(function(o) {return o.to.toString()}));
+    },
 
-    var addOp = function(newop) {
-      ops.push(op[newop.op](newop));
-      console.log(ops.map(function(o) {return o.to.toString()}));
-    };
-
-    var updateColor = function(newcolor) {
-      for (var ee = 0; ee < color.length; ee++) {
+    updateColor: function(newcolor) {
+      for (var ee = 0; ee < this.color.length; ee++) {
         if (!(newcolor[ee] === undefined) && !(newcolor[ee] === null)) {
-          color[ee] = newcolor[ee];
+          this.color[ee] = newcolor[ee];
         }
       }
-    }
+    },
 
-    var draw = function(context) {
+    draw: function(context) {
       context.beginPath();
-      if (color) { context[fill+'Style'] = vector_to_rgba(color) };
+      if (this.color) { context[fill+'Style'] = vector_to_rgba(color) };
 
-      ops.each(function(vertex) {
+      this.ops.each(function(vertex) {
         try {
           context[vertex.method].apply(context, vertex.args());
         } catch(err) {
@@ -455,22 +456,9 @@ var flux = function() {
       });
 
       context.closePath();
-      context[fill]();
-    };
-
-    return {
-      ops: ops,
-      color: color,
-      fill: fill,
-      between: between,
-      clone: clone,
-      boxFor: boxFor,
-      box: box,
-      addOp: addOp,
-      updateColor: updateColor,
-      draw: draw
+      context[this.fill]();
     }
-  };
+  });
 
   // generic base tween object
   var tween = function(spec) {

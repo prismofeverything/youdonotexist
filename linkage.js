@@ -86,18 +86,17 @@ var linkage = function() {
           var copy = options[name];
 
           if (!options.hasOwnProperty(name)) {continue}; // avoid random things
-          if (target === copy) {continue}; // Prevent never-ending loop
+          if (target === copy) {continue}; // prevent never-ending loop
 
           // provide access to overwritten methods by attaching an 'uber' property 
           // on the new version that references the function it is overwriting.
           if (src && typeof src == 'function') {
-            // the reference to the actual overwritten object
             copy.uber = src;
           }
 
-          // Recurse if we're merging object values (from jquery)
+          // recurse if we're merging object values (from jquery)
           if (copy && typeof copy == "object" && !copy.nodeType) {
-            target[name] = extend( // Never move original objects, clone them
+            target[name] = extend( // never move original objects, clone them
               src || (copy.length != null ? [] : {}), 
               copy
             );
