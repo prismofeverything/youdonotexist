@@ -444,7 +444,7 @@ var flux = function() {
 
     draw: function(context) {
       context.beginPath();
-      if (this.color) { context[fill+'Style'] = vector_to_rgba(color) };
+      if (this.color) { context[this.fill+'Style'] = vector_to_rgba(this.color) };
 
       this.ops.each(function(vertex) {
         try {
@@ -461,122 +461,132 @@ var flux = function() {
   });
 
   // generic base tween object
-  var tween = function(spec) {
-    var that = {};
+  var tween = linkage.type({
+    init: function(spec) {
+      this.obj = spec.obj || spec;
+      this.property = spec.property || ((spec.property === 0) ? spec.property : 'this');
 
-    that.obj = spec.obj || spec;
-    that.property = spec.property || ((spec.property === 0) ? spec.property : 'this');
-    that.target = spec.target || function(value) {return value === 0;};
-    that.step = spec.step || function(value) {return value - 1;};
+      if (spec.target) {this.target = spec.target};
+      if (spec.step) {this.step = spec.step};
+    },
 
-    that.value = function() {
-      return that.obj[that.property];
-    };
+    value: function() {
+      return this.obj[this.property];
+    },
 
-    that.tick = function() {
-      if (that.target(that.value())) {
+    tick: function() {
+      if (this.target(this.value())) {
         return false;
       } else {
-        that.obj[that.property] = that.step(that.value());
+        this.obj[this.property] = this.step(this.value());
         return true;
       }
-    };
+    },
 
-    return that;
-  };
+    target: function(value) {return value === 0},
+    step: function(value) {return value - 1}
+  });
 
   // tween object for numbers
-  var tweenN = function(spec) {
-    var that = tween(spec);
-    var increment = spec.increment || (spec.ticks ? ((spec.to - spec.obj[spec.property]) / spec.ticks) : 1);
+  var tweenN = linkage.type([tween], {
+    init: function(spec) {
+      arguments.callee.uber.call(this, spec);
+      this.increment = spec.increment || (spec.ticks ? ((spec.to - spec.obj[spec.property]) / spec.ticks) : 1);
+      this.to = spec.to || 0;
+      this.test = spec.test || ((this.value() < this.to) ? this.greater : this.less);
 
-    var greater = function(where, to) {return where >= to;};
-    var less = function(where, to) {return where <= to;};
+      if (spec.target) {this.target = spec.target};
+      if (spec.step) {this.step = spec.step};
+    },
 
-    that.to = spec.to || 0;
-    that.test = spec.test || ((that.value() < that.to) ? greater : less);
+    greater: function(where, to) {return where >= to;},
+    less: function(where, to) {return where <= to;},
 
-    that.target = spec.target || function(value) {
-      return that.test(value, that.to);
-    };
+    target: function(value) {
+        return this.test(value, this.to);
+    },
 
-    that.step = spec.step || function(value) {
-      return value + increment;
-    };
-
-    return that;
-  };
+    step: function(value) {
+      return value + this.increment;
+    }
+  });
 
   // tween object for vectors
-  var tweenV = function(spec) {
-    var that = {};
+  var tweenV = linkage.type([tween], {
+    init: function(spec) {
+      arguments.callee.uber.call(this, spec);
 
-    that.obj = spec.obj || spec;
-    that.property = spec.property || 'this';
-    that.to = spec.to || [1, 1];
-    that.ticks = spec.ticks || 10;
-    that.posttick = spec.posttick || function() {};
-    that.posttween = spec.posttween || function() {};
+      this.obj = spec.obj || spec;
+      this.property = spec.property || 'this';
+      this.to = spec.to || [1, 1];
+      this.ticks = spec.ticks || 10;
 
-    that.vector = function() {
-      return that.obj[that.property];
-    };
+      if (spec.posttick) {this.posttick = spec.posttick};
+      if (spec.posttween) {this.posttween = spec.posttween};
 
-    var differing = $R(0, that.vector().length - 1).select(function(index) {
-      return !(that.vector()[index] === that.to[index]);
-    });
-
-    that.tweens = differing.map(function(index) {
-      return tweenN({
-        obj: that.vector(),
-        property: index,
-        to: that.to[index],
-        ticks: that.ticks
-      });
-    });
-
-    that.tick = function() {
-      that.tweens = that.tweens.select(function(tween) {return tween.tick();});
-      that.posttick();
-
-      if (that.tweens.length === 0) {
-        that.posttween();
+      var vector = this.vector(); 
+      var p, len = vector.length, differing = [];
+      for (p = 0; p < len; p++) {
+        if (vector[p] !== this.to[p]) {
+          differing.push(tweenN({
+            obj: vector,
+            property: p,
+            to: this.to[p],
+            ticks: this.ticks
+          }));
+        }
       }
 
-      return that.tweens.length > 0;
-    };
+      this.tweens = differing;
+    },
 
-    return that;
-  };
+    posttick: function() {},
+    posttween: function() {},
+
+    vector: function() {
+      return this.obj[this.property];
+    },
+
+    tick: function() {
+      this.tweens = this.tweens.select(function(tween) {return tween.tick();});
+      this.posttick();
+
+      if (this.tweens.length === 0) {
+        this.posttween();
+      }
+
+      return this.tweens.length > 0;
+    }
+  });
 
   // place a onetime event sometime in the future
-  var tweenEvent = function(spec) {
-    spec.obj = {count: 0};
-    spec.property = 'count';
+  var tweenEvent = linkage.type([tween], {
+    init: function(spec) {
+      spec = linkage.extend({obj: {count: 0}, property: 'count'}, spec);
+      argument.callee.uber.call(this, spec);
 
-    var that = tween(spec);
+      this.ticks = spec.ticks || 10;
+      if (spec.event) {this.event = spec.event};
+    },
 
-    that.ticks = spec.ticks || 10;
-    that.event = spec.event || function() {};
+    event: function() {},
 
-    that.target = function(n) {
+    target: function(n) {
       var met = true;
 
-      if (n < that.ticks) {
+      if (n < this.ticks) {
         met = false;
       } else {
-        that.event();
+        this.event();
       }
 
       return met;
-    };
+    },
 
-    that.step = function(n) {
+    step: function(n) {
       return n += 1;
-    };
-
-    return that;
-  };
+    }
+  });
 
   // representation of individual agents
   var mote = function(spec) {
