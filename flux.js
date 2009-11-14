@@ -241,7 +241,7 @@ var flux = function() {
 
     var line = linkage.type([base], {
       init: function(spec) {
-        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.method = 'lineTo';
       },
       clone: function() {
@@ -251,7 +251,7 @@ var flux = function() {
 
     var move = linkage.type([base], {
       init: function(spec) {
-        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.method = 'moveTo';
       },
       clone: function() {
@@ -302,7 +302,7 @@ var flux = function() {
 
     var arc = linkage.type([base], {
       init: function(spec) {
-        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.method = 'arc';
 
         this.radius = spec.radius || 10;
@@ -347,7 +347,7 @@ var flux = function() {
 
     var bezier = linkage.type([base], {
       init: function(spec) {
-        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.method = 'bezierCurveTo';
 
         this.control1 = spec.control1 ? spec.control1.clone() : [0, 0];
