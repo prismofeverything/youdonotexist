@@ -76,8 +76,8 @@ var linkage = function() {
   
   // recursively apply the various uber-functions
   var call_ubers = function(uber, args) {
-    if (typeof uber.__uber == 'function') {
-      call_ubers.call(this, uber.__uber, args);
+    if (typeof uber.uber == 'function') {
+      call_ubers.call(this, uber.uber, args);
     }
     uber.apply(this, args);
   }
@@ -100,16 +100,16 @@ var linkage = function() {
           // on the new version that references the function it is overwriting.
           if (src && typeof src == 'function') {
             // the reference to the actual overwritten object
-            copy.__uber = function(uber) {
+            copy.uber = function(uber) {
               return uber;
             }(src);
             // a function which iterates through all uber functions,
             // calling the last one first.
-            copy.uber = function(uber) {
+            copy.uber_chain = function(uber) {
               return function() {
                 call_ubers.call(this, uber, arguments);
               }
-            }(copy.__uber);
+            }(copy.uber);
           }
 
           // Recurse if we're merging object values (from jquery)
@@ -149,7 +149,7 @@ var linkage = function() {
 
       if (typeof this.init == 'function') {
         var ultimate_args = args.callee ? args : arguments;
-        call_ubers.call(this, this.init, ultimate_args);
+        this.init.apply(this, ultimate_args);
       }
     }; 
     
@@ -161,11 +161,6 @@ var linkage = function() {
 
     // add the methods
     extend(fn.prototype, methods);
-    fn.prototype.uber = function() {
-      arguments.splice = Array.prototype.splice;
-      var base = arguments.splice(0, 1)[0];
-      call_ubers.call(this, base.uber, arguments);
-    }
     return fn;
   };
 

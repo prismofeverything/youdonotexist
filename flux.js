@@ -234,7 +234,7 @@ var flux = function() {
 
     var base = linkage.type([uberbase], {
       init: function(spec) {
-//        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.animal = 'mockingbird';
       }
     });
@@ -261,7 +261,7 @@ var flux = function() {
 
     var text = linkage.type([base], {
       init: function(spec) {
-        this.init.uber.call(this, spec);
+        arguments.callee.uber.call(this, spec);
         this.method = 'opText';
 
         this.size = spec.size || 12;
