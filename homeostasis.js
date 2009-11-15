@@ -1541,33 +1541,33 @@ var homeostasis = function(id) {
     translation: [500, 200],
     //        translation: [0, 200],
 
-    move: function(mouse) {
-      world.removeActiveDescription();
+    mouseMove: function(canvas, mouse) {
+      canvas.removeActiveDescription();
 
       if (mouse.down) {
-        this.translation = this.translation.add(mouse.screen.subtract(mouse.prevscreen));
+        canvas.translation = canvas.translation.add(mouse.screen.subtract(mouse.prevscreen));
         dragging = true;
       }
     },
 
-    keyDown: function(that, key) {
+    keyDown: function(canvas, key, keys) {
       var base = 1.25;
 
       if (key == 79) {
         var scale = Math.pow(base, -1);
-        that.zoom(scale);
+        canvas.zoom(scale);
       }
       if (key == 73) {
         var scale = Math.pow(base, 1);
-        that.zoom(scale);
+        canvas.zoom(scale);
       }
     },
 
     // delta is either 1 or -1, which is the exponent of the scaling constant
     // signifying either the number or its inverse.
-    wheel: function(that, delta) {
+    wheel: function(canvas, delta) {
       var scale = Math.pow(1.007, delta);
-      that.zoom(scale);
+      canvas.zoom(scale);
     }
   };
 

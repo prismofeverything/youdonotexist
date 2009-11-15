@@ -12,7 +12,7 @@ var shapemaker = function() {
   var cursor = linkage.type({
     init: function(which, focus, collection, create) {
       this.which = which;
-      this.focus = focus;
+      this.focus = linkage.link(focus);
 
       this.collection = collection || function() {
         var col = []; 
@@ -22,9 +22,9 @@ var shapemaker = function() {
 
     stepCursor: function(step) {
       var collection = this.collection();
-      var nextIndex = (collection.indexOf(this.focus) + step) % collection.length;
+      var nextIndex = (collection.indexOf(this.focus()) + step) % collection.length;
 
-      this.focus = collection[nextIndex];
+      this.focus(collection[nextIndex]);
     },
 
     next: function() {
@@ -38,30 +38,55 @@ var shapemaker = function() {
     add: function(spec) {
       var newCursor = flux[this.which](spec);
       var collection = this.collection();
-      var newIndex = collection.indexOf(this.focus);
+      var newIndex = collection.indexOf(this.focus());
 
       collection.splice(newIndex, 0, newCursor);
-      this.focus = newCursor;
+      this.focus(newCursor);
 
       return newCursor;
     },
 
     remove: function() {
       var collection = this.collection();
-      var oldIndex = collection.indexOf(this.focus);
+      var oldIndex = collection.indexOf(this.focus());
+      var oldCursor = collection.splice(oldIndex, 1);
+      var newIndex = oldIndex % collection.length;
 
-      return collection.splice(oldIndex, 1);
+      this.focus(collection[newIndex]);
+      return oldCursor;
     }
   });
 
   var cursors = {
     mote: cursor('mote', mote, function() {
-      return this.focus.supermote ? this.focus.supermote.motes : world.motes;
+      return this.focus().supermote ? this.focus().supermote.motes : world.motes;
     }),
 
-    shape: cursor('shape', shape, function() {return cursors.mote.focus.shapes}),
-    op: cursor('op', null, function() {return cursors.shape.focus.ops})
+    shape: cursor('shape', shape, function() {return cursors.mote.focus().shapes}),
+    op: cursor('op', null, function() {return cursors.shape.focus().ops})
   };
+
+  var cc = 'op'; // cursorcursor
+
+  cursors.mote.focus.watch(function(mote) {
+    cursors.shape.focus(mote.shapes[0]);
+  });
+
+  cursors.shape.focus.watch(function(shape) {
+    cursors.op.focus(shape.ops[0]);
+  });
+
+  var raisecc = function() {
+    if (cc !== 'mote') {
+      cc = cc === 'shape' ? 'mote' : 'shape';
+    }
+  }
+
+  var lowercc = function() {
+    if (cc !== 'op') {
+      cc = cc === 'shape' ? 'op' : 'shape';
+    }
+  }
 
   // create world
   var world = flux.canvas({
@@ -72,13 +97,28 @@ var shapemaker = function() {
       canvas.height = browser.h;
     },
 
-    down: function(mouse) {
+    mouseDown: function(canvas, mouse) {
       cursors.op.add({op: 'line', to: mouse.pos});
     },
+
+    keyDown: function(canvas, key, keys) {
+      console.log(key+'');
+      if (key == 37) { // left
+        cursors[cc].previous();
+      } else if (key == 39) { // right
+        cursors[cc].next();
+      // we can do this because we know there are only three cursors. 
+      // if that ever changes, this breaks.
+      } else if (key == 38) { // up
+        raisecc();
+      } else if (key == 40) { // down
+        lowercc();
+      }
+    }
   });
 
   world.colorChange = function(color) {
-    cursors.shape.focus.updateColor(color);
+    cursors.shape.focus().updateColor(color);
   };
 
   world.addMote(mote);

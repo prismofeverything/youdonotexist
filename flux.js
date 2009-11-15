@@ -1063,9 +1063,9 @@ var flux = function() {
     that.motes = spec.motes || [];
     that.id = spec.id || '';
 
-    that.down = spec.down || function(m){return null;};
-    that.up = spec.up || function(m){return null;};
-    that.move = spec.move || function(m){return null;};
+    that.mouseDown = spec.mouseDown || function(c, m){return null;};
+    that.mouseUp = spec.mouseUp || function(c, m){return null;};
+    that.mouseMove = spec.mouseMove || function(c, m){return null;};
 
     that.translation = spec.translation || [0, 0];
     that.orientation = spec.orientation || 0;
@@ -1097,15 +1097,15 @@ var flux = function() {
     keys.pressed = {};
     keys.predown = function(key) {
       keys.pressed[key] = true;
-      keys.down(that, key);
+      keys.down(that, key, keys);
     };
     keys.preup = function(key) {
       delete this.pressed[key];
-      keys.up(that, key);
+      keys.up(that, key, keys);
     };
 
-    keys.down = spec.keyDown || function(th, key) {};
-    keys.up = spec.keyUp || function(th, key) {};
+    keys.down = spec.keyDown || function(th, key, keys) {};
+    keys.up = spec.keyUp || function(th, key, keys) {};
 
     var mouse = {
       pos: [0, 0],
@@ -1246,14 +1246,14 @@ var flux = function() {
       mouse.down = true;
       mouseEvent('Down', mouse);
 
-      that.down(mouse);
+      that.mouseDown(that, mouse);
     };
 
     var mouseUp = function(e) {
       mouse.down = false;
       mouseEvent('Up', mouse);
 
-      that.up(mouse);
+      that.mouseUp(that, mouse);
     };
 
     var mouseClick = function(e) {
@@ -1295,7 +1295,7 @@ var flux = function() {
       });
 
       // call custom mouse move function, if one is defined
-      that.move(mouse);
+      that.mouseMove(that, mouse);
     };
 
     // parse the mouse wheel event and call wheel with a useful value
