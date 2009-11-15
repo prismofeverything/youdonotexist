@@ -698,7 +698,10 @@ var flux = function() {
         this.mouseIn(mouse);
       }
 
-      this.submotes.invoke('findIn', mouse, pos);
+      var l, len = this.submotes.length;
+      for (l = 0; l < len; l++) {
+        this.submotes[l].findIn(mouse, pos);
+      }
     },
 
     findColorSpec: function(prop) {
@@ -930,6 +933,7 @@ var flux = function() {
     },
 
     adjust: function() {
+      var dim, len;
       if (!this.paused) {
         this.orientation += this.rotation;
 
@@ -939,7 +943,7 @@ var flux = function() {
           this.orientation += Math.PI*2;
         }
 
-        var dim, len = this.pos.length;
+        len = this.pos.length;
         for (dim = 0; dim < len; dim++) {
           this.pos[dim] += this.velocity[dim];
         }
@@ -955,7 +959,11 @@ var flux = function() {
         return tween.tick();
       });
 
-      this.submotes.invoke('adjust');
+      len = this.submotes.length;
+      for (dim = 0; dim < len; dim++) {
+        this.submotes[dim].adjust();
+      }
+
       this.absolute.expire();
 
       // ----------- lazy bounds checking ---------------
@@ -985,11 +993,12 @@ var flux = function() {
     },
 
     draw: function(context) {
+      var q, len
       // drawing lines to neighbors
       if (this.visible && this.neighbors.length > 1) {
         context.save();
 
-        var q, len = this.neighbors.length;
+        len = this.neighbors.length;
         for (q = 0; q < len; q++) {
           context.lineWidth = 3;
           context.strokeStyle = this.color_spec();
@@ -1019,7 +1028,7 @@ var flux = function() {
       context.scale.apply(context, this.scale);
 
       if (this.visible) {
-        var q, len = this.shapes.length;
+        len = this.shapes.length;
         for (q = 0; q < len; q++){
           this.shapes[q].draw(context);
         }
@@ -1032,7 +1041,10 @@ var flux = function() {
         }
       }
 
-      this.submotes.invoke('draw', context);
+      len = this.submotes.length;
+      for (q = 0; q < len; q++) {
+        this.submotes[q].draw(context);
+      }
 
       context.restore();
     }
@@ -1050,10 +1062,6 @@ var flux = function() {
 
     that.motes = spec.motes || [];
     that.id = spec.id || '';
-
-    that.transforms = that.motes.groupBy(function(mote) {
-      return mote.transform;
-    });
 
     that.down = spec.down || function(m){return null;};
     that.up = spec.up || function(m){return null;};
@@ -1127,14 +1135,10 @@ var flux = function() {
     };
 
     that.addMote = function(mote) {
-      if (!that.transforms[mote.transform]) that.transforms[mote.transform] = [];
-
-      that.transforms[mote.transform].push(mote);
       that.motes.push(mote);
     };
 
     that.removeMote = function(mote) {
-      that.transforms[mote.transform] = that.transforms[mote.transform].without(mote);
       that.motes = that.motes.without(mote);
     };
 
@@ -1168,12 +1172,22 @@ var flux = function() {
     };
 
     var update = function() {
+      var q, len;
+
       before = now;
       now = time();
       interval = now - before;
 
-      that.motes.invoke('perceive', that);
-      that.motes.invoke('adjust');
+      len = that.motes.length;
+
+      // all motes perceive, and calculate their adjustment
+      for (q = 0; q < len; q++) {
+        that.motes[q].perceive(that);
+      }
+      // then all make adjustments simultaneously
+      for (q = 0; q < len; q++) {
+        that.motes[q].adjust();
+      }
 
       that.tweens = that.tweens.select(function(tween) {
         return tween.tick();
@@ -1186,23 +1200,33 @@ var flux = function() {
       context.clearRect(0, 0, browser.w, browser.h);
       that.predraw(context);
 
-//       var q, len = that.motes.length;
-//       for (q = 0; q < len; q++) {
-      if (that.transforms['pos']) {
-        context.save();
-        context.translate(that.translation[0], that.translation[1]);
-        context.scale(that.scale[0], that.scale[1]);
-        context.rotate(that.orientation);
+      context.save();
+      context.translate(that.translation[0], that.translation[1]);
+      context.scale(that.scale[0], that.scale[1]);
+      context.rotate(that.orientation);
 
-        that.transforms['pos'].invoke('draw', context);
-
-        context.restore();
+      var q, qmote, rest = [], len = that.motes.length;
+      for (q = 0; q < len; q++) {
+        qmote = that.motes[q];
+        if (qmote.transform === 'pos') {
+          qmote.draw(context);
+        } else {
+          rest.push(qmote);
+        }
       }
 
-      if (that.transforms['screen']) {
+      context.restore();
+
+      len = rest.length;
+      if (len > 0) {
         context.save();
 
-        that.transforms['screen'].invoke('draw', context);
+        for (q = 0; q < len; q++) {
+          qmote = rest[q];
+          if (qmote.transform === 'screen') {
+            qmote.draw(context);
+          }
+        }
 
         context.restore();
       }
