@@ -6,12 +6,18 @@ var linkage = function() {
   // and then cache it.  It uses the cached value
   // until expire is called, which triggers the cache
   // to be recomputed on its next access.
-  var cache = function(find) {
+  var cache = function() {
+    var obj, find = arguments[0];
+    if (arguments.length > 1) {
+      obj = arguments[0];
+      find = arguments[1];
+    }
+
 	var value = null;
 
 	var that = function() {
 	  if (value === null) {
-		value = find();
+		value = obj ? find.call(obj) : find();
 	  }
 	  return value;
 	};
@@ -19,7 +25,7 @@ var linkage = function() {
     that.expiring = function() {};
 	that.expire = function() {
 	  value = null;
-      that.expiring();
+      obj ? that.expiring.call(obj) : that.expiring();
 	};
 
 	return that;

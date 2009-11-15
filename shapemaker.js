@@ -9,9 +9,61 @@ var shapemaker = function() {
     shapes: [shape]
   });
 
-  var moteCursor = mote;
-  var shapeCursor = shape;
+  var cursor = linkage.type({
+    init: function(which, focus, collection, create) {
+      this.which = which;
+      this.focus = focus;
 
+      this.collection = collection || function() {
+        var col = []; 
+        return function() {return col};
+      };
+    },
+
+    stepCursor: function(step) {
+      var collection = this.collection();
+      var nextIndex = (collection.indexOf(this.focus) + step) % collection.length;
+
+      this.focus = collection[nextIndex];
+    },
+
+    next: function() {
+      this.stepCursor(1);
+    },
+
+    previous: function() {
+      this.stepCursor(-1);
+    },
+
+    add: function(spec) {
+      var newCursor = flux[this.which](spec);
+      var collection = this.collection();
+      var newIndex = collection.indexOf(this.focus);
+
+      collection.splice(newIndex, 0, newCursor);
+      this.focus = newCursor;
+
+      return newCursor;
+    },
+
+    remove: function() {
+      var collection = this.collection();
+      var oldIndex = collection.indexOf(this.focus);
+
+      return collection.splice(oldIndex, 1);
+    }
+  });
+
+  var cursors = {
+    mote: cursor('mote', mote, function() {
+      return this.focus.supermote ? this.focus.supermote.motes : world.motes;
+    }),
+
+    shape: cursor('shape', shape, function() {return cursors.mote.focus.shapes}),
+    op: cursor('op', null, function() {return cursors.shape.focus.ops})
+  };
+
+  // create world
   var world = flux.canvas({
     id: 'shapemaker',
 
@@ -21,12 +73,12 @@ var shapemaker = function() {
     },
 
     down: function(mouse) {
-      shapeCursor.addOp({op: 'line', to: mouse.pos});
+      cursors.op.add({op: 'line', to: mouse.pos});
     },
   });
 
   world.colorChange = function(color) {
-    shapeCursor.updateColor(color);
+    cursors.shape.focus.updateColor(color);
   };
 
   world.addMote(mote);

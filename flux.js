@@ -198,7 +198,12 @@ var flux = function() {
       var wfactor = (w*factor-w)*0.5;
       var hfactor = (h*factor-h)*0.5;
 
-      return bounds(this.x.low - wfactor, this.x.high + wfactor, this.y.low - hfactor, this.y.high + hfactor);
+      return bounds(
+        this.x.low - wfactor, 
+        this.x.high + wfactor, 
+        this.y.low - hfactor, 
+        this.y.high + hfactor
+      );
     }
   });
 
@@ -389,7 +394,7 @@ var flux = function() {
       }
     });
 
-    return {
+    var opmap = {
       base: base,
       line: line,
       move: move,
@@ -397,6 +402,10 @@ var flux = function() {
       arc: arc,
       bezier: bezier
     }
+
+    return function(pp) {
+      return opmap[pp.op](pp);
+    };
   }();
 
   // provide objects to represent atomic drawing operations
@@ -404,7 +413,7 @@ var flux = function() {
     init: function(spec) {
       spec = spec || {};
 
-      this.ops = spec.ops ? spec.ops.map(function(pp) {return op[pp.op](pp);}) : [] || [];
+      this.ops = spec.ops ? spec.ops.map(op) : [] || [];
       this.color = spec.color;
       this.fill = spec.fill || 'fill';
       this.box = this.boxFor();
@@ -430,7 +439,7 @@ var flux = function() {
     },
 
     addOp: function(newop) {
-      this.ops.push(op[newop.op](newop));
+      this.ops.push(op(newop));
       console.log(this.ops.map(function(o) {return o.to.toString()}));
     },
 
@@ -589,43 +598,60 @@ var flux = function() {
   });
 
   // representation of individual agents
-  var mote = function(spec) {
-    var that = {};
-    spec = spec || {};
+  var mote = linkage.type({
+    init: function(spec) {
+      spec = spec || {};
 
-    that.type = spec.type || 'mote';
-    that.supermote = spec.supermote || null;
-    that.submotes = spec.submotes || [];
+      this.type = spec.type || 'mote';
+      this.supermote = spec.supermote || null;
+      this.submotes = spec.submotes || [];
 
-    that.pos = spec.pos || [0, 0];
-    that.shape = spec.shape || shape(); 
-    that.scale = spec.scale || [1, 1];
-    that.orientation = (spec.orientation === undefined) ? 0 : spec.orientation;
-    that.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
-    that.velocity = spec.velocity || [0, 0];
+      this.pos = spec.pos || [0, 0];
+      this.shape = spec.shape || shape(); 
+      this.scale = spec.scale || [1, 1];
+      this.orientation = (spec.orientation === undefined) ? 0 : spec.orientation;
+      this.rotation = (spec.rotation === undefined) ? 0 : spec.rotation;
+      this.velocity = spec.velocity || [0, 0];
 
-    that.shapes = spec.shapes || [that.shape];
-    that.visible = spec.visible === undefined ? true : spec.visible;
+      this.shapes = spec.shapes || [this.shape];
+      this.visible = spec.visible === undefined ? true : spec.visible;
 
-    that.color = spec.color || [200, 200, 200, 1];
-    that.fill = spec.fill || 'fill';
-    that.lineWidth = spec.lineWidth || 1;
-    that.outline = spec.outline || null;
-    that.bounds = spec.bounds;
-    that.transform = spec.transform || 'pos';
-    that.paused = false;
+      this.color = spec.color || [200, 200, 200, 1];
+      this.fill = spec.fill || 'fill';
+      this.lineWidth = spec.lineWidth || 1;
+      this.outline = spec.outline || null;
+      this.bounds = spec.bounds;
+      this.transform = spec.transform || 'pos';
+      this.paused = false;
 
-    that.tweens = [];
+      this.tweens = [];
 
-    that.future = [];
-    that.neighbors = [];
+      this.future = [];
+      this.neighbors = [];
 
-    that.mouseDown = function(mouse) {};
-    that.mouseUp = function(mouse) {};
-    that.mouseClick = function(mouse) {};
-    that.mouseIn = function(mouse) {};
-    that.mouseOut = function(mouse) {};
-    that.mouseMove = function(mouse) {};
+      this.absolute = linkage.cache(this, this.find_absolute);
+      this.absolute.expiring = function() {
+        this.submotes.each(function(submote) {
+          submote.absolute.expire();
+        });
+      };
+
+      this.color_spec = linkage.cache(this, this.findColorSpec('color'));
+      this.outline_spec = linkage.cache(this, this.findColorSpec('outline'));
+
+      this.supermotes = linkage.cache(this, this.find_supermotes);
+
+      if (spec.perceive) {this.perceive = spec.perceive};
+      if (spec.adjust) {this.adjust = spec.adjust};
+      this.findBox();
+    },
+
+    mouseDown: function(mouse) {},
+    mouseUp: function(mouse) {},
+    mouseClick: function(mouse) {},
+    mouseIn: function(mouse) {},
+    mouseOut: function(mouse) {},
+    mouseMove: function(mouse) {},
 
     // absolute is a function to find the absolute position of the mote
     // with the position, orientation and scale each supermote in this mote's
@@ -633,68 +659,58 @@ var flux = function() {
 
     // rise takes a position and recursively applies the transformations of
     // all supermotes onto it
-    that.rise = function(pos) {
-      pos = that.transform === 'screen' ? pos.add(that.pos.times(browser.dim())) : pos;
-      return that.supermote ? that.supermote.rise(that.supermote.extrovert(pos)) : pos;
-    };
+    rise: function(pos) {
+      pos = this.transform === 'screen' ? pos.add(this.pos.times(browser.dim())) : pos;
+      return this.supermote ? this.supermote.rise(this.supermote.extrovert(pos)) : pos;
+    },
 
     // find_absolute is for the cache, so that the absolute position does not
     // need to be calculated every time it is accessed, only when the
     // position or orientation of it or one of its supermotes is changed.
-    var find_absolute = function() {
-      return that.rise(that.pos);
-    };
-    that.absolute = linkage.cache(find_absolute);
-    that.absolute.expiring = function() {
-      that.submotes.each(function(submote) {
-        submote.absolute.expire();
-      });
-    };
+    find_absolute: function() {
+      return this.rise(this.pos);
+    },
 
-    that.contains = function(point) {
-      return that.box.inside(point.subtract(that.absolute()));
-    };
+    contains: function(point) {
+      return this.box.inside(point.subtract(this.absolute()));
+    },
 
     // construct a simple bounding box to tell if further bounds checking is necessary
-    that.findBox = function() {
+    findBox: function() {
       var box = bounds(0, 0, 0, 0);
 
-      box = that.shapes.inject(box, function(grow, shape) {
+      box = this.shapes.inject(box, function(grow, shape) {
         grow.union(shape.box);
         return grow;
       });
 
-      that.submotes.each(function(submote) {
+      this.submotes.each(function(submote) {
         box.union(submote.box);
       });
 
-      that.box = box;
+      this.box = box;
       return box;
-    };
+    },
 
-    that.findBox();
-
-    that.findIn = function(mouse, pos) {
-      if (that.contains(pos) && !mouse.inside.include(that)) {
-        mouse.inside.push(that);
-        that.mouseIn(mouse);
+    findIn: function(mouse, pos) {
+      if (this.contains(pos) && !mouse.inside.include(this)) {
+        mouse.inside.push(this);
+        this.mouseIn(mouse);
       }
 
-      that.submotes.invoke('findIn', mouse, pos);
-    };
+      this.submotes.invoke('findIn', mouse, pos);
+    },
 
-    var findColorSpec = function(prop) {
-      return function() {return vector_to_rgba(that[prop]);};
-    };
+    findColorSpec: function(prop) {
+      return function() {return vector_to_rgba(this[prop]);};
+    },
 
-    that.color_spec = linkage.cache(findColorSpec('color'));
-    that.outline_spec = linkage.cache(findColorSpec('outline'));
-
-    that.tweenColor = function(color, ticks, posttween) {
+    tweenColor: function(color, ticks, posttween) {
       posttween = posttween || function() {};
+      var that = this;
 
-      that.tweens.push(tweenV({
-        obj: that,
+      this.tweens.push(tweenV({
+        obj: this,
         property: 'color',
         to: color,
         ticks: ticks,
@@ -702,10 +718,11 @@ var flux = function() {
         posttween: posttween
       }));
 
-      return that;
-    };
+      return this;
+    },
 
-    that.tweenPos = function(to, ticks, posttween) {
+    tweenPos: function(to, ticks, posttween) {
+      var that = this;
       that.tweens.push(tweenV({
         obj: that,
         property: 'pos',
@@ -715,114 +732,113 @@ var flux = function() {
         posttween: posttween
       }));
 
-      return that;
-    };
+      return this;
+    },
 
-    that.tweenOrientation = function(orientation, ticks, posttween) {
-      that.tweens.push(tweenN({
-        obj: that,
+    tweenOrientation: function(orientation, ticks, posttween) {
+      this.tweens.push(tweenN({
+        obj: this,
         property: 'orientation',
         to: orientation,
         ticks: ticks,
         posttween: posttween
       }));
 
-      return that;
-    };
+      return this;
+    },
 
-    that.tweenScale = function(scale, ticks) {
-      that.tweens.push(tweenV({
-        obj: that,
+    tweenScale: function(scale, ticks) {
+      this.tweens.push(tweenV({
+        obj: this,
         property: 'scale',
         to: scale,
         ticks: ticks
       }));
 
-      return that;
-    };
+      return this;
+    },
 
-    that.tweenShape = function(shape, ticks) {
-      var tween = that.shape.between(shape, ticks);
-      that.tweens = that.tweens.concat(tween);
+    tweenShape: function(shape, ticks) {
+      var tween = this.shape.between(shape, ticks);
+      this.tweens = this.tweens.concat(tween);
 
-      return that;
-    };
+      return this;
+    },
 
-    that.tweenEvent = function(event, ticks) {
+    tweenEvent: function(event, ticks) {
       var tween = tweenEvent({event: event, ticks: ticks});
-      that.tweens = that.tweens.concat(tween);
+      this.tweens = this.tweens.concat(tween);
 
-      return that;
-    };
+      return this;
+    },
 
-    that.expireSupermotes = function() {
-      that.supermotes.expire();
-      that.absolute.expire();
-      that.submotes.each(function(submote) {
+    expireSupermotes: function() {
+      this.supermotes.expire();
+      this.absolute.expire();
+      this.submotes.each(function(submote) {
         submote.expireSupermotes();
       });
-    };
+    },
 
-    that.attach = function(other) {
-      other.orientation -= that.orientation;
+    attach: function(other) {
+      other.orientation -= this.orientation;
       if (other.supermote) {
         other.supermote.submotes = other.supermote.submotes.without(other);
       }
-      that.submotes.push(other);
+      this.submotes.push(other);
 
-      other.supermote = that;
+      other.supermote = this;
       other.expireSupermotes();
-    };
+    },
 
-    that.detach = function(other) {
-      that.submotes = that.submotes.without(other);
+    detach: function(other) {
+      this.submotes = this.submotes.without(other);
 
-      other.orientation += that.orientation;
-      //        other.pos = other.supermote.extrovert(other.pos);
+      // other.pos = other.supermote.extrovert(other.pos);
+      other.orientation += this.orientation;
       other.supermote = null;
 
-      if (that.supermote) {
-        //            other.pos = that.supermote.extrovert(other.pos);
-        that.supermote.attach(other);
+      if (this.supermote) {
+        // other.pos = this.supermote.extrovert(other.pos);
+        this.supermote.attach(other);
       }
 
       other.absolute.expire();
-    };
+    },
 
-    that.addSubmotes = function(submotes) {
-      submotes.each(function(submote) {
-        that.attach(submote);
-      });
-    };
+    addSubmotes: function(submotes) {
+      var q, len = submotes.length;
+      for (q = 0; q < len; q++) {
+        this.attach(submotes[q]);
+      }
+    },
 
-    that.introvert = function(pos) {
-      return pos.times(that.scale.map(function(el) {return 1.0 / el;})).rotate(-that.orientation, that.pos).subtract(that.pos);
-    };
+    introvert: function(pos) {
+      return pos.times(this.scale.map(function(el) {return 1.0 / el;})).rotate(-this.orientation, this.pos).subtract(this.pos);
+    },
 
-    that.extrovert = function(pos) {
-      //        var transform = that.transform === 'screen' ? pos.add(that.pos.times(browser.dim())) : pos.add(that.pos);
-      var transform = pos.add(that.pos);
-      return transform.rotate(that.orientation, that.pos).times(that.scale);
-    };
+    extrovert: function(pos) {
+      //        var transform = this.transform === 'screen' ? pos.add(this.pos.times(browser.dim())) : pos.add(this.pos);
+      var transform = pos.add(this.pos);
+      return transform.rotate(this.orientation, this.pos).times(this.scale);
+    },
 
-    that.find_supermotes = function() {
-      return (that.supermote === null) ? [] : that.supermote.supermotes().slice().push(that.supermote);
-    };
+    find_supermotes: function() {
+      return (this.supermote === null) ? [] : this.supermote.supermotes().slice().push(this.supermote);
+    },
 
-    that.supermotes = linkage.cache(that.find_supermotes);
-
-    that.commonSupermote = function(other) {
-      if (that.supermote === null || other.supermote === null) {
+    commonSupermote: function(other) {
+      if (this.supermote === null || other.supermote === null) {
         return null;
       }
 
-      var n = that.supermotes().length - 1;
+      var n = this.supermotes().length - 1;
       var common = null;
       var down = -1;
       var possible = null;
 
       while (!common && n >= 0) {
-        possible = that.supermotes()[n];
+        possible = this.supermotes()[n];
         down = other.supermotes().indexOf(possible);
 
         if (down >= 0) {
@@ -834,17 +850,17 @@ var flux = function() {
 
       return {
         common: common,
-        up: that.supermotes().length - 1 - n,
+        up: this.supermotes().length - 1 - n,
         down: down === -1 ? other.supermotes().length : other.supermotes().length - 1 - down
       };
-    };
+    },
 
-    that.relativePos = function(other) {
-      if (that.supermote === other.supermote) {
+    relativePos: function(other) {
+      if (this.supermote === other.supermote) {
         return other.pos;
       }
 
-      var common = that.commonSupermote(other);
+      var common = this.commonSupermote(other);
       var transformed = other.pos;
 
       for (var extro = 0; extro < common.down; extro++) {
@@ -852,131 +868,137 @@ var flux = function() {
       }
 
       for (var intro = 0; intro < common.up; intro++) {
-        transformed = that.supermotes()[(that.supermotes().length - common.up) + intro].introvert(transformed);
+        transformed = this.supermotes()[(this.supermotes().length - common.up) + intro].introvert(transformed);
       }
 
       return transformed;
-    };
+    },
 
-    that.distance = function(other) {
-      return that.absolute().distanceFrom(other.absolute());
-    };
+    distance: function(other) {
+      return this.absolute().distanceFrom(other.absolute());
+    },
 
-    that.to = function(other) {
-      return other.absolute().subtract(that.absolute());
-    };
+    to: function(other) {
+      return other.absolute().subtract(this.absolute());
+    },
 
-    that.angleFrom = function(other) {
-      return that.pos.angleFrom(other.pos);
-    };
+    angleFrom: function(other) {
+      return this.pos.angleFrom(other.pos);
+    },
 
     // this finds the closest mote from a list of possible motes.
     // a predicate can be provided to filter out choices.
-    that.findClosest = function(others, predicate) {
-      var closestMote = null;
-      var closestDistance = null;
+    findClosest: function(others, predicate) {
+      var closestMote;
+      var closestDistance;
 
-      predicate = predicate || function(other) {return true;};
+      predicate = predicate || function() {return true};
 
-      others.each(function(other) {
+      var q, other, len = others.length;
+      for (q = 0; q < len; q++) {
+        other = others[q];
+
         if (predicate(other)) {
           if (closestMote === null) {
             closestMote = other;
-            closestDistance = that.distance(other);
+            closestDistance = this.distance(other);
           } else {
-            var newDistance = that.distance(other);
+            var newDistance = this.distance(other);
             if (newDistance < closestDistance) {
               closestMote = other;
               closestDistance = newDistance;
             }
           }
         }
-      });
+      };
 
       return closestMote;
-    };
+    },
 
-    that.pause = function() {
-      that.paused = true;
-    };
+    pause: function() {
+      this.paused = true;
+    },
 
-    that.unpause = function() {
-      that.paused = false;
-    };
+    unpause: function() {
+      this.paused = false;
+    },
 
-    that.perceive = spec.perceive || function(env) {
-      that.submotes.each(function(submote) {
+    perceive: function(env) {
+      this.submotes.each(function(submote) {
         submote.perceive(env);
       });
-    };
+    },
 
-    that.adjust = spec.adjust || function() {
-      if (!that.paused) {
-        that.orientation += that.rotation;
+    adjust: function() {
+      if (!this.paused) {
+        this.orientation += this.rotation;
 
-        while (that.orientation > Math.PI) {
-          that.orientation -= Math.PI*2;
-        } while (that.orientation < -Math.PI) {
-          that.orientation += Math.PI*2;
+        while (this.orientation > Math.PI) {
+          this.orientation -= Math.PI*2;
+        } while (this.orientation < -Math.PI) {
+          this.orientation += Math.PI*2;
         }
 
-        for (var dim=0; dim < that.pos.length; dim++) {
-          that.pos[dim] += that.velocity[dim];
+        var dim, len = this.pos.length;
+        for (dim = 0; dim < len; dim++) {
+          this.pos[dim] += this.velocity[dim];
         }
 
-        that.future.each(function(moment) {
-          moment(that);
-        });
-        that.future = [];
-
+        len = this.future.length;
+        for (dim = 0; dim < len; dim++) {
+          this.future[dim](this);
+        };
+        this.future = [];
       }
 
-      that.tweens = that.tweens.select(function(tween) {
+      this.tweens = this.tweens.select(function(tween) {
         return tween.tick();
       });
 
-      that.submotes.invoke('adjust');
-      that.absolute.expire();
+      this.submotes.invoke('adjust');
+      this.absolute.expire();
 
       // ----------- lazy bounds checking ---------------
-      if (that.bounds) {
-        var check = that.bounds.check(that.pos);
+      if (this.bounds) {
+        var check = this.bounds.check(this.pos);
 
-        check.each(function(result, index) {
-          if (!(result === 0)) {
-            that.velocity[index] = -that.velocity[index];
+        len = check.length
+        for (dim = 0; dim < len; dim++) {
+          if (!(check[dim] === 0)) {
+            this.velocity[dim] = -this.velocity[dim];
           }
-        });
+        };
       }
       // -------------------------------------------------
 
-    };
+    },
 
-    that.drawShape = function(context, fill) {
+    drawShape: function(context, fill) {
       context.beginPath();
 
-      that.shape.ops.each(function(vertex) {
+      this.shape.ops.each(function(vertex) {
         context[vertex.method].apply(context, vertex.args());
       });
 
       context.closePath();
       context[fill]();
-    };
+    },
 
-    that.draw = function(context) {
+    draw: function(context) {
       // drawing lines to neighbors
-      if (that.visible && that.neighbors.length > 1) {
+      if (this.visible && this.neighbors.length > 1) {
         context.save();
 
-        that.neighbors.each(function(neighbor) {
+        var q, len = this.neighbors.length;
+        for (q = 0; q < len; q++) {
           context.lineWidth = 3;
-          context.strokeStyle = that.color_spec();
+          context.strokeStyle = this.color_spec();
           context.beginPath();
-          context.moveTo.apply(context, that.pos);
-          context.lineTo.apply(context, that.relativePos(neighbor));
+          context.moveTo.apply(context, this.pos);
+          context.lineTo.apply(context, this.relativePos(this.neighbors[q]));
           context.closePath();
           context.stroke();
-        });
+        };
 
         context.restore();
       }
@@ -984,39 +1006,37 @@ var flux = function() {
       // drawing the shape
       context.save();
 
-      context[that.fill + 'Style'] = that.color_spec();
-      context.lineWidth = that.lineWidth;
+      context[this.fill + 'Style'] = this.color_spec();
+      context.lineWidth = this.lineWidth;
 
-      if (that.transform === 'screen') {
-        context.translate(Math.floor(that.pos[0]*browser.w), Math.floor(that.pos[1]*browser.h));
+      if (this.transform === 'screen') {
+        context.translate(Math.floor(this.pos[0]*browser.w), Math.floor(this.pos[1]*browser.h));
       } else {
-        context.translate.apply(context, that.pos);
+        context.translate.apply(context, this.pos);
       }
 
-      context.rotate(that.orientation);
-      context.scale.apply(context, that.scale);
+      context.rotate(this.orientation);
+      context.scale.apply(context, this.scale);
 
-      if (that.visible) {
-        var len = that.shapes.length;
-        for (var index=0; index < len; index++){
-          that.shapes[index].draw(context);
+      if (this.visible) {
+        var q, len = this.shapes.length;
+        for (q = 0; q < len; q++){
+          this.shapes[q].draw(context);
         }
 
-        if (that.outline) {
+        if (this.outline) {
           context.save();
-          context.strokeStyle = that.outline_spec();
-          that.drawShape(context, 'stroke');
+          context.strokeStyle = this.outline_spec();
+          this.drawShape(context, 'stroke');
           context.restore();
         }
       }
 
-      that.submotes.invoke('draw', context);
+      this.submotes.invoke('draw', context);
 
       context.restore();
-    };
-
-    return that;
-  };
+    }
+  });
 
   // managing the canvas for all motes
   var canvas = function(spec) {
@@ -1166,6 +1186,8 @@ var flux = function() {
       context.clearRect(0, 0, browser.w, browser.h);
       that.predraw(context);
 
+//       var q, len = that.motes.length;
+//       for (q = 0; q < len; q++) {
       if (that.transforms['pos']) {
         context.save();
         context.translate(that.translation[0], that.translation[1]);
