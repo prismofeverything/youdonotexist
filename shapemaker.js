@@ -76,6 +76,16 @@ var shapemaker = function() {
     cursors.op.focus(shape.ops[0]);
   });
 
+  var ophighlight = flux.mote({
+    shape: flux.shape({ops: [{op: 'arc', to: [0, 0], radius: Math.pi*2}]}),
+    outline: [100, 200, 150]
+  });
+
+  cursors.op.focus.watch(function(op) {
+    ophighlight.to[0] = op.to[0];
+    ophighlight.to[1] = op.to[1];
+  });
+
   var raisecc = function() {
     if (cc !== 'mote') {
       cc = cc === 'shape' ? 'mote' : 'shape';
@@ -122,6 +132,7 @@ var shapemaker = function() {
   };
 
   world.addMote(mote);
+  world.addMote(ophighlight);
 
   var start = function() {
     world.init();
