@@ -208,7 +208,7 @@ var flux = function() {
   });
 
   var op = function() {
-    var uberbase = linkage.type({
+    var base = linkage.type({
       init: function(spec) {
         this.method = 'base';
         this.op = spec.op;
@@ -234,13 +234,6 @@ var flux = function() {
           to: other.to,
           ticks: ticks
         })];
-      }
-    });
-
-    var base = linkage.type([uberbase], {
-      init: function(spec) {
-        arguments.callee.uber.call(this, spec);
-        this.animal = 'mockingbird';
       }
     });
 
@@ -1219,16 +1212,12 @@ var flux = function() {
 
       len = rest.length;
       if (len > 0) {
-        context.save();
-
         for (q = 0; q < len; q++) {
           qmote = rest[q];
           if (qmote.transform === 'screen') {
             qmote.draw(context);
           }
         }
-
-        context.restore();
       }
 
       that.postdraw(context);
@@ -1396,7 +1385,7 @@ var flux = function() {
       context.lineWidth = 5;
 
       // timer
-      setInterval(update, 20);
+      setInterval(update, 40);
     };
 
     return that;

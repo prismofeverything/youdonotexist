@@ -10,14 +10,13 @@ var shapemaker = function() {
   });
 
   var cursor = linkage.type({
-    init: function(which, focus, collection, create) {
-      this.which = which;
-      this.focus = linkage.link(focus);
-
+    init: function(collection, insert) {
       this.collection = collection || function() {
         var col = []; 
         return function() {return col};
       };
+
+      this.focus = linkage.link(focus);
     },
 
     stepCursor: function(step) {
@@ -36,24 +35,24 @@ var shapemaker = function() {
     },
 
     add: function(spec) {
-      var newCursor = flux[this.which](spec);
+      var newFocus = flux[this.which](spec);
       var collection = this.collection();
       var newIndex = collection.indexOf(this.focus());
 
-      collection.splice(newIndex, 0, newCursor);
-      this.focus(newCursor);
+      collection.splice(newIndex, 0, newFocus);
+      this.focus(newFocus);
 
-      return newCursor;
+      return newFocus;
     },
 
     remove: function() {
       var collection = this.collection();
       var oldIndex = collection.indexOf(this.focus());
-      var oldCursor = collection.splice(oldIndex, 1);
+      var oldFocus = collection.splice(oldIndex, 1);
       var newIndex = oldIndex % collection.length;
 
       this.focus(collection[newIndex]);
-      return oldCursor;
+      return oldFocus;
     }
   });
 

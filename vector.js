@@ -20,7 +20,7 @@ var vector = function(spec) {
   var that = {};
 
   that.zero = spec.zero || 0;
-  that.dim = spec.dim || spec.elements.size() || 0;
+  that.dim = spec.dim || spec.elements.length || 0;
   that.elements = spec.elements || $R(0, that.dim).map(function(el){return that.zero;});
 
   that.toString = function() {
