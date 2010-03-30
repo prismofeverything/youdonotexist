@@ -1,178 +1,182 @@
-var shapemaker = function() {
-  var shape_index = 0;
+var shapemaker = function () {
+    var shape_index = 0;
 
-  var shape = flux.shape({
-    color: [255, 255, 255, 255]
-  });
+    var shape = flux.shape({
+        color: [255, 255, 255, 255]
+    });
 
-  var mote = flux.mote({
-    shapes: [shape]
-  });
+    var mote = flux.mote({
+        shapes: [shape]
+        });
 
-  var cursor = linkage.type({
-    init: function(collection, insert) {
-      this.collection = collection || function() {
-        var col = []; 
-        return function() {return col};
-      };
+    var cursor = linkage.type({
+        init: function () {
+            this.index = 0;
+            this.focus = linkage.link(this.collection()[this.index]);
+        },
 
-      this.focus = linkage.link(focus);
-    },
+        collection: function () {
+            var col = []; 
+            return function () {return col;};
+        }(),
 
-    stepCursor: function(step) {
-      var collection = this.collection();
-      var nextIndex = (collection.indexOf(this.focus()) + step) % collection.length;
+        create: function () {},
 
-      this.focus(collection[nextIndex]);
-    },
+        refocus: function () {
+            this.focus(this.collection()[this.index]);
+        },
 
-    next: function() {
-      this.stepCursor(1);
-    },
+        step: function (step) {
+            this.index = (this.index + step) % this.collection().length;
+            this.refocus();
+        },
 
-    previous: function() {
-      this.stepCursor(-1);
-    },
+        next: function () {
+            this.step(1);
+        },
 
-    add: function(spec) {
-      var newFocus = flux[this.which](spec);
-      var collection = this.collection();
-      var newIndex = collection.indexOf(this.focus());
+        previous: function () {
+            this.step(-1);
+        },
 
-      collection.splice(newIndex, 0, newFocus);
-      this.focus(newFocus);
+        add: function (spec) {
+            var fresh = this.create(spec);
+                this.collection().splice(this.index, 0, fresh);
+                this.focus(fresh);
 
-      return newFocus;
-    },
+            return fresh;
+        },
 
-    remove: function() {
-      var collection = this.collection();
-      var oldIndex = collection.indexOf(this.focus());
-      var oldFocus = collection.splice(oldIndex, 1);
-      var newIndex = oldIndex % collection.length;
+        remove: function () {
+            var oldFocus = this.collection().splice(this.index, 1);
+            var newIndex = this.index % this.collection().length;
+            this.refocus();
 
-      this.focus(collection[newIndex]);
-      return oldFocus;
-    }
-  });
+            return oldFocus;
+        }
+    });
 
-  var cursors = {
-    mote: cursor('mote', mote, function() {
-      return this.focus().supermote ? this.focus().supermote.motes : world.motes;
-    }),
+    var opcursor = linkage.type([cursor], {
+        
+    });
 
-    shape: cursor('shape', shape, function() {return cursors.mote.focus().shapes}),
-    op: cursor('op', null, function() {return cursors.shape.focus().ops})
-  };
+    var cursors = {
+        mote: cursor('mote', mote, function () {
+            return this.focus().supermote ? this.focus().supermote.motes : world.motes;
+        }),
 
-  var cc = 'op'; // cursorcursor
+        shape: cursor('shape', shape, function () {return cursors.mote.focus().shapes;}),
+        op: cursor('op', null, function () {return cursors.shape.focus().ops;})
+        };
 
-  cursors.mote.focus.watch(function(mote) {
-    cursors.shape.focus(mote.shapes[0]);
-  });
+    var cc = 'op'; // cursorcursor
 
-  cursors.shape.focus.watch(function(shape) {
-    cursors.op.focus(shape.ops[0]);
-  });
+    cursors.mote.focus.watch(function (mote) {
+        cursors.shape.focus(mote.shapes[0]);
+    });
 
-  var ophighlight = flux.mote({
-    shape: flux.shape({ops: [{op: 'arc', to: [0, 0], radius: Math.pi*2}]}),
-    outline: [100, 200, 150]
-  });
+    cursors.shape.focus.watch(function (shape) {
+        cursors.op.focus(shape.ops[0]);
+    });
 
-  cursors.op.focus.watch(function(op) {
-    ophighlight.to[0] = op.to[0];
-    ophighlight.to[1] = op.to[1];
-  });
+    var ophighlight = flux.mote({
+        shape: flux.shape({ops: [{op: 'arc', to: [0, 0], radius: Math.pi*2}]}),
+        outline: [100, 200, 150]
+    });
 
-  var raisecc = function() {
-    if (cc !== 'mote') {
-      cc = cc === 'shape' ? 'mote' : 'shape';
-    }
-  }
+    cursors.op.focus.watch(function (op) {
+        ophighlight.to[0] = op.to[0];
+        ophighlight.to[1] = op.to[1];
+    });
 
-  var lowercc = function() {
-    if (cc !== 'op') {
-      cc = cc === 'shape' ? 'op' : 'shape';
-    }
-  }
+    var raisecc = function () {
+        if (cc !== 'mote') {
+            cc = cc === 'shape' ? 'mote' : 'shape';
+        }
+    };
 
-  // create world
-  var world = flux.canvas({
-    id: 'shapemaker',
+    var lowercc = function () {
+        if (cc !== 'op') {
+            cc = cc === 'shape' ? 'op' : 'shape';
+        }
+    };
 
-    resize: function(browser, canvas) {
-      canvas.width = browser.w - 500;
-      canvas.height = browser.h;
-    },
+    // create world
+    var world = flux.canvas({
+        id: 'shapemaker',
 
-    mouseDown: function(canvas, mouse) {
-      cursors.op.add({op: 'line', to: mouse.pos});
-    },
+        resize: function (browser, canvas) {
+            canvas.width = browser.w - 500;
+            canvas.height = browser.h;
+        },
 
-    keyDown: function(canvas, key, keys) {
-      console.log(key+'');
-      if (key == 37) { // left
-        cursors[cc].previous();
-      } else if (key == 39) { // right
-        cursors[cc].next();
-      // we can do this because we know there are only three cursors. 
-      // if that ever changes, this breaks.
-      } else if (key == 38) { // up
-        raisecc();
-      } else if (key == 40) { // down
-        lowercc();
-      }
-    }
-  });
+        mouseDown: function (canvas, mouse) {
+            cursors.op.add({op: 'line', to: mouse.pos});
+        },
 
-  world.colorChange = function(color) {
-    cursors.shape.focus().updateColor(color);
-  };
+        keyDown: function (canvas, key, keys) {
+            console.log(key+'');
+            if (key == 37) { // left
+                cursors[cc].previous();
+            } else if (key == 39) { // right
+                cursors[cc].next();
+                // we can do this because we know there are only three cursors. 
+                // if that ever changes, this breaks.
+            } else if (key == 38) { // up
+                raisecc();
+            } else if (key == 40) { // down
+                lowercc();
+            }
+        }
+    });
 
-  world.addMote(mote);
-  world.addMote(ophighlight);
+    world.colorChange = function (color) {
+        cursors.shape.focus().updateColor(color);
+    };
 
-  var start = function() {
-    world.init();
-  };
+    world.addMote(mote);
+    world.addMote(ophighlight);
 
-  var potentialMoteElaboration = {
-    name: 'potential',
-    cycles: {
-      resting: {
-        phases: [ // each phase is a shape
-          {
-            color: [255, 255, 255, 255],
-            ops: [
-              {
-                op: 'line',
-                to: [10, 90]
-              },
-              {
-                op: 'bezier',
-                to: [22, 77],
-                control1: [33, 66],
-                control2: [99, 88]
-              }
-            ]
-          },
-          {
-            // these could go on forever...
-          }
-        ]
-      },
-      breathing: {
-        // same here...
-      }
-    },
-    submotes: []
-  };
+    var start = function () {
+        world.init();
+    };
 
-  return {
-    world: world,
-    start: start
-  };
+    var potentialMoteElaboration = {
+        name: 'potential',
+        cycles: {
+            resting: {
+                phases: [ // each phase is a shape
+                    {
+                        color: [255, 255, 255, 255],
+                        ops: [
+                            {
+                                op: 'line',
+                                to: [10, 90]
+                            },
+                            {
+                                op: 'bezier',
+                                to: [22, 77],
+                                control1: [33, 66],
+                                control2: [99, 88]
+                            }
+                        ]
+                    },
+                    {
+                        // these could go on forever...
+                    }
+                ]
+            },
+            breathing: {
+                // same here...
+            }
+        },
+        submotes: []
+    };
+
+    return {
+        world: world,
+        start: start
+    };
 }();
 
 
@@ -180,7 +184,7 @@ var shapemaker = function() {
 
 
 
-//   var colorWheel = function() {
+//   var colorWheel = function () {
 //     var radius = 200;
 //     var resolution = 111;
 //     var step = Math.PI*2/resolution;
@@ -189,7 +193,7 @@ var shapemaker = function() {
 //     var saturation = 1.0;
 //     var luminance = 0.5;
 
-//     var draw = function(context) {
+//     var draw = function (context) {
 //       context.beginPath();
 //       context.moveTo(radius, 0);
 
@@ -199,18 +203,18 @@ var shapemaker = function() {
 //         context.fillStyle = vector_to_rgba([wedge, 0.5, luminance, 1]);
 //         context.lineTo(Math.cos(wedge)*radius, Math.sin(wedge)*radius);
 //       }
-      
+
 // //       context.fillStyle = vector_to_rgba([wedge, 0.0, luminance, 1.0]);
 // //       context.lineTo(0, 0);
 //       context.closePath();
 //       context.fill();
 //     }
 
-//     var perceive = function(canvas) {
+//     var perceive = function (canvas) {
 
 //     }
 
-//     var adjust = function() {
+//     var adjust = function () {
 
 //     }
 

@@ -1,1600 +1,1600 @@
 var homeostasis = function(id) {
-  var above = flux.bounds(-1700, 1700, -450, 250);
-  var below = flux.bounds(-1700, 1700, 1700, 2400);
-  var all = above.copy();
-  all.union(below);
+    var above = flux.bounds(-1700, 1700, -450, 250);
+    var below = flux.bounds(-1700, 1700, 1700, 2400);
+        var all = above.copy();
+    all.union(below);
 
-  var receptorGrip = 0.996;
-  var attractantRepellentRatio = 0.5;
-  var phosphorylationCycles = 50;
-  var globalVelocity = 5;
-  var timeZoom = 10;
-  var dragging = false;
-  var showingState = false;
+        var receptorGrip = 0.996;
+        var attractantRepellentRatio = 0.5;
+        var phosphorylationCycles = 50;
+        var globalVelocity = 5;
+    var timeZoom = 10;
+        var dragging = false;
+        var showingState = false;
 
-  var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
+    var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
-  var randomVelocity = function() {
-    return [(Math.random()-0.5)*globalVelocity, (Math.random()-0.5)*globalVelocity];
-  }
-
-  var descriptions = {
-    homeostasis: 'Homeostasis is the process of maintaining some kind of balance\n'
-      + 'in the face of endlessly changing external forces.  In this case\n'
-      + 'the cell is always seeking to climb the gradient of attractants\n'
-      + 'and oppose the gradient of repellents, leading it to sources of food\n'
-      + 'and away from potentially harmful agents.  The system maintains\n'
-      + 'its sensitivity to even the most subtle gradient while compensating\n'
-      + 'for any saturation of either attractants or repellents in the\n'
-      + 'surrounding environment.',
-    about: 'This is an interactive model of cellular chemotaxis.  You can drag\n'
-      + 'the model around with the mouse and zoom in and out with the scroll wheel,\n'
-      + 'or the \'i\' and \'o\' keys (for \'in\' and \'out\') if you are missing a scroll wheel.\n'
-      + 'Mousing over one of the components will highlight the corresponding entry\n'
-      + 'in the menu, and clicking will bring up a description of that component\n'
-      + 'and its role in the process of sensing chemical gradients.',
-    '______________________________': 'This is the divider!',
-    membrane: 'The membrane is the enclosing surface that separates\n'
-      + 'the inside of the cell from the outside.  The cell\n'
-      + 'maintains an electric potential across this membrane\n'
-      + 'and then harnesses that potential to do work.',
-    flagella: 'When the flagella spin in one direction the cell is\n'
-      + 'propelled forward.  In the other direction, the cell tumbles\n'
-      + 'erratically.  Because of the chemotaxis system, the cell will\n'
-      + 'travel forwards mostly, and tumble infrequently, unless in the\n'
-      + 'presence of repellents, where it\'s tendency to tumble will\n'
-      + 'lead it away from the potentially harmful source.',
-    column: 'The column spans the membrane, allowing for communication\n'
-      + 'across the otherwise impenetrable barrier.  This way also\n'
-      + 'transportation of materials across the membrane is strictly\n'
-      + 'controlled.  In this case, receptors in the outer portion\n'
-      + 'of the column bind either attractants or repellents, which\n'
-      + 'act as ligands, and the inner portion is bound to cheW,\n'
-      + 'which can be activated or deactived based on which ligands\n'
-      + 'the outer portion is bound to.',
-    repellent: 'Repellents bind to receptors in a column and\n'
-      + 'increase the activity of cheW, leading to the phosphorylation\n'
-      + 'of cheY and cheB.',
-    attractant: 'Attractants bind to receptors in a column and\n'
-      + 'reduce the activity of cheW.',
-    cheW: 'cheW is activated by repellents binding to the outer portion\n'
-      + 'of the column and deactivated by the binding of attractants,\n'
-      + 'with its sensitivity guided by the number of bound\n'
-      + 'methyl groups attached to the inner portion.  When active, cheW\n'
-      + 'enables the phosphorylation of cheY, which triggers activation of the\n'
-      + 'flagellar motors, and of cheB, which removes\n'
-      + 'methyl groups from the column.',
-    phosphate: 'Phosphate groups often act as a tag, or a signal that some condition is present.\n'
-      + 'In the process of binding to various enzymes they trigger conformational\n'
-      + 'changes which expose the enzymes\' active sites.  These active sites\n'
-      + 'then trigger some other change, such as splicing or fusing other molecular components.',
-    cheY: 'cheY is an enzyme that when phosphorylated binds to flagellar motors,\n'
-      + 'inducing them to reverse their rotation and send the cell tumbling in a different direction.\n'
-      + 'Most of the time the flagella are rotating in a clockwise direction, which sends\n'
-      + 'the cell travelling in mostly a straight line.  The motor can be reversed, causing the cell\n'
-      + 'to tumble more or less randomly, which then travels off in a new direction.',
-    cheZ: 'cheZ removes phosphate groups from cheY.  In this way,\n'
-      + 'a balance is struck between the phosphorylation caused by the activation of\n'
-      + 'cheW when the cell is in the presence of repellents, and the steady dephosphorylation\n'
-      + 'that results from interactions with cheZ.  This self-limiting cycle\n'
-      + 'results in a sensitivity to chemical gradients, with the cell avoiding repellents\n'
-      + 'and seeking attractants.',
-    methyl: 'Methyl groups are signifiers like phosphates, and are attached to various molecules\n'
-      + 'in order to induce conformational changes.  In this case, the methyls are binding\n'
-      + 'to the inner portion of the columns.  The more methyl groups bound to the column,\n'
-      + 'the more sensitive the column is to repellents, and the more active cheW will be.',
-    cheB: 'cheB is phosphorylated in the presence of active cheW, just like cheY.  cheB\n'
-      + 'removes methyl groups from columns, thereby reducing the activity of cheW and\n'
-      + 'the subsequent phosphorylation of cheB (and cheY).  So here we see another layer\n'
-      + 'of self-limitation, the activation of cheW leading to the phosphorylation of cheB\n'
-      + 'leading to the demethylation of columns leading to the DE-activation of cheW.\n'
-      + 'So the activation of cheW entails the eventual deactivation of cheW, cleaning up\n'
-      + 'its own mess so to speak.  This process is called *adaptation*, and is common\n'
-      + 'to a mind-boggling cross-section of biological processes.  ',
-    cheR: 'cheR adds methyl groups to the inner portion of a column at a\n'
-      + 'steady rate.  In this way the rate of cheW activation is steadily\n'
-      + 'increased, offset by the concentration of phosphorylated cheB.\n'
-      + 'This adaptive cycle of methylation and demethylation is on a much\n'
-      + 'longer time-scale than the activation of cheW by repellents and\n'
-      + 'the phosphorylation of cheY.  In this way the cell can be\n'
-      + 'immediately responsive while at the same time adaptive to the\n'
-      + 'general fluctuations of attractants and repellents in the\n'
-      + 'surrounding environment.'
-  };
-
-  var molecule = function(spec) {
-    spec.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
-
-    var that = flux.mote(spec);
-    var oldVelocity = that.velocity;
-
-    that.neighbors = [that];
-
-    that.state = 'base';
-    that.base = function(env) {};
-
-    that.focus = function() {
-      that.oldColor = that.color.clone();
-      that.tweenColor([255, 255, 255, 1], 5);
-
-      that.pause();
+    var randomVelocity = function() {
+        return [(Math.random()-0.5)*globalVelocity, (Math.random()-0.5)*globalVelocity];
     };
 
-    that.unfocus = function() {
-      if (that.oldColor) that.tweenColor(that.oldColor, 5);
-      that.unpause();
+    var descriptions = {
+        homeostasis: 'Homeostasis is the process of maintaining some kind of balance\n'
+            + 'in the face of endlessly changing external forces.  In this case\n'
+            + 'the cell is always seeking to climb the gradient of attractants\n'
+            + 'and oppose the gradient of repellents, leading it to sources of food\n'
+            + 'and away from potentially harmful agents.  The system maintains\n'
+            + 'its sensitivity to even the most subtle gradient while compensating\n'
+            + 'for any saturation of either attractants or repellents in the\n'
+            + 'surrounding environment.',
+        about: 'This is an interactive model of cellular chemotaxis.  You can drag\n'
+            + 'the model around with the mouse and zoom in and out with the scroll wheel,\n'
+            + 'or the \'i\' and \'o\' keys (for \'in\' and \'out\') if you are missing a scroll wheel.\n'
+            + 'Mousing over one of the components will highlight the corresponding entry\n'
+            + 'in the menu, and clicking will bring up a description of that component\n'
+            + 'and its role in the process of sensing chemical gradients.',
+        '______________________________': 'This is the divider!',
+        membrane: 'The membrane is the enclosing surface that separates\n'
+            + 'the inside of the cell from the outside.  The cell\n'
+            + 'maintains an electric potential across this membrane\n'
+            + 'and then harnesses that potential to do work.',
+        flagella: 'When the flagella spin in one direction the cell is\n'
+            + 'propelled forward.  In the other direction, the cell tumbles\n'
+            + 'erratically.  Because of the chemotaxis system, the cell will\n'
+            + 'travel forwards mostly, and tumble infrequently, unless in the\n'
+            + 'presence of repellents, where it\'s tendency to tumble will\n'
+            + 'lead it away from the potentially harmful source.',
+        column: 'The column spans the membrane, allowing for communication\n'
+            + 'across the otherwise impenetrable barrier.  This way also\n'
+            + 'transportation of materials across the membrane is strictly\n'
+            + 'controlled.  In this case, receptors in the outer portion\n'
+            + 'of the column bind either attractants or repellents, which\n'
+            + 'act as ligands, and the inner portion is bound to cheW,\n'
+            + 'which can be activated or deactived based on which ligands\n'
+            + 'the outer portion is bound to.',
+        repellent: 'Repellents bind to receptors in a column and\n'
+            + 'increase the activity of cheW, leading to the phosphorylation\n'
+            + 'of cheY and cheB.',
+        attractant: 'Attractants bind to receptors in a column and\n'
+            + 'reduce the activity of cheW.',
+        cheW: 'cheW is activated by repellents binding to the outer portion\n'
+            + 'of the column and deactivated by the binding of attractants,\n'
+            + 'with its sensitivity guided by the number of bound\n'
+            + 'methyl groups attached to the inner portion.  When active, cheW\n'
+            + 'enables the phosphorylation of cheY, which triggers activation of the\n'
+            + 'flagellar motors, and of cheB, which removes\n'
+            + 'methyl groups from the column.',
+        phosphate: 'Phosphate groups often act as a tag, or a signal that some condition is present.\n'
+            + 'In the process of binding to various enzymes they trigger conformational\n'
+            + 'changes which expose the enzymes\' active sites.  These active sites\n'
+            + 'then trigger some other change, such as splicing or fusing other molecular components.',
+        cheY: 'cheY is an enzyme that when phosphorylated binds to flagellar motors,\n'
+            + 'inducing them to reverse their rotation and send the cell tumbling in a different direction.\n'
+            + 'Most of the time the flagella are rotating in a clockwise direction, which sends\n'
+            + 'the cell travelling in mostly a straight line.  The motor can be reversed, causing the cell\n'
+            + 'to tumble more or less randomly, which then travels off in a new direction.',
+        cheZ: 'cheZ removes phosphate groups from cheY.  In this way,\n'
+            + 'a balance is struck between the phosphorylation caused by the activation of\n'
+            + 'cheW when the cell is in the presence of repellents, and the steady dephosphorylation\n'
+            + 'that results from interactions with cheZ.  This self-limiting cycle\n'
+            + 'results in a sensitivity to chemical gradients, with the cell avoiding repellents\n'
+            + 'and seeking attractants.',
+        methyl: 'Methyl groups are signifiers like phosphates, and are attached to various molecules\n'
+            + 'in order to induce conformational changes.  In this case, the methyls are binding\n'
+            + 'to the inner portion of the columns.  The more methyl groups bound to the column,\n'
+            + 'the more sensitive the column is to repellents, and the more active cheW will be.',
+        cheB: 'cheB is phosphorylated in the presence of active cheW, just like cheY.  cheB\n'
+            + 'removes methyl groups from columns, thereby reducing the activity of cheW and\n'
+            + 'the subsequent phosphorylation of cheB (and cheY).  So here we see another layer\n'
+            + 'of self-limitation, the activation of cheW leading to the phosphorylation of cheB\n'
+            + 'leading to the demethylation of columns leading to the DE-activation of cheW.\n'
+            + 'So the activation of cheW entails the eventual deactivation of cheW, cleaning up\n'
+            + 'its own mess so to speak.  This process is called *adaptation*, and is common\n'
+            + 'to a mind-boggling cross-section of biological processes.  ',
+        cheR: 'cheR adds methyl groups to the inner portion of a column at a\n'
+            + 'steady rate.  In this way the rate of cheW activation is steadily\n'
+            + 'increased, offset by the concentration of phosphorylated cheB.\n'
+            + 'This adaptive cycle of methylation and demethylation is on a much\n'
+            + 'longer time-scale than the activation of cheW by repellents and\n'
+            + 'the phosphorylation of cheY.  In this way the cell can be\n'
+            + 'immediately responsive while at the same time adaptive to the\n'
+            + 'general fluctuations of attractants and repellents in the\n'
+            + 'surrounding environment.'
     };
 
-    that.mouseIn = spec.mouseIn || function(mouse) {
-      that.focus();
+    var molecule = function(spec) {
+        spec.orientation = (spec.orientation === undefined) ? Math.random()*2*Math.PI : spec.orientation;
 
-      if (that.type) {
-        moleculeKey.itemhash[that.type].activate();
-      }
+        var that = flux.mote(spec);
+        var oldVelocity = that.velocity;
+
+        that.neighbors = [that];
+
+        that.state = 'base';
+        that.base = function(env) {};
+
+        that.focus = function() {
+            that.oldColor = that.color.clone();
+            that.tweenColor([255, 255, 255, 1], 5);
+
+            that.pause();
+            };
+
+        that.unfocus = function() {
+            if (that.oldColor) that.tweenColor(that.oldColor, 5);
+            that.unpause();
+        };
+
+        that.mouseIn = spec.mouseIn || function(mouse) {
+            that.focus();
+
+            if (that.type) {
+                moleculeKey.itemhash[that.type].activate();
+            }
+        };
+
+        that.mouseOut = spec.mouseOut || function(mouse) {
+            that.unfocus();
+
+            if (that.type) {
+                moleculeKey.itemhash[that.type].deactivate();
+            }
+        };
+
+        that.keyItem = function() {
+            return moleculeKey.itemhash[that.type];
+            };
+
+        var showDescription = function(mouse) {
+            // only show the deepest submote under the mouse
+            var lowest = mouse.inside.inject(that, function(lowest, inside) {
+                return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
+            });
+
+            if (that === lowest) {
+                //                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.map(function(x){return Math.round(x);});}) + '\n\n';
+
+                var state = showingState ? ' -- ' + that.state : '';
+                var output = that.type + state + '\n\n';
+                    that.keyItem().showDescription(output);
+            }
+            };
+
+        var hideDescription = function(mouse) {
+            that.keyItem().hideDescription(true);
+        };
+
+        that.findNeighbor = function(condition) {
+            var index = 0;
+            var neighbor = null;
+            var found = null;
+
+            while (!found && index < that.neighbors.length) {
+                neighbor = that.neighbors[index];
+                    if (condition(neighbor)) {
+                        found = neighbor;
+                    }
+
+                index += 1;
+            }
+
+            return found;
+            };
+
+        that.perceive = spec.perceive || function(env) {
+            that[that.state](env);
+        };
+
+            that.mouseDown = spec.mouseDown || showDescription;
+        //        that.mouseUp = spec.mouseUp || hideDescription;
+
+        return that;
     };
 
-    that.mouseOut = spec.mouseOut || function(mouse) {
-      that.unfocus();
-
-      if (that.type) {
-        moleculeKey.itemhash[that.type].deactivate();
-      }
+    var randomPos = function(box) {
+        return box.randomPoint();
     };
 
-    that.keyItem = function() {
-      return moleculeKey.itemhash[that.type];
-    };
+    var randomLigand = function() {
+        var up = (Math.random() - 0.5) > 0;
+        var inside = up ? above : below;
 
-    var showDescription = function(mouse) {
-      // only show the deepest submote under the mouse
-      var lowest = mouse.inside.inject(that, function(lowest, inside) {
-        return lowest.supermotes().length < inside.supermotes().length ? inside : lowest;
-      });
-
-      if (that === lowest) {
-        //                var output = that.type + ' -- ' + that.state + '\n' + that.shape.ops.map(function(s) {return s.to.map(function(x){return Math.round(x);});}) + '\n\n';
-
-        var state = showingState ? ' -- ' + that.state : '';
-        var output = that.type + state + '\n\n';
-        that.keyItem().showDescription(output);
-      }
-    };
-
-    var hideDescription = function(mouse) {
-      that.keyItem().hideDescription(true);
-    };
-
-    that.findNeighbor = function(condition) {
-      var index = 0;
-      var neighbor = null;
-      var found = null;
-
-      while (!found && index < that.neighbors.length) {
-        neighbor = that.neighbors[index];
-        if (condition(neighbor)) {
-          found = neighbor;
-        }
-
-        index += 1;
-      }
-
-      return found;
-    };
-
-    that.perceive = spec.perceive || function(env) {
-      that[that.state](env);
-    };
-
-    that.mouseDown = spec.mouseDown || showDescription;
-    //        that.mouseUp = spec.mouseUp || hideDescription;
-
-    return that;
-  };
-
-  var randomPos = function(box) {
-    return box.randomPoint();
-  };
-
-  var randomLigand = function() {
-    var up = (Math.random() - 0.5) > 0;
-    var inside = up ? above : below;
-
-    if (Math.random() * (attractantRepellentRatio + 1) < attractantRepellentRatio) {
-      return {type: 'attractant', ligand: attractant({pos: randomPos(inside)})};
-    } else {
-      return {type: 'repellent', ligand: repellent({pos: randomPos(inside)})};
-    }
-  };
-
-  var randomColumn = function(box, adjustment) {
-    var up = (Math.random() - 0.5) > 0;
-    var x = box.randomPoint()[0] * 0.6;
-    var y = up ? box.y.low - 20 : box.y.high + 20;
-    var orientation = up ? 0 : Math.PI;
-
-    return column({pos: [x, y], orientation: orientation + adjustment});
-  };
-
-  var randomMolecule = function(type, box) {
-    return type({pos: randomPos(box), bounds: box});
-  };
-
-  var ligand = function(spec) {
-    var that = molecule(spec);
-    var velocityScale = 0.9;
-
-    that.closestReceptor = null;
-    that.attached = false;
-    that.detached = false;
-
-    that.polarity = -1;
-    that.state = 'unattached';
-
-    that.unattached = function(env) {
-      if (!exists(that.closestReceptor) || that.closestReceptor.taken) {
-        that.closestReceptor = that.findClosest(membranes.first().receptors, function(receptor) {
-          return receptor.taken === false;
-        });
-      }
-
-      if (exists(that.closestReceptor)) {
-        var distance = that.closestReceptor.distance(that);
-
-        if (distance > globalVelocity) {
-          that.future.push(function(self) {
-            that.velocity = that.velocity.add(that.to(that.closestReceptor).multiply(20/(distance))).scaleTo(velocityScale*globalVelocity);
-          });
+        if (Math.random() * (attractantRepellentRatio + 1) < attractantRepellentRatio) {
+            return {type: 'attractant', ligand: attractant({pos: randomPos(inside)})};
         } else {
-          that.future.push(function(self) {
-            that.velocity = [0, 0];
-            that.rotation = 0;
-          });
-
-          that.closestReceptor.take(that);
-          that.state = 'attached';
+            return {type: 'repellent', ligand: repellent({pos: randomPos(inside)})};
         }
-      }
     };
 
-    that.attached = function(env) {
-      if (Math.random() > receptorGrip) {
-        that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity);
-        that.rotation = defaultRotation();
+    var randomColumn = function(box, adjustment) {
+        var up = (Math.random() - 0.5) > 0;
+        var x = box.randomPoint()[0] * 0.6;
+        var y = up ? box.y.low - 20 : box.y.high + 20;
+        var orientation = up ? 0 : Math.PI;
 
-        that.state = 'detached';
-        that.closestReceptor.release();
+        return column({pos: [x, y], orientation: orientation + adjustment});
+    };
+
+    var randomMolecule = function(type, box) {
+        return type({pos: randomPos(box), bounds: box});
+    };
+
+    var ligand = function(spec) {
+        var that = molecule(spec);
+        var velocityScale = 0.9;
+
         that.closestReceptor = null;
-      }
-    };
+        that.attached = false;
+        that.detached = false;
 
-    that.detached = function(env) {
-      if (!all.inside(that.absolute())) {
-        var realm = Math.random() - 0.5 < 0 ? above : below;
-        that.pos = randomPos(realm);
+        that.polarity = -1;
         that.state = 'unattached';
-      }
+
+        that.unattached = function(env) {
+            if (!exists(that.closestReceptor) || that.closestReceptor.taken) {
+                that.closestReceptor = that.findClosest(membranes.first().receptors, function(receptor) {
+                    return receptor.taken === false;
+                });
+            }
+
+            if (exists(that.closestReceptor)) {
+                var distance = that.closestReceptor.distance(that);
+
+                if (distance > globalVelocity) {
+                    that.future.push(function(self) {
+                        that.velocity = that.velocity.add(that.to(that.closestReceptor).multiply(20/(distance))).scaleTo(velocityScale*globalVelocity);
+                    });
+                } else {
+                        that.future.push(function(self) {
+                            that.velocity = [0, 0];
+                            that.rotation = 0;
+                        });
+
+                    that.closestReceptor.take(that);
+                    that.state = 'attached';
+                }
+            }
+        };
+
+        that.attached = function(env) {
+            if (Math.random() > receptorGrip) {
+                that.velocity = that.absolute().subtract(that.closestReceptor.column.absolute()).scaleTo(globalVelocity);
+                that.rotation = defaultRotation();
+
+                that.state = 'detached';
+                that.closestReceptor.release();
+                that.closestReceptor = null;
+            }
+        };
+
+        that.detached = function(env) {
+            if (!all.inside(that.absolute())) {
+                var realm = Math.random() - 0.5 < 0 ? above : below;
+                that.pos = randomPos(realm);
+                that.state = 'unattached';
+            }
+        };
+
+        return that;
     };
 
-    return that;
-  };
+    var attractant = function(spec) {
+        spec.type = 'attractant';
+        spec.color = spec.color || [140, 170, 100, 1];
+        spec.shape = spec.shape || flux.shape({ops: [{op: 'arc', radius: 7}]});
+        spec.velocity = randomVelocity();
 
-  var attractant = function(spec) {
-    spec.type = 'attractant';
-    spec.color = spec.color || [140, 170, 100, 1];
-    spec.shape = spec.shape || flux.shape({ops: [{op: 'arc', radius: 7}]});
-    spec.velocity = randomVelocity();
+        var that = ligand(spec);
 
-    var that = ligand(spec);
+        return that;
+    };
 
-    return that;
-  };
+    var repellent = function(spec) {
+        spec.type = 'repellent';
+        spec.color = spec.color || [170, 70, 60, 1];
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-6, -6]},
+            {op: 'line', to: [6, -6]},
+            {op: 'line', to: [6, 6]},
+            {op: 'line', to: [-6, 6]}
+        ]});
+        spec.rotation = defaultRotation();
+        spec.velocity = randomVelocity();
 
-  var repellent = function(spec) {
-    spec.type = 'repellent';
-    spec.color = spec.color || [170, 70, 60, 1];
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-6, -6]},
-      {op: 'line', to: [6, -6]},
-      {op: 'line', to: [6, 6]},
-      {op: 'line', to: [-6, 6]}
-    ]});
-    spec.rotation = defaultRotation();
-    spec.velocity = randomVelocity();
+        var that = ligand(spec);
+        that.polarity = 1;
 
-    var that = ligand(spec);
-    that.polarity = 1;
+        return that;
+    };
 
-    return that;
-  };
+    var membrane = function(spec) {
+        spec.type = 'membrane';
+        spec.fill = 'stroke';
+        spec.lineWidth = 30;
+        spec.orientation = 0;
+        spec.color = spec.color || [80, 20, 20, 1];
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-1400, -700]},
+            {op: 'line', to: [1400, -700]},
+            {op: 'bezier', to: [1400, 700], control1: [2450, -700], control2: [2450, 700]},
+            {op: 'line', to: [-1400, 700]},
+            {op: 'bezier', to: [-1400, -700], control1: [-2450, 700], control2: [-2450, -700]}
+        ], fill: 'stroke'});
 
-  var membrane = function(spec) {
-    spec.type = 'membrane';
-    spec.fill = 'stroke';
-    spec.lineWidth = 30;
-    spec.orientation = 0;
-    spec.color = spec.color || [80, 20, 20, 1];
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-1400, -700]},
-      {op: 'line', to: [1400, -700]},
-      {op: 'bezier', to: [1400, 700], control1: [2450, -700], control2: [2450, 700]},
-      {op: 'line', to: [-1400, 700]},
-      {op: 'bezier', to: [-1400, -700], control1: [-2450, 700], control2: [-2450, -700]}
-    ], fill: 'stroke'});
+        //        spec.orientation = Math.random() * Math.PI;
 
-    //        spec.orientation = Math.random() * Math.PI;
+        var that = molecule(spec);
 
-    var that = molecule(spec);
+        var inside = flux.bounds(that.box.x.low + 700, that.box.x.high - 700, that.box.y.low + 20, that.box.y.high - 20);
 
-    var inside = flux.bounds(that.box.x.low + 700, that.box.x.high - 700, that.box.y.low + 20, that.box.y.high - 20);
-
-    that.columns = $R(0, 12).map(function(index) {
-      return randomColumn(that.box, that.orientation);
-    });
-
-    // receptors and cheWs are part of columns, but we make a reference for them here
-    that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
-    that.cheWs = that.columns.map(function(column) {return column.cheW;});
-
-    that.flagella = flagella({pos: [2190, 0], orientation: that.orientation});
-    that.attach(that.flagella);
-
-    that.phosphates = $R(0, 20).map(function(index) {
-      return randomMolecule(phosphate, inside);
-    });
-
-    that.methyls = $R(0, 20).map(function(index) {
-      return randomMolecule(methyl, inside);
-    });
-
-    that.cheYs = $R(0, 10).map(function(index) {
-      return randomMolecule(cheY, inside);
-    });
-
-    that.cheBs = $R(0, 10).map(function(index) {
-      return randomMolecule(cheB, inside);
-    });
-
-    that.cheZs = $R(0, 10).map(function(index) {
-      return randomMolecule(cheZ, inside);
-    });
-
-    that.cheRs = $R(0, 10).map(function(index) {
-      return randomMolecule(cheR, inside);
-    });
-
-    that.cheWSeekers = that.cheYs.concat(that.cheBs).concat(that.phosphates);
-
-    that.receptors.each(function(receptor, index) {
-      receptor.cheW = that.cheWs[index];
-    });
-
-    that.addSubmotes(that.columns
-                     .concat(that.phosphates)
-                     .concat(that.methyls)
-                     .concat(that.cheYs)
-                     .concat(that.cheZs)
-                     .concat(that.cheBs)
-                     .concat(that.cheRs));
-
-    //        that.submote_pantheon = that.cheWs.concat(that.submotes.clone());
-
-    that.submote_pantheon = that.cheWs
-      .concat(that.phosphates)
-      .concat(that.methyls)
-      .concat(that.cheYs)
-      .concat(that.cheZs)
-      .concat(that.cheBs)
-      .concat(that.cheRs);
-
-    that.perceive = function(env) {
-      that.tree = Math.kdtree(that.submote_pantheon, 'absolute', 0);
-      that.submote_pantheon.each(function(submote) {
-        submote.neighbors = that.tree.nearest(submote.absolute(), 5, function(pod) {
-          return !(pod === that);
+        that.columns = $R(0, 12).map(function(index) {
+            return randomColumn(that.box, that.orientation);
         });
-      });
 
-      that.submotes.each(function(submote) {
-        submote.perceive(env);
-      });
+        // receptors and cheWs are part of columns, but we make a reference for them here
+        that.receptors = that.columns.inject([], function(rs, column) {return rs.concat(column.receptors);});
+        that.cheWs = that.columns.map(function(column) {return column.cheW;});
+
+        that.flagella = flagella({pos: [2190, 0], orientation: that.orientation});
+        that.attach(that.flagella);
+
+        that.phosphates = $R(0, 20).map(function(index) {
+            return randomMolecule(phosphate, inside);
+        });
+
+        that.methyls = $R(0, 20).map(function(index) {
+            return randomMolecule(methyl, inside);
+        });
+
+        that.cheYs = $R(0, 10).map(function(index) {
+            return randomMolecule(cheY, inside);
+        });
+
+        that.cheBs = $R(0, 10).map(function(index) {
+            return randomMolecule(cheB, inside);
+        });
+
+        that.cheZs = $R(0, 10).map(function(index) {
+            return randomMolecule(cheZ, inside);
+        });
+
+        that.cheRs = $R(0, 10).map(function(index) {
+            return randomMolecule(cheR, inside);
+        });
+
+        that.cheWSeekers = that.cheYs.concat(that.cheBs).concat(that.phosphates);
+
+        that.receptors.each(function(receptor, index) {
+            receptor.cheW = that.cheWs[index];
+        });
+
+        that.addSubmotes(that.columns
+                         .concat(that.phosphates)
+                         .concat(that.methyls)
+                         .concat(that.cheYs)
+                         .concat(that.cheZs)
+                         .concat(that.cheBs)
+                         .concat(that.cheRs));
+
+        //        that.submote_pantheon = that.cheWs.concat(that.submotes.clone());
+
+        that.submote_pantheon = that.cheWs
+            .concat(that.phosphates)
+            .concat(that.methyls)
+            .concat(that.cheYs)
+            .concat(that.cheZs)
+            .concat(that.cheBs)
+            .concat(that.cheRs);
+
+        that.perceive = function(env) {
+            that.tree = Math.kdtree(that.submote_pantheon, 'absolute', 0);
+            that.submote_pantheon.each(function(submote) {
+                submote.neighbors = that.tree.nearest(submote.absolute(), 5, function(pod) {
+                    return !(pod === that);
+                });
+            });
+
+            that.submotes.each(function(submote) {
+                submote.perceive(env);
+            });
+        };
+
+        return that;
     };
 
-    return that;
-  };
+    var column = function(spec) {
+        spec.type = 'column';
+        spec.color = spec.color || [60, 70, 170, 1];
+        spec.outline = spec.outline || [0, 0, 0, 1];
+        spec.lineWidth = 3;
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-30, -50]},
+            {op: 'bezier', to: [30, -50], control1: [-30, 0], control2: [30, 0]},
+            {op: 'line', to: [50, -50]},
+            {op: 'bezier', to: [10, 0], control1: [60, -50], control2: [40, 0]},
+            {op: 'line', to: [10, 100]},
+            {op: 'line', to: [-10, 100]},
+            {op: 'line', to: [-10, 0]},
+            {op: 'bezier', to: [-50, -50], control1: [-40, 0], control2: [-60, -50]}
+        ]});
 
-  var column = function(spec) {
-    spec.type = 'column';
-    spec.color = spec.color || [60, 70, 170, 1];
-    spec.outline = spec.outline || [0, 0, 0, 1];
-    spec.lineWidth = 3;
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-30, -50]},
-      {op: 'bezier', to: [30, -50], control1: [-30, 0], control2: [30, 0]},
-      {op: 'line', to: [50, -50]},
-      {op: 'bezier', to: [10, 0], control1: [60, -50], control2: [40, 0]},
-      {op: 'line', to: [10, 100]},
-      {op: 'line', to: [-10, 100]},
-      {op: 'line', to: [-10, 0]},
-      {op: 'bezier', to: [-50, -50], control1: [-40, 0], control2: [-60, -50]}
-    ]});
+        var that = molecule(spec);
 
-    var that = molecule(spec);
+        that.cheW = cheW({pos: [0, 100], orientation: that.orientation, column: that});
+        that.receptors = [
+            receptor({pos: [0, -18], column: that, cheW: that.cheW}),
+            receptor({pos: [-25, -42], column: that, cheW: that.cheW}),
+            receptor({pos: [-17, -26], column: that, cheW: that.cheW}),
+            receptor({pos: [17, -26], column: that, cheW: that.cheW}),
+            receptor({pos: [25, -42], column: that, cheW: that.cheW})
+        ];
+        that.addSubmotes([that.cheW].concat(that.receptors));
 
-    that.cheW = cheW({pos: [0, 100], orientation: that.orientation, column: that});
-    that.receptors = [
-      receptor({pos: [0, -18], column: that, cheW: that.cheW}),
-      receptor({pos: [-25, -42], column: that, cheW: that.cheW}),
-      receptor({pos: [-17, -26], column: that, cheW: that.cheW}),
-      receptor({pos: [17, -26], column: that, cheW: that.cheW}),
-      receptor({pos: [25, -42], column: that, cheW: that.cheW})
-    ];
-    that.addSubmotes([that.cheW].concat(that.receptors));
+        that.level = 0;
+        that.state = 'inactive';
 
-    that.level = 0;
-    that.state = 'inactive';
+        that.openMethylSites = [
+            [10, 50],
+            [10, 70],
+            [-10, 70],
+            [-10, 50]
+        ];
 
-    that.openMethylSites = [
-      [10, 50],
-      [10, 70],
-      [-10, 70],
-      [-10, 50]
-    ];
+        that.takenMethylSites = [];
 
-    that.takenMethylSites = [];
+        that.claimMethylSite = function() {
+                var site = that.openMethylSites.shift();
+            that.takenMethylSites.push(site);
 
-    that.claimMethylSite = function() {
-      var site = that.openMethylSites.shift();
-      that.takenMethylSites.push(site);
+            return that.extrovert(site);
+        };
 
-      return that.extrovert(site);
+        that.active = function(env) {
+            if (that.level <= 0) {
+                that.deactivate();
+            }
+        };
+
+        that.inactive = function(env) {
+            if (that.level > 0) {
+                that.activate();
+            }
+        };
+
+        that.activate = function() {
+            that.state = 'active';
+            that.cheW.activate();
+        };
+
+        that.deactivate = function() {
+            that.state = 'inactive';
+            that.cheW.deactivate();
+        };
+
+        return that;
     };
 
-    that.active = function(env) {
-      if (that.level <= 0) {
-        that.deactivate();
-      }
-    };
+    var receptor = function(spec) {
+        spec.type = 'receptor';
+        spec.visible = false;
+        spec.color = [0, 0, 0, 0];
+        spec.shape = flux.shape({ops: [{op: 'arc', to: [0, 0], radius: 7}]});
 
-    that.inactive = function(env) {
-      if (that.level > 0) {
-        that.activate();
-      }
-    };
+        var that = molecule(spec);
 
-    that.activate = function() {
-      that.state = 'active';
-      that.cheW.activate();
-    };
+        that.column = spec.column;
+            that.cheW = spec.cheW;
 
-    that.deactivate = function() {
-      that.state = 'inactive';
-      that.cheW.deactivate();
-    };
-
-    return that;
-  };
-
-  var receptor = function(spec) {
-    spec.type = 'receptor';
-    spec.visible = false;
-    spec.color = [0, 0, 0, 0];
-    spec.shape = flux.shape({ops: [{op: 'arc', to: [0, 0], radius: 7}]});
-
-    var that = molecule(spec);
-
-    that.column = spec.column;
-    that.cheW = spec.cheW;
-
-    that.taken = false;
-    that.ligand = null;
-    that.delay = 0;
-
-    that.take = function(ligand) {
-      that.column.level += ligand.polarity;
-
-      that.ligand = ligand;
-      that.taken = true;
-      that.perceive = that.bound;
-    };
-
-    that.release = function() {
-      that.column.level -= that.ligand.polarity;
-
-      that.ligand = null;
-      that.taken = false;
-      that.delay = 50;
-
-      that.perceive = that.closed;
-    };
-
-    that.open = function(env) {
-
-    };
-
-    that.bound = function(env) {
-
-    };
-
-    that.closed = function(env) {
-      if (that.delay < 1) {
+        that.taken = false;
+        that.ligand = null;
         that.delay = 0;
-        that.taken = false;
-        that.perceive = that.open;
-      } else {
-        that.delay -= 1;
-      }
+
+        that.take = function(ligand) {
+            that.column.level += ligand.polarity;
+
+            that.ligand = ligand;
+            that.taken = true;
+            that.perceive = that.bound;
+        };
+
+        that.release = function() {
+            that.column.level -= that.ligand.polarity;
+
+            that.ligand = null;
+            that.taken = false;
+            that.delay = 50;
+
+            that.perceive = that.closed;
+        };
+
+        that.open = function(env) {
+
+        };
+
+        that.bound = function(env) {
+
+        };
+
+        that.closed = function(env) {
+            if (that.delay < 1) {
+                that.delay = 0;
+                that.taken = false;
+                that.perceive = that.open;
+            } else {
+                that.delay -= 1;
+            }
+        };
+
+        that.perceive = function(env) {
+            if (that.detached < 2) {
+                that.detached = 0;
+                that.taken = false;
+            } else if (that.detached > 1) {
+                that.detached = that.detached - 1;
+            }
+        };
+
+        return that;
     };
 
-    that.perceive = function(env) {
-      if (that.detached < 2) {
-        that.detached = 0;
-        that.taken = false;
-      } else if (that.detached > 1) {
-        that.detached = that.detached - 1;
-      }
+    var cheW = function(spec) {
+        spec.type = 'cheW';
+
+        var activeColor = spec.activeColor || [210, 220, 130, 1];
+        var inactiveColor = spec.inactiveColor || [40, 40, 40, 1];
+
+        spec.color = spec.color || inactiveColor.clone();
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-30, 0]},
+            {op: 'bezier', to: [30, 0], control1: [30, 30], control2: [-30, 30]},
+            {op: 'bezier', to: [-30, 0], control1: [-30, -30], control2: [30, -30]}
+        ]});
+
+        var that = molecule(spec);
+
+        that.active = false;
+        that.column = spec.column;
+
+        that.activate = function() {
+            that.active = true;
+
+            that.tweens = [];
+            that.tweenColor(activeColor, 20);
+
+            membranes.first().cheWSeekers.each(function(seeker) {
+                if (seeker.activeCheW) {
+                    if (seeker.distance(seeker.activeCheW) > seeker.distance(that)) {
+                        seeker.activeCheW = that;
+                    }
+                }
+            });
+            };
+
+        that.deactivate = function() {
+            that.active = false;
+
+            that.tweens = [];
+            that.tweenColor(inactiveColor, 20);
+        };
+
+        return that;
     };
 
-    return that;
-  };
+    var cheWSeeker = function(spec) {
+        var that = molecule(spec);
 
-  var cheW = function(spec) {
-    spec.type = 'cheW';
+        var velocityScale = 5;
 
-    var activeColor = spec.activeColor || [210, 220, 130, 1];
-    var inactiveColor = spec.inactiveColor || [40, 40, 40, 1];
+        that.insideRadius = spec.insideRadius || 300;
+        that.tooCloseRadius = spec.tooCloseRadius || 20;
 
-    spec.color = spec.color || inactiveColor.clone();
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-30, 0]},
-      {op: 'bezier', to: [30, 0], control1: [30, 30], control2: [-30, 30]},
-      {op: 'bezier', to: [-30, 0], control1: [-30, -30], control2: [30, -30]}
-    ]});
+        that.nearestPhosphate = null;
+        that.phosphate = null;
+        that.activeCheW = null;
 
-    var that = molecule(spec);
+        that.outsideCheW = function() {};
+        that.insideCheW = function() {};
+        that.tooCloseCheW = function() {};
 
-    that.active = false;
-    that.column = spec.column;
+        that.bound = function(env) {};
 
-    that.activate = function() {
-      that.active = true;
+        that.state = 'identifying';
 
-      that.tweens = [];
-      that.tweenColor(activeColor, 20);
+        that.switchedOff = function() {
+            that.future.push(function(self) {
+                that.velocity = randomVelocity();
+            });
+            that.state = 'identifying';
+        };
 
-      membranes.first().cheWSeekers.each(function(seeker) {
-        if (seeker.activeCheW) {
-          if (seeker.distance(seeker.activeCheW) > seeker.distance(that)) {
-            seeker.activeCheW = that;
-          }
-        }
-      });
+        that.identifying = function(env) {
+            that.activeCheW = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW' && neighbor.active;
+            });
+
+            if (that.activeCheW) {
+                that.orient();
+                that.perceive(env);
+            }
+        };
+
+        that.orient = function() {
+            if (!that.activeCheW.active) {
+                that.switchedOff();
+            } else {
+                var distance = that.distance(that.activeCheW);
+
+                if (distance > that.insideRadius) {
+                    that.state = 'outside';
+                } else if (distance > that.tooCloseRadius) {
+                    that.state = 'inside';
+                } else {
+                    that.state = 'tooClose';
+                }
+            }
+        };
+
+        that.outside = function(env) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+            var turning = that.to(that.activeCheW).multiply(0.2/(distance));
+
+            that.future.push(function(self) {
+                that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
+                });
+
+            that.outsideCheW();
+        };
+
+        that.inside = function(env) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+            var turning = that.to(that.activeCheW).multiply(0.2/(distance));
+
+            that.future.push(function(self) {
+                    that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
+            });
+
+            that.insideCheW();
+        };
+
+        that.tooClose = function(self) {
+            that.orient();
+
+            var distance = that.distance(that.activeCheW);
+
+            that.future.push(function(self) {
+                that.velocity = that.velocity.scaleTo(distance / 50);
+            });
+
+            that.tooCloseCheW();
+        };
+
+        return that;
     };
 
-    that.deactivate = function() {
-      that.active = false;
-
-      that.tweens = [];
-      that.tweenColor(inactiveColor, 20);
-    };
-
-    return that;
-  };
-
-  var cheWSeeker = function(spec) {
-    var that = molecule(spec);
-
-    var velocityScale = 5;
-
-    that.insideRadius = spec.insideRadius || 300;
-    that.tooCloseRadius = spec.tooCloseRadius || 20;
-
-    that.nearestPhosphate = null;
-    that.phosphate = null;
-    that.activeCheW = null;
-
-    that.outsideCheW = function() {};
-    that.insideCheW = function() {};
-    that.tooCloseCheW = function() {};
-
-    that.bound = function(env) {};
-
-    that.state = 'identifying';
-
-    that.switchedOff = function() {
-      that.future.push(function(self) {
-        that.velocity = randomVelocity();
-      });
-      that.state = 'identifying';
-    };
-
-    that.identifying = function(env) {
-      that.activeCheW = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'cheW' && neighbor.active;
-      });
-
-      if (that.activeCheW) {
-        that.orient();
-        that.perceive(env);
-      }
-    };
-
-    that.orient = function() {
-      if (!that.activeCheW.active) {
-        that.switchedOff();
-      } else {
-        var distance = that.distance(that.activeCheW);
-
-        if (distance > that.insideRadius) {
-          that.state = 'outside';
-        } else if (distance > that.tooCloseRadius) {
-          that.state = 'inside';
-        } else {
-          that.state = 'tooClose';
-        }
-      }
-    };
-
-    that.outside = function(env) {
-      that.orient();
-
-      var distance = that.distance(that.activeCheW);
-      var turning = that.to(that.activeCheW).multiply(0.2/(distance));
-
-      that.future.push(function(self) {
-        that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
-      });
-
-      that.outsideCheW();
-    };
-
-    that.inside = function(env) {
-      that.orient();
-
-      var distance = that.distance(that.activeCheW);
-      var turning = that.to(that.activeCheW).multiply(0.2/(distance));
-
-      that.future.push(function(self) {
-        that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
-      });
-
-      that.insideCheW();
-    };
-
-    that.tooClose = function(self) {
-      that.orient();
-
-      var distance = that.distance(that.activeCheW);
-
-      that.future.push(function(self) {
-        that.velocity = that.velocity.scaleTo(distance / 50);
-      });
-
-      that.tooCloseCheW();
-    };
-
-    return that;
-  };
-
-  var phosphate = function(spec) {
-    spec.type = 'phosphate';
-    spec.color = spec.color || [120, 80, 130, 1];
-
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-10, -5]},
-      {op: 'line', to: [10, -5]},
-      {op: 'line', to: [10, 0]},
-      {op: 'bezier', to: [1, 0], control1: [10, 10], control2: [1, 10]},
-      {op: 'line', to: [-10, 0]}
-    ]});
-
-    spec.rotation = Math.random()*0.02-0.01;
-    spec.velocity = randomVelocity();
-
-    var that = cheWSeeker(spec);
-
-    that.pull = function(enzyme) {
-      if (!that.state === 'bound') {
-        that.future.push(function(self) {
-          self.velocity = self.velocity.add(self.to(enzyme).scaleTo(0.2));
-        });
-      }
-    };
-
-    that.phosphorylate = function(enzyme) {
-      that.enzyme = enzyme;
-      that.pos = enzyme.introvert(that.pos);
-      that.absolute.expire();
-
-      that.tweens.push(flux.tweenV({
-        obj: that,
-        property: 'pos',
-        to: [-15, 10],
-        ticks: phosphorylationCycles
-      }));
-
-      that.tweens.push(flux.tweenN({
-        obj: that,
-        property: 'orientation',
-        to: Math.PI*0.5,
-        ticks: phosphorylationCycles
-      }));
-
-      that.future = [];
-      that.rotation = 0;
-      that.velocity = [0, 0];
-      //          that.neighbors = [];
-
-      that.state = 'bound';
-    };
-
-    that.dephosphorylate = function() {
-      that.rotation = defaultRotation();
-      that.velocity = randomVelocity();
-      that.pos = that.enzyme.extrovert(that.pos);
-      that.absolute.expire();
-      that.enzyme = null;
-
-      that.state = 'identifying';
-    };
-
-    return that;
-  };
-
-  var methyl = function(spec) {
-    spec.type = 'methyl';
-    spec.color = spec.color || [130, 110, 70, 1];
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-5, 0]},
-      {op: 'line', to: [6, 0]},
-      {op: 'line', to: [13, -4]},
-      {op: 'line', to: [19, 3]},
-      {op: 'line', to: [13, 10]},
-      {op: 'line', to: [6, 6]},
-      {op: 'line', to: [-5, 6]}
-    ]});
-
-    spec.rotation = defaultRotation()*0.2;
-    spec.velocity = randomVelocity();
-
-    var that = molecule(spec);
-
-    that.state = 'free';
-    that.enzyme = null;
-
-    that.bind = function(enzyme, site) {
-      that.state = 'binding';
-      that.enzyme = enzyme;
-      that.site = site;
-      that.rotation = 0;
-      that.velocity = [0, 0];
-
-      that.column = that.enzyme.cheWNeighbor.column;
-      var modifier = that.column.introvert(that.site)[0] < 0 ? Math.PI : 0;
-
-      that.tweenPos(that.site, phosphorylationCycles*2, function() {
-        that.orientation = that.column.orientation + modifier;
-        that.state = 'bound';
-      });
-    };
-
-    that.cut = function() {
-      that.enzyme = null;
-      that.site = null;
-      that.column = null;
-      that.rotation = defaultRotation()*0.2;
-      that.velocity = randomVelocity();
-
-      that.state = 'free';
-    };
-
-    that.free = function(env) {
-
-    };
-
-    that.binding = function(env) {
-
-    };
-
-    that.bound = function(env) {
-
-    };
-
-    return that;
-  };
-
-  var cheWActor = function(spec) {
-    spec.color = spec.inactiveColor.clone();
-    spec.shape = spec.inactiveShape.clone();
-
-    var that = cheWSeeker(spec);
-
-    that.inactiveShape = spec.inactiveShape;
-    that.inactiveColor = spec.inactiveColor;
-    that.activeShape = spec.activeShape;
-    that.activeColor = spec.activeColor;
-
-    var velocityScale = 3;
-
-    that.insideCheW = function() {
-      that.nearestPhosphate = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'phosphate' && !(neighbor.state === 'bound');
-      });
-
-      if (exists(that.nearestPhosphate)) {
-        var distance = that.distance(that.nearestPhosphate);
-
-        if (distance < 50) {
-          that.phosphorylate(that.nearestPhosphate);
-        } else {
-          that.nearestPhosphate.pull(that);
-        }
-      }
-    };
-
-    that.phosphorylate = function(phosph) {
-      that.phosphate = phosph;
-      that.attach(that.phosphate);
-
-      that.tweenColor(that.activeColor, phosphorylationCycles);
-      that.tweenShape(that.activeShape, phosphorylationCycles);
-
-      that.phosphate.phosphorylate(that);
-
-      that.future.push(function(self) {
-        self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
-      });
-
-      that.state = 'bound';
-    };
-
-    that.hold = function() {
-      that.velocity = [0, 0];
-      that.state = 'waiting';
-    };
-
-    that.waiting = function(env) {
-
-    };
-
-    that.dephosphorylate = function() {
-      that.tweenColor(that.inactiveColor, phosphorylationCycles);
-      that.tweenShape(that.inactiveShape, phosphorylationCycles);
-
-      that.phosphate.dephosphorylate(that);
-
-      that.future.push(function(self) {
-        self.velocity = randomVelocity();
-      });
-
-      that.detach(that.phosphate);
-      that.state = 'identifying';
-    };
-
-    return that;
-  };
-
-  var cheY = function(spec) {
-    spec.type = 'cheY';
-
-    var velocityScale = 3;
-
-    spec.activeColor = spec.activeColor || [150, 180, 190, 1];
-    spec.inactiveColor = spec.inactiveColor || [40, 58, 64, 1];
-
-    spec.activeShape = spec.activeShape || flux.shape({ops: [
-      {op: 'move', to: [-20, 0]},
-      {op: 'bezier', to: [0, 3], control1: [-10, 4], control2: [-10, 4]},
-      {op: 'bezier', to: [13, 19], control1: [5, 17], control2: [11, 20]},
-      {op: 'bezier', to: [5, 0], control1: [11, 11], control2: [11, 9]},
-      {op: 'bezier', to: [13, -19], control1: [11, -9], control2: [11, -11]},
-      {op: 'bezier', to: [0, -3], control1: [11, -20], control2: [5, -17]},
-      {op: 'bezier', to: [-20, 0], control1: [-10, -4], control2: [-10, -4]}
-    ]});
-
-    spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
-      {op: 'move', to: [-20, 0]},
-      {op: 'bezier', to: [-8, 0], control1: [-20, 15], control2: [-0, 5]},
-      {op: 'bezier', to: [11, 10], control1: [5, 10], control2: [11, 10]},
-      {op: 'bezier', to: [20, 0], control1: [20, 0], control2: [20, 0]},
-      {op: 'bezier', to: [11, -10], control1: [20, -0], control2: [20, -0]},
-      {op: 'bezier', to: [-8, 0], control1: [11, -10], control2: [5, -10]},
-      {op: 'bezier', to: [-20, 0], control1: [-0, -5], control2: [-20, -15]}
-    ]});
-
-    spec.rotation = Math.random()*0.02-0.01;
-    spec.velocity = randomVelocity();
-
-    var that = cheWActor(spec);
-    return that;
-  };
-
-  var cheZ = function(spec) {
-    spec.type = 'cheZ';
-    spec.inactiveColor = spec.inactiveColor || [220, 30, 20, 1];
-    spec.activeColor = spec.activeColor || [250, 140, 50, 1];
-
-    spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
-      {op: 'move', to: [-15, -15]},
-      {op: 'line', to: [15, -15]},
-      {op: 'line', to: [-5, 10]},
-      {op: 'line', to: [15, 10]},
-      {op: 'line', to: [15, 15]},
-      {op: 'line', to: [-15, 15]},
-      {op: 'line', to: [5, -10]},
-      {op: 'line', to: [-15, -10]}
-    ]});
-
-    spec.activeShape = spec.activeShape || flux.shape({ops: [
-      {op: 'move', to: [-15, -6]},
-      {op: 'line', to: [15, -6]},
-      {op: 'line', to: [-5, 1]},
-      {op: 'line', to: [15, 1]},
-      {op: 'line', to: [15, 6]},
-      {op: 'line', to: [-15, 6]},
-      {op: 'line', to: [5, -1]},
-      {op: 'line', to: [-15, -1]}
-    ]});
-
-    spec.color = spec.inactiveColor.clone();
-    spec.shape = spec.inactiveShape.clone();
-
-    spec.rotation = Math.random()*0.02-0.01;
-    spec.velocity = randomVelocity();
-
-    var that = molecule(spec);
-
-    that.inactiveColor = spec.inactiveColor;
-    that.inactiveShape = spec.inactiveShape;
-    that.activeColor = spec.activeColor;
-    that.activeShape = spec.activeShape;
-
-    that.phosphorylated = null;
-
-    that.active = function(env) {};
-
-    that.avoidCheW = function() {
-      var cheWNeighbor = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'cheW';
-      });
-
-      if (cheWNeighbor) {
-        that.future.push(function(self) {
-          that.velocity = that.velocity.subtract(that.to(cheWNeighbor)).scaleTo(globalVelocity);
-        });
-      }
-
-      return cheWNeighbor;
-    };
-
-    that.seek = function(env) {
-      var cheWNeighbor = that.avoidCheW();
-      if (cheWNeighbor) {
-
-      } else {
-        that.phosphorylated = that.findNeighbor(function(neighbor) {
-          return neighbor.type === 'phosphate' && neighbor.enzyme ;
-        });
-
-        if (that.phosphorylated) {
-          that.state = 'target';
-        }
-      }
-    };
-
-    that.target = function(env) {
-      var cheWNeighbor = that.avoidCheW();
-      if (cheWNeighbor) {
-
-      } else if (!that.phosphorylated.enzyme || that.phosphorylated.enzyme.state === 'waiting') {
-        that.phosphorylated = null;
-        that.state = 'seek';
-      } else {
-        var distance = that.distance(that.phosphorylated);
-
-        if (distance < 20) {
-          that.state = 'cut';
-          that.perceive(env);
-        } else {
-          that.future.push(function(self) {
-            that.velocity = that.velocity.add(that.to(that.phosphorylated)).scaleTo(globalVelocity);
-          });
-        }
-      }
-    };
-
-    that.cut = function(env) {
-      that.tweenShape(that.activeShape, phosphorylationCycles/5);
-      that.tweenColor(that.activeColor, phosphorylationCycles/5);
-      that.tweenEvent(function() {that.state = 'uncut';}, phosphorylationCycles/5);
-      that.velocity = [0, 0];
-      that.future = [];
-
-      that.phosphorylated.enzyme.hold();
-
-      that.state = 'active';
-    };
-
-    that.uncut = function() {
-      if (that.phosphorylated) {
-        that.phosphorylated.enzyme.dephosphorylate();
-
-        that.tweenShape(that.inactiveShape, phosphorylationCycles);
-        that.tweenColor(that.inactiveColor, phosphorylationCycles);
-        that.velocity = randomVelocity();
-
-        that.phosphorylated = null;
-        that.state = 'seek';
-      }
-    };
-
-    that.state = 'seek';
-    return that;
-  };
-
-  var cheB = function(spec) {
-    spec.type = 'cheB';
-
-    spec.activeColor = spec.activeColor || [100, 140, 230, 1];
-    spec.inactiveColor = spec.inactiveColor || [80, 80, 90, 1];
-
-    spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
-      {op: 'move', to: [-15, -15]},
-      {op: 'line', to: [0, -15]},
-      {op: 'line', to: [15, -15]},
-      {op: 'bezier', to: [0, -5], control1: [15, 15], control2: [0, 15]},
-      {op: 'bezier', to: [-15, -15], control1: [0, 15], control2: [-15, 15]}
-    ]});
-
-    spec.activeShape = spec.activeShape || flux.shape({ops: [
-      {op: 'move', to: [-11, -25]},
-      {op: 'line', to: [0, -12]},
-      {op: 'line', to: [11, -25]},
-      {op: 'bezier', to: [0, -5], control1: [25, -16], control2: [30, 25]},
-      {op: 'bezier', to: [-11, -25], control1: [-30, 25], control2: [-25, -16]}
-    ]});
-
-    spec.rotation = Math.random()*0.02-0.01;
-    spec.velocity = randomVelocity();
-
-    var that = cheWActor(spec);
-
-    that.bound = function(env) {
-      that.methylNeighbor = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'methyl' && neighbor.state === 'bound' && neighbor.column.state === 'active' && (neighbor.column != that.lastColumn);
-      });
-
-      if (that.methylNeighbor) {
-        that.state = 'targeting';
-        that.column = that.methylNeighbor.column;
-      }
-    };
-
-    that.targeting = function(env) {
-      if (that.methylNeighbor.column.state === 'inactive') {
-        that.methylNeighbor = null;
-        that.state = 'bound';
-      } else if (that.distance(that.methylNeighbor) < 30) {
-        that.methylNeighbor.cut();
-        that.state = 'bound';
-        that.lastColumn = that.column;
-        that.column = null;
-      } else {
-        that.future.push(function(self) {
-          self.velocity = self.to(self.methylNeighbor).scaleTo(5);
-        });
-      }
-    };
-
-    return that;
-  };
-
-  var cheR = function(spec) {
-    spec.type = 'cheR';
-    spec.color = spec.color || [180, 180, 220, 1];
-
-    spec.shape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-15, -15]},
-      {op: 'line', to: [15, -15]},
-      {op: 'line', to: [15, -10]},
-      {op: 'bezier', to: [0, -5], control1: [15, 15], control2: [0, 15]},
-      {op: 'line', to: [-10, -5]},
-      {op: 'line', to: [-10, 15]},
-      {op: 'line', to: [-15, 15]}
-    ]});
-
-    spec.rotation = Math.random()*0.02-0.01;
-    spec.velocity = randomVelocity();
-
-    var that = molecule(spec);
-
-    that.methylNeighbor = null;
-    that.cheWNeighbor = null;
-    that.lastCheW = null;
-    that.state = 'looking';
-
-    that.looking = function(env) {
-      that.methylNeighbor = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'methyl' && neighbor.state === 'free';
-      });
-      that.cheWNeighbor = that.findNeighbor(function(neighbor) {
-        return neighbor.type === 'cheW' && (neighbor != that.lastCheW);
-      });
-
-      if (that.methylNeighbor && that.cheWNeighbor && that.cheWNeighbor.column.openMethylSites.length > 0) {
-        var column = that.cheWNeighbor.column;
-
-        that.targetSite = column.claimMethylSite();
-        that.methylNeighbor.bind(that, that.targetSite);
-        that.velocity = [0, 0];
-
-        that.tweenPos(column.extrovert(that.cheWNeighbor.pos), phosphorylationCycles*2, function() {
-          that.state = 'looking';
-          that.future.push(function() {
+    var phosphate = function(spec) {
+        spec.type = 'phosphate';
+        spec.color = spec.color || [120, 80, 130, 1];
+
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-10, -5]},
+            {op: 'line', to: [10, -5]},
+            {op: 'line', to: [10, 0]},
+            {op: 'bezier', to: [1, 0], control1: [10, 10], control2: [1, 10]},
+            {op: 'line', to: [-10, 0]}
+        ]});
+
+        spec.rotation = Math.random()*0.02-0.01;
+            spec.velocity = randomVelocity();
+
+        var that = cheWSeeker(spec);
+
+        that.pull = function(enzyme) {
+            if (!that.state === 'bound') {
+                that.future.push(function(self) {
+                    self.velocity = self.velocity.add(self.to(enzyme).scaleTo(0.2));
+                });
+            }
+        };
+
+        that.phosphorylate = function(enzyme) {
+            that.enzyme = enzyme;
+            that.pos = enzyme.introvert(that.pos);
+            that.absolute.expire();
+
+            that.tweens.push(flux.tweenV({
+                obj: that,
+                property: 'pos',
+                to: [-15, 10],
+                ticks: phosphorylationCycles
+            }));
+
+            that.tweens.push(flux.tweenN({
+                obj: that,
+                property: 'orientation',
+                to: Math.PI*0.5,
+                ticks: phosphorylationCycles
+            }));
+
+            that.future = [];
+            that.rotation = 0;
+            that.velocity = [0, 0];
+            //          that.neighbors = [];
+
+            that.state = 'bound';
+        };
+
+        that.dephosphorylate = function() {
+            that.rotation = defaultRotation();
             that.velocity = randomVelocity();
-          });
-        });
-        that.lastCheW = that.cheWNeighbor;
+            that.pos = that.enzyme.extrovert(that.pos);
+            that.absolute.expire();
+            that.enzyme = null;
+
+            that.state = 'identifying';
+        };
+
+        return that;
+    };
+
+    var methyl = function(spec) {
+            spec.type = 'methyl';
+        spec.color = spec.color || [130, 110, 70, 1];
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-5, 0]},
+            {op: 'line', to: [6, 0]},
+            {op: 'line', to: [13, -4]},
+            {op: 'line', to: [19, 3]},
+            {op: 'line', to: [13, 10]},
+            {op: 'line', to: [6, 6]},
+            {op: 'line', to: [-5, 6]}
+        ]});
+
+        spec.rotation = defaultRotation()*0.2;
+        spec.velocity = randomVelocity();
+
+        var that = molecule(spec);
+
+        that.state = 'free';
+        that.enzyme = null;
+
+        that.bind = function(enzyme, site) {
+            that.state = 'binding';
+            that.enzyme = enzyme;
+            that.site = site;
+            that.rotation = 0;
+            that.velocity = [0, 0];
+
+            that.column = that.enzyme.cheWNeighbor.column;
+            var modifier = that.column.introvert(that.site)[0] < 0 ? Math.PI : 0;
+
+            that.tweenPos(that.site, phosphorylationCycles*2, function() {
+                that.orientation = that.column.orientation + modifier;
+                that.state = 'bound';
+            });
+        };
+
+        that.cut = function() {
+            that.enzyme = null;
+            that.site = null;
+            that.column = null;
+            that.rotation = defaultRotation()*0.2;
+            that.velocity = randomVelocity();
+
+            that.state = 'free';
+        };
+
+        that.free = function(env) {
+
+        };
+
+        that.binding = function(env) {
+
+        };
+
+        that.bound = function(env) {
+
+        };
+
+        return that;
+    };
+
+    var cheWActor = function(spec) {
+        spec.color = spec.inactiveColor.clone();
+        spec.shape = spec.inactiveShape.clone();
+
+        var that = cheWSeeker(spec);
+
+        that.inactiveShape = spec.inactiveShape;
+        that.inactiveColor = spec.inactiveColor;
+        that.activeShape = spec.activeShape;
+        that.activeColor = spec.activeColor;
+
+        var velocityScale = 3;
+
+        that.insideCheW = function() {
+            that.nearestPhosphate = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'phosphate' && !(neighbor.state === 'bound');
+            });
+
+            if (exists(that.nearestPhosphate)) {
+                var distance = that.distance(that.nearestPhosphate);
+
+                if (distance < 50) {
+                    that.phosphorylate(that.nearestPhosphate);
+                } else {
+                    that.nearestPhosphate.pull(that);
+                }
+            }
+        };
+
+        that.phosphorylate = function(phosph) {
+            that.phosphate = phosph;
+            that.attach(that.phosphate);
+
+            that.tweenColor(that.activeColor, phosphorylationCycles);
+            that.tweenShape(that.activeShape, phosphorylationCycles);
+
+            that.phosphate.phosphorylate(that);
+
+            that.future.push(function(self) {
+                self.velocity = self.activeCheW.to(self).scaleTo(velocityScale);
+            });
+
+            that.state = 'bound';
+        };
+
+        that.hold = function() {
+            that.velocity = [0, 0];
+            that.state = 'waiting';
+        };
+
+            that.waiting = function(env) {
+
+            };
+
+        that.dephosphorylate = function() {
+            that.tweenColor(that.inactiveColor, phosphorylationCycles);
+            that.tweenShape(that.inactiveShape, phosphorylationCycles);
+
+            that.phosphate.dephosphorylate(that);
+
+            that.future.push(function(self) {
+                self.velocity = randomVelocity();
+            });
+
+            that.detach(that.phosphate);
+            that.state = 'identifying';
+        };
+
+        return that;
+    };
+
+    var cheY = function(spec) {
+        spec.type = 'cheY';
+
+        var velocityScale = 3;
+
+        spec.activeColor = spec.activeColor || [150, 180, 190, 1];
+        spec.inactiveColor = spec.inactiveColor || [40, 58, 64, 1];
+
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: [-20, 0]},
+            {op: 'bezier', to: [0, 3], control1: [-10, 4], control2: [-10, 4]},
+            {op: 'bezier', to: [13, 19], control1: [5, 17], control2: [11, 20]},
+            {op: 'bezier', to: [5, 0], control1: [11, 11], control2: [11, 9]},
+            {op: 'bezier', to: [13, -19], control1: [11, -9], control2: [11, -11]},
+            {op: 'bezier', to: [0, -3], control1: [11, -20], control2: [5, -17]},
+            {op: 'bezier', to: [-20, 0], control1: [-10, -4], control2: [-10, -4]}
+        ]});
+
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
+            {op: 'move', to: [-20, 0]},
+            {op: 'bezier', to: [-8, 0], control1: [-20, 15], control2: [-0, 5]},
+            {op: 'bezier', to: [11, 10], control1: [5, 10], control2: [11, 10]},
+            {op: 'bezier', to: [20, 0], control1: [20, 0], control2: [20, 0]},
+            {op: 'bezier', to: [11, -10], control1: [20, -0], control2: [20, -0]},
+            {op: 'bezier', to: [-8, 0], control1: [11, -10], control2: [5, -10]},
+            {op: 'bezier', to: [-20, 0], control1: [-0, -5], control2: [-20, -15]}
+        ]});
+
+        spec.rotation = Math.random()*0.02-0.01;
+        spec.velocity = randomVelocity();
+
+        var that = cheWActor(spec);
+        return that;
+    };
+
+    var cheZ = function(spec) {
+        spec.type = 'cheZ';
+        spec.inactiveColor = spec.inactiveColor || [220, 30, 20, 1];
+        spec.activeColor = spec.activeColor || [250, 140, 50, 1];
+
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
+            {op: 'move', to: [-15, -15]},
+            {op: 'line', to: [15, -15]},
+            {op: 'line', to: [-5, 10]},
+            {op: 'line', to: [15, 10]},
+            {op: 'line', to: [15, 15]},
+            {op: 'line', to: [-15, 15]},
+            {op: 'line', to: [5, -10]},
+                {op: 'line', to: [-15, -10]}
+        ]});
+
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: [-15, -6]},
+            {op: 'line', to: [15, -6]},
+            {op: 'line', to: [-5, 1]},
+            {op: 'line', to: [15, 1]},
+            {op: 'line', to: [15, 6]},
+            {op: 'line', to: [-15, 6]},
+            {op: 'line', to: [5, -1]},
+            {op: 'line', to: [-15, -1]}
+        ]});
+
+        spec.color = spec.inactiveColor.clone();
+        spec.shape = spec.inactiveShape.clone();
+
+        spec.rotation = Math.random()*0.02-0.01;
+        spec.velocity = randomVelocity();
+
+        var that = molecule(spec);
+
+        that.inactiveColor = spec.inactiveColor;
+        that.inactiveShape = spec.inactiveShape;
+        that.activeColor = spec.activeColor;
+        that.activeShape = spec.activeShape;
+
+        that.phosphorylated = null;
+
+        that.active = function(env) {};
+
+        that.avoidCheW = function() {
+            var cheWNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW';
+            });
+
+            if (cheWNeighbor) {
+                that.future.push(function(self) {
+                    that.velocity = that.velocity.subtract(that.to(cheWNeighbor)).scaleTo(globalVelocity);
+                });
+            }
+
+            return cheWNeighbor;
+        };
+
+        that.seek = function(env) {
+            var cheWNeighbor = that.avoidCheW();
+            if (cheWNeighbor) {
+
+            } else {
+                that.phosphorylated = that.findNeighbor(function(neighbor) {
+                    return neighbor.type === 'phosphate' && neighbor.enzyme ;
+                });
+
+                if (that.phosphorylated) {
+                    that.state = 'target';
+                }
+            }
+        };
+
+        that.target = function(env) {
+            var cheWNeighbor = that.avoidCheW();
+            if (cheWNeighbor) {
+
+            } else if (!that.phosphorylated.enzyme || that.phosphorylated.enzyme.state === 'waiting') {
+                that.phosphorylated = null;
+                that.state = 'seek';
+            } else {
+                var distance = that.distance(that.phosphorylated);
+
+                if (distance < 20) {
+                    that.state = 'cut';
+                    that.perceive(env);
+                } else {
+                    that.future.push(function(self) {
+                        that.velocity = that.velocity.add(that.to(that.phosphorylated)).scaleTo(globalVelocity);
+                    });
+                }
+            }
+        };
+
+        that.cut = function(env) {
+            that.tweenShape(that.activeShape, phosphorylationCycles/5);
+            that.tweenColor(that.activeColor, phosphorylationCycles/5);
+            that.tweenEvent(function() {that.state = 'uncut';}, phosphorylationCycles/5);
+            that.velocity = [0, 0];
+            that.future = [];
+
+            that.phosphorylated.enzyme.hold();
+
+            that.state = 'active';
+        };
+
+        that.uncut = function() {
+            if (that.phosphorylated) {
+                that.phosphorylated.enzyme.dephosphorylate();
+
+                that.tweenShape(that.inactiveShape, phosphorylationCycles);
+                that.tweenColor(that.inactiveColor, phosphorylationCycles);
+                that.velocity = randomVelocity();
+
+                that.phosphorylated = null;
+                that.state = 'seek';
+            }
+        };
+
+        that.state = 'seek';
+        return that;
+    };
+
+    var cheB = function(spec) {
+        spec.type = 'cheB';
+
+        spec.activeColor = spec.activeColor || [100, 140, 230, 1];
+        spec.inactiveColor = spec.inactiveColor || [80, 80, 90, 1];
+
+        spec.inactiveShape = spec.inactiveShape || flux.shape({ops: [
+            {op: 'move', to: [-15, -15]},
+            {op: 'line', to: [0, -15]},
+            {op: 'line', to: [15, -15]},
+            {op: 'bezier', to: [0, -5], control1: [15, 15], control2: [0, 15]},
+            {op: 'bezier', to: [-15, -15], control1: [0, 15], control2: [-15, 15]}
+        ]});
+
+        spec.activeShape = spec.activeShape || flux.shape({ops: [
+            {op: 'move', to: [-11, -25]},
+            {op: 'line', to: [0, -12]},
+            {op: 'line', to: [11, -25]},
+            {op: 'bezier', to: [0, -5], control1: [25, -16], control2: [30, 25]},
+            {op: 'bezier', to: [-11, -25], control1: [-30, 25], control2: [-25, -16]}
+        ]});
+
+        spec.rotation = Math.random()*0.02-0.01;
+        spec.velocity = randomVelocity();
+
+        var that = cheWActor(spec);
+
+        that.bound = function(env) {
+            that.methylNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'methyl' && neighbor.state === 'bound' && neighbor.column.state === 'active' && (neighbor.column != that.lastColumn);
+            });
+
+            if (that.methylNeighbor) {
+                that.state = 'targeting';
+                that.column = that.methylNeighbor.column;
+            }
+        };
+
+        that.targeting = function(env) {
+            if (that.methylNeighbor.column.state === 'inactive') {
+                that.methylNeighbor = null;
+                that.state = 'bound';
+            } else if (that.distance(that.methylNeighbor) < 30) {
+                that.methylNeighbor.cut();
+                that.state = 'bound';
+                that.lastColumn = that.column;
+                that.column = null;
+            } else {
+                that.future.push(function(self) {
+                    self.velocity = self.to(self.methylNeighbor).scaleTo(5);
+                });
+            }
+        };
+
+        return that;
+    };
+
+    var cheR = function(spec) {
+        spec.type = 'cheR';
+        spec.color = spec.color || [180, 180, 220, 1];
+
+        spec.shape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-15, -15]},
+            {op: 'line', to: [15, -15]},
+            {op: 'line', to: [15, -10]},
+            {op: 'bezier', to: [0, -5], control1: [15, 15], control2: [0, 15]},
+            {op: 'line', to: [-10, -5]},
+            {op: 'line', to: [-10, 15]},
+            {op: 'line', to: [-15, 15]}
+        ]});
+
+        spec.rotation = Math.random()*0.02-0.01;
+        spec.velocity = randomVelocity();
+
+        var that = molecule(spec);
+
         that.methylNeighbor = null;
         that.cheWNeighbor = null;
+        that.lastCheW = null;
+            that.state = 'looking';
 
-        that.state = 'binding';
-      }
+        that.looking = function(env) {
+            that.methylNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'methyl' && neighbor.state === 'free';
+            });
+            that.cheWNeighbor = that.findNeighbor(function(neighbor) {
+                return neighbor.type === 'cheW' && (neighbor != that.lastCheW);
+            });
+
+            if (that.methylNeighbor && that.cheWNeighbor && that.cheWNeighbor.column.openMethylSites.length > 0) {
+                var column = that.cheWNeighbor.column;
+
+                that.targetSite = column.claimMethylSite();
+                that.methylNeighbor.bind(that, that.targetSite);
+                that.velocity = [0, 0];
+
+                that.tweenPos(column.extrovert(that.cheWNeighbor.pos), phosphorylationCycles*2, function() {
+                    that.state = 'looking';
+                    that.future.push(function() {
+                        that.velocity = randomVelocity();
+                    });
+                });
+                    that.lastCheW = that.cheWNeighbor;
+                that.methylNeighbor = null;
+                that.cheWNeighbor = null;
+
+                that.state = 'binding';
+            }
+        };
+
+        that.binding = function(env) {
+
+        };
+
+        return that;
     };
 
-    that.binding = function(env) {
+    var flagella = function(spec) {
+        spec.type = 'flagella';
+        //        spec.color = spec.color || [60, 70, 170, 1];
+        spec.color = spec.color || [20, 30, 70, 1];
 
-    };
+        spec.revertingshape = spec.shape || flux.shape({ops: [
+            {op: 'move', to: [-50, -110]},
+            {op: 'line', to: [30, -100]},
+            {op: 'line', to: [30, -40]},
+            {op: 'line', to: [60, -40]},
+            {op: 'line', to: [60, -70]},
+            {op: 'bezier', to: [1100, -10], control1: [400, -270], control2: [700, -250]},
+            {op: 'bezier', to: [2700, -60], control1: [1700, 260], control2: [2200, 260]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, -180], control2: [3000, -150]},
+            {op: 'bezier', to: [2700, 50], control1: [3000, -80], control2: [2900, -80]},
+            {op: 'bezier', to: [1100, 150], control1: [2300, 370], control2: [1700, 370]},
+            {op: 'bezier', to: [60, 70], control1: [700, -70], control2: [400, -40]},
+            {op: 'line', to: [60, 40]},
+            {op: 'line', to: [30, 40]},
+            {op: 'line', to: [30, 100]},
+            {op: 'line', to: [-50, 110]}
+        ]});
 
-    return that;
-  };
+        spec.waxingshape = flux.shape({ops: [
+            {op: 'move', to: [-50, -110]},
+            {op: 'line', to: [30, -100]},
+            {op: 'line', to: [30, -40]},
+            {op: 'line', to: [60, -40]},
+            {op: 'line', to: [60, -70]},
+            {op: 'bezier', to: [1100, -50], control1: [400, -80], control2: [700, -80]},
+            {op: 'bezier', to: [2700, -40], control1: [1700, 10], control2: [2200, 10]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, -60], control2: [3000, -50]},
+            {op: 'bezier', to: [2700, 30], control1: [3000, 60], control2: [2900, 80]},
+            {op: 'bezier', to: [1100, 40], control1: [2300, 20], control2: [1700, 30]},
+            {op: 'bezier', to: [60, 70], control1: [700, 80], control2: [400, 80]},
+            {op: 'line', to: [60, 40]},
+            {op: 'line', to: [30, 40]},
+            {op: 'line', to: [30, 100]},
+            {op: 'line', to: [-50, 110]}
+        ]});
 
-  var flagella = function(spec) {
-    spec.type = 'flagella';
-    //        spec.color = spec.color || [60, 70, 170, 1];
-    spec.color = spec.color || [20, 30, 70, 1];
+        spec.invertingshape = flux.shape({ops: [
+            {op: 'move', to: [-50, -110]},
+            {op: 'line', to: [30, -100]},
+            {op: 'line', to: [30, -40]},
+            {op: 'line', to: [60, -40]},
+            {op: 'line', to: [60, -70]},
+            {op: 'bezier', to: [1100, 10], control1: [400, 270], control2: [700, 250]},
+            {op: 'bezier', to: [2700, 60], control1: [1700, -260], control2: [2200, -260]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, 180], control2: [3000, 150]},
+            {op: 'bezier', to: [2700, -50], control1: [3000, 80], control2: [2900, 80]},
+            {op: 'bezier', to: [1100, -150], control1: [2300, -370], control2: [1700, -370]},
+            {op: 'bezier', to: [60, 70], control1: [700, 70], control2: [400, 40]},
+            {op: 'line', to: [60, 40]},
+            {op: 'line', to: [30, 40]},
+            {op: 'line', to: [30, 100]},
+            {op: 'line', to: [-50, 110]}
+        ]});
 
-    spec.revertingshape = spec.shape || flux.shape({ops: [
-      {op: 'move', to: [-50, -110]},
-      {op: 'line', to: [30, -100]},
-      {op: 'line', to: [30, -40]},
-      {op: 'line', to: [60, -40]},
-      {op: 'line', to: [60, -70]},
-      {op: 'bezier', to: [1100, -10], control1: [400, -270], control2: [700, -250]},
-      {op: 'bezier', to: [2700, -60], control1: [1700, 260], control2: [2200, 260]},
-      {op: 'bezier', to: [3400, 0], control1: [2900, -180], control2: [3000, -150]},
-      {op: 'bezier', to: [2700, 50], control1: [3000, -80], control2: [2900, -80]},
-      {op: 'bezier', to: [1100, 150], control1: [2300, 370], control2: [1700, 370]},
-      {op: 'bezier', to: [60, 70], control1: [700, -70], control2: [400, -40]},
-      {op: 'line', to: [60, 40]},
-      {op: 'line', to: [30, 40]},
-      {op: 'line', to: [30, 100]},
-      {op: 'line', to: [-50, 110]}
-    ]});
+        spec.waningshape = flux.shape({ops: [
+            {op: 'move', to: [-50, -110]},
+            {op: 'line', to: [30, -100]},
+            {op: 'line', to: [30, -40]},
+            {op: 'line', to: [60, -40]},
+            {op: 'line', to: [60, -70]},
+            {op: 'bezier', to: [1100, 50], control1: [400, 20], control2: [700, 10]},
+            {op: 'bezier', to: [2700, 40], control1: [1700, 80], control2: [2200, 90]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, 0], control2: [3000, 10]},
+            {op: 'bezier', to: [2700, -30], control1: [3000, 0], control2: [2900, 0]},
+            {op: 'bezier', to: [1100, -40], control1: [2300, -90], control2: [1700, -80]},
+            {op: 'bezier', to: [60, 70], control1: [700, -10], control2: [400, -20]},
+            {op: 'line', to: [60, 40]},
+            {op: 'line', to: [30, 40]},
+            {op: 'line', to: [30, 100]},
+            {op: 'line', to: [-50, 110]}
+        ]});
 
-    spec.waxingshape = flux.shape({ops: [
-      {op: 'move', to: [-50, -110]},
-      {op: 'line', to: [30, -100]},
-      {op: 'line', to: [30, -40]},
-      {op: 'line', to: [60, -40]},
-      {op: 'line', to: [60, -70]},
-      {op: 'bezier', to: [1100, -50], control1: [400, -80], control2: [700, -80]},
-      {op: 'bezier', to: [2700, -40], control1: [1700, 10], control2: [2200, 10]},
-      {op: 'bezier', to: [3400, 0], control1: [2900, -60], control2: [3000, -50]},
-      {op: 'bezier', to: [2700, 30], control1: [3000, 60], control2: [2900, 80]},
-      {op: 'bezier', to: [1100, 40], control1: [2300, 20], control2: [1700, 30]},
-      {op: 'bezier', to: [60, 70], control1: [700, 80], control2: [400, 80]},
-      {op: 'line', to: [60, 40]},
-      {op: 'line', to: [30, 40]},
-      {op: 'line', to: [30, 100]},
-      {op: 'line', to: [-50, 110]}
-    ]});
+        spec.shape = spec.revertingshape.clone();
 
-    spec.invertingshape = flux.shape({ops: [
-      {op: 'move', to: [-50, -110]},
-      {op: 'line', to: [30, -100]},
-      {op: 'line', to: [30, -40]},
-      {op: 'line', to: [60, -40]},
-      {op: 'line', to: [60, -70]},
-      {op: 'bezier', to: [1100, 10], control1: [400, 270], control2: [700, 250]},
-      {op: 'bezier', to: [2700, 60], control1: [1700, -260], control2: [2200, -260]},
-      {op: 'bezier', to: [3400, 0], control1: [2900, 180], control2: [3000, 150]},
-      {op: 'bezier', to: [2700, -50], control1: [3000, 80], control2: [2900, 80]},
-      {op: 'bezier', to: [1100, -150], control1: [2300, -370], control2: [1700, -370]},
-      {op: 'bezier', to: [60, 70], control1: [700, 70], control2: [400, 40]},
-      {op: 'line', to: [60, 40]},
-      {op: 'line', to: [30, 40]},
-      {op: 'line', to: [30, 100]},
-      {op: 'line', to: [-50, 110]}
-    ]});
+        var that = molecule(spec);
+        var tick = 3;
+        var theta = 0;
 
-    spec.waningshape = flux.shape({ops: [
-      {op: 'move', to: [-50, -110]},
-      {op: 'line', to: [30, -100]},
-      {op: 'line', to: [30, -40]},
-      {op: 'line', to: [60, -40]},
-      {op: 'line', to: [60, -70]},
-      {op: 'bezier', to: [1100, 50], control1: [400, 20], control2: [700, 10]},
-      {op: 'bezier', to: [2700, 40], control1: [1700, 80], control2: [2200, 90]},
-      {op: 'bezier', to: [3400, 0], control1: [2900, 0], control2: [3000, 10]},
-      {op: 'bezier', to: [2700, -30], control1: [3000, 0], control2: [2900, 0]},
-      {op: 'bezier', to: [1100, -40], control1: [2300, -90], control2: [1700, -80]},
-      {op: 'bezier', to: [60, 70], control1: [700, -10], control2: [400, -20]},
-      {op: 'line', to: [60, 40]},
-      {op: 'line', to: [30, 40]},
-      {op: 'line', to: [30, 100]},
-      {op: 'line', to: [-50, 110]}
-    ]});
+        var phases = ['waxing', 'inverting', 'waning', 'reverting'];
+        //        var phases = ['inverting', 'reverting'];
+        var phase = 0;
 
-    spec.shape = spec.revertingshape.clone();
+        that.state = phases[phase];
+        that.tweenShape(spec[that.state + 'shape'], tick);
 
-    var that = molecule(spec);
-    var tick = 3;
-    var theta = 0;
+        that.statemaker = function(symbol) {
+            var state = function(env) {
+                if (theta < tick) {
+                    theta += 1;
+                } else {
+                    phase += 1;
+                    if (phase >= phases.length) {
+                        phase = 0;
+                    }
 
-    var phases = ['waxing', 'inverting', 'waning', 'reverting'];
-    //        var phases = ['inverting', 'reverting'];
-    var phase = 0;
+                    that.state = symbol;
+                    that.tweenShape(spec[that.state + 'shape'], tick);
+                    theta = 0;
+                }
+            };
 
-    that.state = phases[phase];
-    that.tweenShape(spec[that.state + 'shape'], tick);
+            return state;
+        };
 
-    that.statemaker = function(symbol) {
-      var state = function(env) {
-        if (theta < tick) {
-          theta += 1;
-        } else {
-          phase += 1;
-          if (phase >= phases.length) {
-            phase = 0;
-          }
-
-          that.state = symbol;
-          that.tweenShape(spec[that.state + 'shape'], tick);
-          theta = 0;
-        }
-      };
-
-      return state;
-    };
-
-    var index = 0;
-    phases.each(function(p) {
-      index += 1;
-      var next = phases[index % phases.length];
-      that[p] = that.statemaker(next);
-    });
-
-    return that;
-  };
-
-  var ligands = {
-    attractant: [],
-    repellent: []
-  };
-
-  $R(0, 30).map(function(index) {
-    var one = randomLigand();
-    ligands[one.type].push(one.ligand);
-  });
-
-  var membranes = [membrane({pos: [0, 985], orientation: 0})];
-
-  var visible = {
-    ligand: ligands,
-    membrane: membranes
-  };
-
-  var focusGroups = [
-    {name: 'membrane', path: 'membrane'},
-    {name: 'column', path: 'membrane.0.columns'},
-    {name: 'flagella', path: 'membrane.0.flagella'},
-    {name: 'repellent', path: 'ligand.repellent'},
-    {name: 'attractant', path: 'ligand.attractant'},
-    {name: 'cheW', path: 'membrane.0.cheWs'},
-    {name: 'phosphate', path: 'membrane.0.phosphates'},
-    {name: 'cheY', path: 'membrane.0.cheYs'},
-    {name: 'cheZ', path: 'membrane.0.cheZs'},
-    {name: 'methyl', path: 'membrane.0.methyls'},
-    {name: 'cheB', path: 'membrane.0.cheBs'},
-    {name: 'cheR', path: 'membrane.0.cheRs'}
-  ];
-
-  focusGroups.arrange = function() {
-    // arrange the descriptions in a circle
-    var wedge = Math.PI*2*(1.0/focusGroups.length);
-    var third = Math.PI*2.0/3;
-    var outwards = [0.42, 0.22];
-    var zero = [0, 0];
-    var center = [0.245, 0.26];
-
-    [250, 240, 30, 1];
-
-    var colorWheel = function(phase) {
-      return Math.floor(140 + (Math.sin(phase)*60));
-    };
-
-    focusGroups.each(function(group, index) {
-      var around = wedge*index;
-      var color = [around, around+(2*third), around+third].map(function(phase) {
-        return colorWheel(phase);
-      });
-      color.push(1);
-
-      group.outer = outwards.rotate(around, center).times([1, 1.7]);
-      group.descriptionColor = color;
-    });
-  };
-  focusGroups.arrange();
-
-  // descriptive menu -------------
-
-  var moleculeFocus = function(group) {
-
-  };
-
-  var moleculeKey = function() {
-    var keyspec = {
-      pos: [0.72, 0.1],
-      shape: flux.shape({ops: [
-        {op: 'move', to: [0, 0]},
-        {op: 'line', to: [200, 0]},
-        {op: 'line', to: [200, 440]},
-        {op: 'line', to: [0, 440]}
-      ]}),
-      orientation: 0,
-      lineWidth: 2,
-      outline: [170, 170, 170, 1],
-      color: [0, 0, 0, 1],
-      transform: 'screen'
-    };
-    var key = flux.mote(keyspec);
-
-    var description = function(spec) {
-      spec.orientation = 0;
-      spec.fill = 'stroke';
-      spec.lineWidth = 2;
-      spec.transform = 'screen';
-
-      var desc = flux.mote(spec);
-
-      desc.setDescription = function(description) {
-        var text = desc.findText(description);
-        text.box.scale(1.1);
-        var background = text.box.shapeFor();
-        background.color = [20, 20, 20, 1];
-
-        desc.description = description;
-        desc.shapes = [background, text];
-        desc.findBox();
-      };
-
-      desc.findText = function(string) {
-        var ops = string.split('\n').map(function(line, index) {
-          return {op: 'text', to: desc.pos.add([0, index*23]), size: 12, string: line};
+        var index = 0;
+        phases.each(function(p) {
+                index += 1;
+            var next = phases[index % phases.length];
+            that[p] = that.statemaker(next);
         });
 
-        return flux.shape({ops: ops, fill: 'stroke'});
-      };
-
-      desc.setDescription(spec.description);
-      desc.item = spec.item;
-      desc.mouseDown = desc.item.hideDescription;
-
-      return desc;
+        return that;
     };
 
-    var keyitem = function(spec) {
-      var inactiveColor = spec.inactiveColor || [110, 130, 210, 1];
-      var activeColor = [230, 230, 230, 1];
+    var ligands = {
+        attractant: [],
+        repellent: []
+    };
 
-      spec.color = spec.color || inactiveColor.clone();
-      spec.orientation = 0;
-      spec.fill = 'stroke';
-      spec.shape = spec.shape || flux.shape({ops: [
-        {op: 'text', to: [0, 0], size: 14, string: spec.name}
-      ], fill: 'stroke'});
+    $R(0, 30).map(function(index) {
+        var one = randomLigand();
+        ligands[one.type].push(one.ligand);
+    });
 
-      var item = flux.mote(spec);
+    var membranes = [membrane({pos: [0, 985], orientation: 0})];
 
-      item.name = spec.name;
-      item.path = spec.path;
+    var visible = {
+        ligand: ligands,
+        membrane: membranes
+    };
 
-      item.active = false;
-      item.outer = spec.outer || [5000, 0];
-      item.descriptionColor = spec.descriptionColor || [250, 240, 30, 1];
-      item.description = description({
-        item: item,
-        pos: item.outer,
-        color: item.descriptionColor,
-        description: descriptions[item.name] || ''
-      });
+    var focusGroups = [
+        {name: 'membrane', path: 'membrane'},
+        {name: 'column', path: 'membrane.0.columns'},
+        {name: 'flagella', path: 'membrane.0.flagella'},
+        {name: 'repellent', path: 'ligand.repellent'},
+        {name: 'attractant', path: 'ligand.attractant'},
+        {name: 'cheW', path: 'membrane.0.cheWs'},
+        {name: 'phosphate', path: 'membrane.0.phosphates'},
+        {name: 'cheY', path: 'membrane.0.cheYs'},
+        {name: 'cheZ', path: 'membrane.0.cheZs'},
+        {name: 'methyl', path: 'membrane.0.methyls'},
+        {name: 'cheB', path: 'membrane.0.cheBs'},
+        {name: 'cheR', path: 'membrane.0.cheRs'}
+    ];
 
-      item.changeText = function(text) {
-        item.shapes = [flux.shape({ops: [
-          {op: 'text', to: [0, 0], size: 14, string: text}
-        ], fill: 'stroke'})];
-      };
+    focusGroups.arrange = function() {
+        // arrange the descriptions in a circle
+        var wedge = Math.PI*2*(1.0/focusGroups.length);
+        var third = Math.PI*2.0/3;
+        var outwards = [0.42, 0.22];
+        var zero = [0, 0];
+        var center = [0.245, 0.26];
 
-      item.activate = function() {
-        if (!item.active) {
-          item.tweens = [];
-          item.tweenColor(activeColor, 3);
-          item.tweenScale([1.05, 1.05], 3);
+        [250, 240, 30, 1];
 
-          item.active = true;
+        var colorWheel = function(phase) {
+            return Math.floor(140 + (Math.sin(phase)*60));
+        };
+
+        focusGroups.each(function(group, index) {
+            var around = wedge*index;
+            var color = [around, around+(2*third), around+third].map(function(phase) {
+                return colorWheel(phase);
+            });
+            color.push(1);
+
+            group.outer = outwards.rotate(around, center).times([1, 1.7]);
+            group.descriptionColor = color;
+        });
+    };
+    focusGroups.arrange();
+
+    // descriptive menu -------------
+
+    var moleculeFocus = function(group) {
+
+    };
+
+    var moleculeKey = function() {
+        var keyspec = {
+            pos: [0.72, 0.1],
+            shape: flux.shape({ops: [
+                {op: 'move', to: [0, 0]},
+                {op: 'line', to: [200, 0]},
+                {op: 'line', to: [200, 440]},
+                {op: 'line', to: [0, 440]}
+            ]}),
+            orientation: 0,
+            lineWidth: 2,
+            outline: [170, 170, 170, 1],
+            color: [0, 0, 0, 1],
+            transform: 'screen'
+        };
+        var key = flux.mote(keyspec);
+
+        var description = function(spec) {
+            spec.orientation = 0;
+            spec.fill = 'stroke';
+            spec.lineWidth = 2;
+            spec.transform = 'screen';
+
+            var desc = flux.mote(spec);
+
+            desc.setDescription = function(description) {
+                var text = desc.findText(description);
+                text.box.scale(1.1);
+                var background = text.box.shapeFor();
+                background.color = [20, 20, 20, 1];
+
+                desc.description = description;
+                desc.shapes = [background, text];
+                desc.findBox();
+            };
+
+            desc.findText = function(string) {
+                var ops = string.split('\n').map(function(line, index) {
+                    return {op: 'text', to: desc.pos.add([0, index*23]), size: 12, string: line};
+                });
+
+                return flux.shape({ops: ops, fill: 'stroke'});
+            };
+
+            desc.setDescription(spec.description);
+            desc.item = spec.item;
+            desc.mouseDown = desc.item.hideDescription;
+
+            return desc;
+        };
+
+        var keyitem = function(spec) {
+            var inactiveColor = spec.inactiveColor || [110, 130, 210, 1];
+            var activeColor = [230, 230, 230, 1];
+
+            spec.color = spec.color || inactiveColor.clone();
+            spec.orientation = 0;
+            spec.fill = 'stroke';
+            spec.shape = spec.shape || flux.shape({ops: [
+                {op: 'text', to: [0, 0], size: 14, string: spec.name}
+            ], fill: 'stroke'});
+
+            var item = flux.mote(spec);
+
+            item.name = spec.name;
+            item.path = spec.path;
+
+            item.active = false;
+            item.outer = spec.outer || [5000, 0];
+            item.descriptionColor = spec.descriptionColor || [250, 240, 30, 1];
+            item.description = description({
+                item: item,
+                pos: item.outer,
+                color: item.descriptionColor,
+                description: descriptions[item.name] || ''
+            });
+
+            item.changeText = function(text) {
+                item.shapes = [flux.shape({ops: [
+                    {op: 'text', to: [0, 0], size: 14, string: text}
+                ], fill: 'stroke'})];
+            };
+
+            item.activate = function() {
+                if (!item.active) {
+                    item.tweens = [];
+                    item.tweenColor(activeColor, 3);
+                    item.tweenScale([1.05, 1.05], 3);
+
+                    item.active = true;
+                }
+            };
+
+            item.deactivate = function() {
+                if (item.active) {
+                    item.tweens = [];
+                    item.tweenColor(inactiveColor, 3);
+                    item.tweenScale([1, 1], 3);
+
+                    item.active = false;
+                }
+            };
+
+            item.showDescription = function(info) {
+                if (info) {
+                    item.description.setDescription(info + descriptions[item.name]);
+                }
+                world.addActiveDescription(item.description);
+            };
+
+            item.hideDescription = function(info) {
+                if (info) {
+                    item.description.setDescription(descriptions[item.name]);
+                }
+                world.removeActiveDescription();
+            };
+
+            item.mouseDownDescription = function() {
+                item.showDescription();
+            };
+
+            //             item.mouseUpDescription = function() {
+            //                 item.hideDescription();
+            //             };
+
+            if (!spec.inactive) {
+                item.mouseIn = item.activate;
+                item.mouseOut = item.deactivate;
+                item.mouseDown = item.mouseDownDescription;
+                item.mouseUp = item.mouseUpDescription;
+            }
+
+            return item;
+        };
+
+        var homeostatic = keyitem({
+            name: 'homeostasis',
+            pos: [10, 20],
+            outer: [0.2, 0.05],
+            inactiveColor: [150, 150, 110, 1],
+            descriptionColor: [240, 230, 170, 1]
+        });
+
+        var about = keyitem({
+            name: 'about',
+            pos: [10, 50],
+            outer: [0.2, 0.7],
+            inactiveColor: [150, 150, 110, 1],
+            descriptionColor: [150, 150, 210, 1]
+        });
+
+        var divider = keyitem({
+            name: '______________________________',
+            pos: [-35, 70],
+            outer: [0.5, 0.5],
+            inactive: true,
+            inactiveColor: [210, 110, 110, 1],
+            descriptionColor: [150, 150, 210, 1]
+        });
+
+        divider.activate = function() {
+            divider.changeText('__________________hide________');
+        };
+
+        divider.deactivate = function() {
+            divider.changeText('______________________________');
+        };
+
+        var hideTick = 7;
+
+        divider.hide = function() {
+            key.tweenPos([0.72, -0.9], hideTick);
+        };
+
+        divider.show = function() {
+            key.tweenPos([0.72, 0.1], hideTick);
+        };
+
+        divider.mouseIn = divider.activate;
+        divider.mouseOut = divider.deactivate;
+        divider.mouseDown = divider.hide;
+        divider.mouseUp = divider.hide;
+
+        key.itemhash = {};
+        key.keyitems = [homeostatic, about, divider].concat(focusGroups.map(function(group, index) {
+            group.pos = [10, index*30+100];
+            var item = keyitem(group);
+
+            key.itemhash[group.name] = item;
+            return item;
+        }));
+
+        key.addSubmotes(key.keyitems);
+
+        return key;
+    }();
+
+    // creation of flux canvas -------------------
+
+    var world;
+
+    var spec = {
+        id: id,
+        motes: membranes.concat(ligands.attractant).concat(ligands.repellent).push(moleculeKey),
+        scale: [0.17, 0.17],
+
+        translation: [500, 200],
+        //        translation: [0, 200],
+
+        mouseMove: function(canvas, mouse) {
+            canvas.removeActiveDescription();
+
+            if (mouse.down) {
+                canvas.translation = canvas.translation.add(mouse.screen.subtract(mouse.prevscreen));
+                dragging = true;
+            }
+        },
+
+        keyDown: function(canvas, key, keys) {
+            var base = 1.25;
+
+            if (key == 79) {
+                var scale = Math.pow(base, -1);
+                canvas.zoom(scale);
+            }
+            if (key == 73) {
+                var scale = Math.pow(base, 1);
+                canvas.zoom(scale);
+            }
+        },
+
+        // delta is either 1 or -1, which is the exponent of the scaling constant
+        // signifying either the number or its inverse.
+        wheel: function(canvas, delta) {
+            var scale = Math.pow(1.007, delta);
+            canvas.zoom(scale);
         }
-      };
+    };
 
-      item.deactivate = function() {
-        if (item.active) {
-          item.tweens = [];
-          item.tweenColor(inactiveColor, 3);
-          item.tweenScale([1, 1], 3);
+    world = flux.canvas(spec);
+    world.activeDescription = null;
 
-          item.active = false;
-        }
-      };
-
-      item.showDescription = function(info) {
-        if (info) {
-          item.description.setDescription(info + descriptions[item.name]);
-        }
-        world.addActiveDescription(item.description);
-      };
-
-      item.hideDescription = function(info) {
-        if (info) {
-          item.description.setDescription(descriptions[item.name]);
-        }
+    world.addActiveDescription = function(description) {
         world.removeActiveDescription();
-      };
 
-      item.mouseDownDescription = function() {
-        item.showDescription();
-      };
-
-      //             item.mouseUpDescription = function() {
-      //                 item.hideDescription();
-      //             };
-
-      if (!spec.inactive) {
-        item.mouseIn = item.activate;
-        item.mouseOut = item.deactivate;
-        item.mouseDown = item.mouseDownDescription;
-        item.mouseUp = item.mouseUpDescription;
-      }
-
-      return item;
+        world.addMote(description);
+        world.activeDescription = description;
     };
 
-    var homeostatic = keyitem({
-      name: 'homeostasis',
-      pos: [10, 20],
-      outer: [0.2, 0.05],
-      inactiveColor: [150, 150, 110, 1],
-      descriptionColor: [240, 230, 170, 1]
-    });
-
-    var about = keyitem({
-      name: 'about',
-      pos: [10, 50],
-      outer: [0.2, 0.7],
-      inactiveColor: [150, 150, 110, 1],
-      descriptionColor: [150, 150, 210, 1]
-    });
-
-    var divider = keyitem({
-      name: '______________________________',
-      pos: [-35, 70],
-      outer: [0.5, 0.5],
-      inactive: true,
-      inactiveColor: [210, 110, 110, 1],
-      descriptionColor: [150, 150, 210, 1]
-    });
-
-    divider.activate = function() {
-      divider.changeText('__________________hide________');
+    world.removeActiveDescription = function() {
+        if (world.activeDescription) {
+            world.removeMote(world.activeDescription);
+            world.activeDescription = null;
+        }
     };
 
-    divider.deactivate = function() {
-      divider.changeText('______________________________');
-    };
-
-    var hideTick = 7;
-
-    divider.hide = function() {
-      key.tweenPos([0.72, -0.9], hideTick);
-    };
-
-    divider.show = function() {
-      key.tweenPos([0.72, 0.1], hideTick);
-    };
-
-    divider.mouseIn = divider.activate;
-    divider.mouseOut = divider.deactivate;
-    divider.mouseDown = divider.hide;
-    divider.mouseUp = divider.hide;
-
-    key.itemhash = {};
-    key.keyitems = [homeostatic, about, divider].concat(focusGroups.map(function(group, index) {
-      group.pos = [10, index*30+100];
-      var item = keyitem(group);
-
-      key.itemhash[group.name] = item;
-      return item;
-    }));
-
-    key.addSubmotes(key.keyitems);
-
-    return key;
-  }();
-
-  // creation of flux canvas -------------------
-
-  var world;
-
-  var spec = {
-    id: id,
-    motes: membranes.concat(ligands.attractant).concat(ligands.repellent).push(moleculeKey),
-    scale: [0.17, 0.17],
-
-    translation: [500, 200],
-    //        translation: [0, 200],
-
-    mouseMove: function(canvas, mouse) {
-      canvas.removeActiveDescription();
-
-      if (mouse.down) {
-        canvas.translation = canvas.translation.add(mouse.screen.subtract(mouse.prevscreen));
-        dragging = true;
-      }
-    },
-
-    keyDown: function(canvas, key, keys) {
-      var base = 1.25;
-
-      if (key == 79) {
-        var scale = Math.pow(base, -1);
-        canvas.zoom(scale);
-      }
-      if (key == 73) {
-        var scale = Math.pow(base, 1);
-        canvas.zoom(scale);
-      }
-    },
-
-    // delta is either 1 or -1, which is the exponent of the scaling constant
-    // signifying either the number or its inverse.
-    wheel: function(canvas, delta) {
-      var scale = Math.pow(1.007, delta);
-      canvas.zoom(scale);
-    }
-  };
-
-  world = flux.canvas(spec);
-  world.activeDescription = null;
-
-  world.addActiveDescription = function(description) {
-    world.removeActiveDescription();
-
-    world.addMote(description);
-    world.activeDescription = description;
-  };
-
-  world.removeActiveDescription = function() {
-    if (world.activeDescription) {
-      world.removeMote(world.activeDescription);
-      world.activeDescription = null;
-    }
-  };
-
-  // for testing
-  world.membrane = membranes[0];
-  world.key = moleculeKey;
+    // for testing
+    world.membrane = membranes[0];
+    world.key = moleculeKey;
 
 
-//  return {init: function () {}};
-  return world;
+    //  return {init: function () {}};
+    return world;
 };
 
 
