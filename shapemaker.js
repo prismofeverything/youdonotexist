@@ -7,76 +7,6 @@ var shapemaker = function () {
 
     var mote = flux.mote({
         shapes: [shape]
-        });
-
-    var cursor = linkage.type({
-        init: function () {
-            this.index = 0;
-            this.focus = linkage.link(this.collection()[this.index]);
-        },
-
-        collection: function () {
-            var col = []; 
-            return function () {return col;};
-        }(),
-
-        create: function () {},
-
-        refocus: function () {
-            this.focus(this.collection()[this.index]);
-        },
-
-        step: function (step) {
-            this.index = (this.index + step) % this.collection().length;
-            this.refocus();
-        },
-
-        next: function () {
-            this.step(1);
-        },
-
-        previous: function () {
-            this.step(-1);
-        },
-
-        add: function (spec) {
-            var fresh = this.create(spec);
-                this.collection().splice(this.index, 0, fresh);
-                this.focus(fresh);
-
-            return fresh;
-        },
-
-        remove: function () {
-            var oldFocus = this.collection().splice(this.index, 1);
-            var newIndex = this.index % this.collection().length;
-            this.refocus();
-
-            return oldFocus;
-        }
-    });
-
-    var opcursor = linkage.type([cursor], {
-        
-    });
-
-    var cursors = {
-        mote: cursor('mote', mote, function () {
-            return this.focus().supermote ? this.focus().supermote.motes : world.motes;
-        }),
-
-        shape: cursor('shape', shape, function () {return cursors.mote.focus().shapes;}),
-        op: cursor('op', null, function () {return cursors.shape.focus().ops;})
-        };
-
-    var cc = 'op'; // cursorcursor
-
-    cursors.mote.focus.watch(function (mote) {
-        cursors.shape.focus(mote.shapes[0]);
-    });
-
-    cursors.shape.focus.watch(function (shape) {
-        cursors.op.focus(shape.ops[0]);
     });
 
     var ophighlight = flux.mote({
@@ -84,22 +14,7 @@ var shapemaker = function () {
         outline: [100, 200, 150]
     });
 
-    cursors.op.focus.watch(function (op) {
-        ophighlight.to[0] = op.to[0];
-        ophighlight.to[1] = op.to[1];
-    });
-
-    var raisecc = function () {
-        if (cc !== 'mote') {
-            cc = cc === 'shape' ? 'mote' : 'shape';
-        }
-    };
-
-    var lowercc = function () {
-        if (cc !== 'op') {
-            cc = cc === 'shape' ? 'op' : 'shape';
-        }
-    };
+    var cursors = {};
 
     // create world
     var world = flux.canvas({
@@ -136,6 +51,97 @@ var shapemaker = function () {
 
     world.addMote(mote);
     world.addMote(ophighlight);
+
+    var cursor = linkage.type({
+        init: function (collection) {
+            this.index = 0;
+            this.collection = collection || function () {
+                var col = []; 
+                return function () {return col;};
+            }();
+
+            this.focus = linkage.link(null);
+            this.refocus();
+        },
+
+        create: function () {},
+
+        refocus: function () {
+            this.focus(this.collection()[this.index]);
+        },
+
+        step: function (step) {
+            this.index = (this.index + step) % this.collection().length;
+            this.refocus();
+        },
+
+        next: function () {
+            this.step(1);
+        },
+
+        previous: function () {
+            this.step(-1);
+        },
+
+        add: function (spec) {
+            var fresh = this.create(spec);
+            this.collection().splice(this.index, 0, fresh);
+            this.focus(fresh);
+
+            return fresh;
+        },
+
+        remove: function () {
+            var oldFocus = this.collection().splice(this.index, 1);
+            var newIndex = this.index % this.collection().length;
+            this.refocus();
+
+            return oldFocus;
+        }
+    });
+
+    cursors.mote = cursor(function () {
+        if (this.focus() && this.focus.supermote) {
+            return this.focus().supermote.motes;
+        } else {
+            return world.motes;
+        }
+    });
+
+    cursors.shape = cursor(function () {
+        return cursors.mote.focus() ? cursors.mote.focus().shapes : null;
+    });
+
+    cursors.op = cursor(function () {
+        return cursors.shape.focus().ops;
+    });
+
+    var cc = 'op'; // cursorcursor
+
+    cursors.mote.focus.watch(function (mote) {
+        cursors.shape.focus(mote.shapes[0]);
+    });
+
+    cursors.shape.focus.watch(function (shape) {
+        cursors.op.focus(shape.ops[0]);
+    });
+
+    cursors.op.focus.watch(function (op) {
+        ophighlight.to[0] = op.to[0];
+        ophighlight.to[1] = op.to[1];
+    });
+
+    var raisecc = function () {
+        if (cc !== 'mote') {
+            cc = cc === 'shape' ? 'mote' : 'shape';
+        }
+    };
+
+    var lowercc = function () {
+        if (cc !== 'op') {
+            cc = cc === 'shape' ? 'op' : 'shape';
+        }
+    };
 
     var start = function () {
         world.init();

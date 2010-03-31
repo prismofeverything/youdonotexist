@@ -1385,7 +1385,7 @@ var flux = function() {
             context.lineWidth = 5;
 
             // timer
-            setInterval(update, 40);
+            setInterval(update, 100);
         };
 
         return that;
