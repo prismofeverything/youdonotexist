@@ -1,16 +1,16 @@
 var homeostasis = function(id) {
     var above = flux.bounds(-1700, 1700, -450, 250);
     var below = flux.bounds(-1700, 1700, 1700, 2400);
-        var all = above.copy();
+    var all = above.copy();
     all.union(below);
 
-        var receptorGrip = 0.996;
-        var attractantRepellentRatio = 0.5;
-        var phosphorylationCycles = 50;
-        var globalVelocity = 5;
+    var receptorGrip = 0.996;
+    var attractantRepellentRatio = 0.5;
+    var phosphorylationCycles = 50;
+    var globalVelocity = 5;
     var timeZoom = 10;
-        var dragging = false;
-        var showingState = false;
+    var dragging = false;
+    var showingState = false;
 
     var defaultRotation = function() {return Math.random() * 0.1 - 0.05;};
 
@@ -118,7 +118,7 @@ var homeostasis = function(id) {
             that.tweenColor([255, 255, 255, 1], 5);
 
             that.pause();
-            };
+        };
 
         that.unfocus = function() {
             if (that.oldColor) that.tweenColor(that.oldColor, 5);
@@ -143,7 +143,7 @@ var homeostasis = function(id) {
 
         that.keyItem = function() {
             return moleculeKey.itemhash[that.type];
-            };
+        };
 
         var showDescription = function(mouse) {
             // only show the deepest submote under the mouse
@@ -156,9 +156,9 @@ var homeostasis = function(id) {
 
                 var state = showingState ? ' -- ' + that.state : '';
                 var output = that.type + state + '\n\n';
-                    that.keyItem().showDescription(output);
+                that.keyItem().showDescription(output);
             }
-            };
+        };
 
         var hideDescription = function(mouse) {
             that.keyItem().hideDescription(true);
@@ -167,25 +167,25 @@ var homeostasis = function(id) {
         that.findNeighbor = function(condition) {
             var index = 0;
             var neighbor = null;
-            var found = null;
+                var found = null;
 
-            while (!found && index < that.neighbors.length) {
-                neighbor = that.neighbors[index];
+                while (!found && index < that.neighbors.length) {
+                    neighbor = that.neighbors[index];
                     if (condition(neighbor)) {
                         found = neighbor;
                     }
 
-                index += 1;
-            }
+                    index += 1;
+                }
 
             return found;
-            };
+        };
 
         that.perceive = spec.perceive || function(env) {
             that[that.state](env);
         };
 
-            that.mouseDown = spec.mouseDown || showDescription;
+        that.mouseDown = spec.mouseDown || showDescription;
         //        that.mouseUp = spec.mouseUp || hideDescription;
 
         return that;
@@ -245,10 +245,10 @@ var homeostasis = function(id) {
                         that.velocity = that.velocity.add(that.to(that.closestReceptor).multiply(20/(distance))).scaleTo(velocityScale*globalVelocity);
                     });
                 } else {
-                        that.future.push(function(self) {
-                            that.velocity = [0, 0];
-                            that.rotation = 0;
-                        });
+                    that.future.push(function(self) {
+                        that.velocity = [0, 0];
+                        that.rotation = 0;
+                    });
 
                     that.closestReceptor.take(that);
                     that.state = 'attached';
@@ -279,14 +279,14 @@ var homeostasis = function(id) {
     };
 
     var attractant = function(spec) {
-        spec.type = 'attractant';
+            spec.type = 'attractant';
         spec.color = spec.color || [140, 170, 100, 1];
         spec.shape = spec.shape || flux.shape({ops: [{op: 'arc', radius: 7}]});
         spec.velocity = randomVelocity();
 
         var that = ligand(spec);
 
-        return that;
+            return that;
     };
 
     var repellent = function(spec) {
@@ -443,7 +443,7 @@ var homeostasis = function(id) {
         that.takenMethylSites = [];
 
         that.claimMethylSite = function() {
-                var site = that.openMethylSites.shift();
+            var site = that.openMethylSites.shift();
             that.takenMethylSites.push(site);
 
             return that.extrovert(site);
@@ -483,7 +483,7 @@ var homeostasis = function(id) {
         var that = molecule(spec);
 
         that.column = spec.column;
-            that.cheW = spec.cheW;
+        that.cheW = spec.cheW;
 
         that.taken = false;
         that.ligand = null;
@@ -538,7 +538,7 @@ var homeostasis = function(id) {
     };
 
     var cheW = function(spec) {
-        spec.type = 'cheW';
+            spec.type = 'cheW';
 
         var activeColor = spec.activeColor || [210, 220, 130, 1];
         var inactiveColor = spec.inactiveColor || [40, 40, 40, 1];
@@ -568,7 +568,7 @@ var homeostasis = function(id) {
                     }
                 }
             });
-            };
+        };
 
         that.deactivate = function() {
             that.active = false;
@@ -581,11 +581,11 @@ var homeostasis = function(id) {
     };
 
     var cheWSeeker = function(spec) {
-        var that = molecule(spec);
+            var that = molecule(spec);
 
         var velocityScale = 5;
 
-        that.insideRadius = spec.insideRadius || 300;
+            that.insideRadius = spec.insideRadius || 300;
         that.tooCloseRadius = spec.tooCloseRadius || 20;
 
         that.nearestPhosphate = null;
@@ -642,7 +642,7 @@ var homeostasis = function(id) {
 
             that.future.push(function(self) {
                 that.velocity = that.velocity.add(turning).scaleTo(velocityScale/3);
-                });
+            });
 
             that.outsideCheW();
         };
@@ -654,7 +654,7 @@ var homeostasis = function(id) {
             var turning = that.to(that.activeCheW).multiply(0.2/(distance));
 
             that.future.push(function(self) {
-                    that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
+                that.velocity = that.velocity.add(turning).scaleTo(velocityScale*0.5);
             });
 
             that.insideCheW();
@@ -688,7 +688,7 @@ var homeostasis = function(id) {
         ]});
 
         spec.rotation = Math.random()*0.02-0.01;
-            spec.velocity = randomVelocity();
+        spec.velocity = randomVelocity();
 
         var that = cheWSeeker(spec);
 
@@ -741,7 +741,7 @@ var homeostasis = function(id) {
     };
 
     var methyl = function(spec) {
-            spec.type = 'methyl';
+        spec.type = 'methyl';
         spec.color = spec.color || [130, 110, 70, 1];
         spec.shape = spec.shape || flux.shape({ops: [
             {op: 'move', to: [-5, 0]},
@@ -852,9 +852,9 @@ var homeostasis = function(id) {
             that.state = 'waiting';
         };
 
-            that.waiting = function(env) {
+        that.waiting = function(env) {
 
-            };
+        };
 
         that.dephosphorylate = function() {
             that.tweenColor(that.inactiveColor, phosphorylationCycles);
@@ -878,7 +878,7 @@ var homeostasis = function(id) {
 
         var velocityScale = 3;
 
-        spec.activeColor = spec.activeColor || [150, 180, 190, 1];
+            spec.activeColor = spec.activeColor || [150, 180, 190, 1];
         spec.inactiveColor = spec.inactiveColor || [40, 58, 64, 1];
 
         spec.activeShape = spec.activeShape || flux.shape({ops: [
@@ -921,7 +921,7 @@ var homeostasis = function(id) {
             {op: 'line', to: [15, 15]},
             {op: 'line', to: [-15, 15]},
             {op: 'line', to: [5, -10]},
-                {op: 'line', to: [-15, -10]}
+            {op: 'line', to: [-15, -10]}
         ]});
 
         spec.activeShape = spec.activeShape || flux.shape({ops: [
@@ -1110,7 +1110,7 @@ var homeostasis = function(id) {
         that.methylNeighbor = null;
         that.cheWNeighbor = null;
         that.lastCheW = null;
-            that.state = 'looking';
+        that.state = 'looking';
 
         that.looking = function(env) {
             that.methylNeighbor = that.findNeighbor(function(neighbor) {
@@ -1133,7 +1133,7 @@ var homeostasis = function(id) {
                         that.velocity = randomVelocity();
                     });
                 });
-                    that.lastCheW = that.cheWNeighbor;
+                that.lastCheW = that.cheWNeighbor;
                 that.methylNeighbor = null;
                 that.cheWNeighbor = null;
 
@@ -1159,11 +1159,11 @@ var homeostasis = function(id) {
             {op: 'line', to: [30, -40]},
             {op: 'line', to: [60, -40]},
             {op: 'line', to: [60, -70]},
-            {op: 'bezier', to: [1100, -10], control1: [400, -270], control2: [700, -250]},
+            {op: 'bezier', to: [1100, -10], control1: [400, -200], control2: [700, -200]},
             {op: 'bezier', to: [2700, -60], control1: [1700, 260], control2: [2200, 260]},
             {op: 'bezier', to: [3400, 0], control1: [2900, -180], control2: [3000, -150]},
             {op: 'bezier', to: [2700, 50], control1: [3000, -80], control2: [2900, -80]},
-            {op: 'bezier', to: [1100, 150], control1: [2300, 370], control2: [1700, 370]},
+            {op: 'bezier', to: [1100, 150], control1: [2200, 370], control2: [1700, 370]},
             {op: 'bezier', to: [60, 70], control1: [700, -70], control2: [400, -40]},
             {op: 'line', to: [60, 40]},
             {op: 'line', to: [30, 40]},
@@ -1178,10 +1178,10 @@ var homeostasis = function(id) {
             {op: 'line', to: [60, -40]},
             {op: 'line', to: [60, -70]},
             {op: 'bezier', to: [1100, -50], control1: [400, -80], control2: [700, -80]},
-            {op: 'bezier', to: [2700, -40], control1: [1700, 10], control2: [2200, 10]},
+            {op: 'bezier', to: [2700, -40], control1: [1700, -55], control2: [2200, -55]},
             {op: 'bezier', to: [3400, 0], control1: [2900, -60], control2: [3000, -50]},
-            {op: 'bezier', to: [2700, 30], control1: [3000, 60], control2: [2900, 80]},
-            {op: 'bezier', to: [1100, 40], control1: [2300, 20], control2: [1700, 30]},
+            {op: 'bezier', to: [2700, 70], control1: [3000, 60], control2: [2900, 80]},
+            {op: 'bezier', to: [1100, 80], control1: [2200, 85], control2: [1700, 85]},
             {op: 'bezier', to: [60, 70], control1: [700, 80], control2: [400, 80]},
             {op: 'line', to: [60, 40]},
             {op: 'line', to: [30, 40]},
@@ -1195,12 +1195,12 @@ var homeostasis = function(id) {
             {op: 'line', to: [30, -40]},
             {op: 'line', to: [60, -40]},
             {op: 'line', to: [60, -70]},
-            {op: 'bezier', to: [1100, 10], control1: [400, 270], control2: [700, 250]},
-            {op: 'bezier', to: [2700, 60], control1: [1700, -260], control2: [2200, -260]},
-            {op: 'bezier', to: [3400, 0], control1: [2900, 180], control2: [3000, 150]},
-            {op: 'bezier', to: [2700, -50], control1: [3000, 80], control2: [2900, 80]},
-            {op: 'bezier', to: [1100, -150], control1: [2300, -370], control2: [1700, -370]},
-            {op: 'bezier', to: [60, 70], control1: [700, 70], control2: [400, 40]},
+            {op: 'bezier', to: [1100, -150], control1: [400, 40], control2: [700, 40]},
+            {op: 'bezier', to: [2700, -50], control1: [1700, -370], control2: [2200, -370]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, 80], control2: [3000, 80]},
+            {op: 'bezier', to: [2700, 60], control1: [3000, 150], control2: [2900, 180]},
+            {op: 'bezier', to: [1100, 10], control1: [2200, -260], control2: [1700, -260]},
+            {op: 'bezier', to: [60, 70], control1: [700, 200], control2: [400, 200]},
             {op: 'line', to: [60, 40]},
             {op: 'line', to: [30, 40]},
             {op: 'line', to: [30, 100]},
@@ -1213,12 +1213,12 @@ var homeostasis = function(id) {
             {op: 'line', to: [30, -40]},
             {op: 'line', to: [60, -40]},
             {op: 'line', to: [60, -70]},
-            {op: 'bezier', to: [1100, 50], control1: [400, 20], control2: [700, 10]},
-            {op: 'bezier', to: [2700, 40], control1: [1700, 80], control2: [2200, 90]},
-            {op: 'bezier', to: [3400, 0], control1: [2900, 0], control2: [3000, 10]},
-            {op: 'bezier', to: [2700, -30], control1: [3000, 0], control2: [2900, 0]},
-            {op: 'bezier', to: [1100, -40], control1: [2300, -90], control2: [1700, -80]},
-            {op: 'bezier', to: [60, 70], control1: [700, -10], control2: [400, -20]},
+            {op: 'bezier', to: [1100, -80], control1: [400, -80], control2: [700, -80]},
+            {op: 'bezier', to: [2700, -70], control1: [1700, -85], control2: [2200, -85]},
+            {op: 'bezier', to: [3400, 0], control1: [2900, -80], control2: [3000, -60]},
+            {op: 'bezier', to: [2700, 40], control1: [3000, 50], control2: [2900, 60]},
+            {op: 'bezier', to: [1100, 50], control1: [2200, 55], control2: [1700, 55]},
+            {op: 'bezier', to: [60, 70], control1: [700, 80], control2: [400, 80]},
             {op: 'line', to: [60, 40]},
             {op: 'line', to: [30, 40]},
             {op: 'line', to: [30, 100]},
@@ -1231,8 +1231,10 @@ var homeostasis = function(id) {
         var tick = 3;
         var theta = 0;
 
+//        var phases = ['waning'];
         var phases = ['waxing', 'inverting', 'waning', 'reverting'];
-        //        var phases = ['inverting', 'reverting'];
+
+//        var phases = ['inverting', 'reverting'];
         var phase = 0;
 
         that.state = phases[phase];
@@ -1259,7 +1261,7 @@ var homeostasis = function(id) {
 
         var index = 0;
         phases.each(function(p) {
-                index += 1;
+            index += 1;
             var next = phases[index % phases.length];
             that[p] = that.statemaker(next);
         });
@@ -1274,7 +1276,7 @@ var homeostasis = function(id) {
 
     $R(0, 30).map(function(index) {
         var one = randomLigand();
-        ligands[one.type].push(one.ligand);
+            ligands[one.type].push(one.ligand);
     });
 
     var membranes = [membrane({pos: [0, 985], orientation: 0})];
@@ -1285,7 +1287,7 @@ var homeostasis = function(id) {
     };
 
     var focusGroups = [
-        {name: 'membrane', path: 'membrane'},
+            {name: 'membrane', path: 'membrane'},
         {name: 'column', path: 'membrane.0.columns'},
         {name: 'flagella', path: 'membrane.0.flagella'},
         {name: 'repellent', path: 'ligand.repellent'},
@@ -1305,7 +1307,7 @@ var homeostasis = function(id) {
         var third = Math.PI*2.0/3;
         var outwards = [0.42, 0.22];
         var zero = [0, 0];
-        var center = [0.245, 0.26];
+            var center = [0.245, 0.26];
 
         [250, 240, 30, 1];
 
@@ -1502,9 +1504,9 @@ var homeostasis = function(id) {
 
         var hideTick = 7;
 
-        divider.hide = function() {
-            key.tweenPos([0.72, -0.9], hideTick);
-        };
+            divider.hide = function() {
+                key.tweenPos([0.72, -0.9], hideTick);
+            };
 
         divider.show = function() {
             key.tweenPos([0.72, 0.1], hideTick);
