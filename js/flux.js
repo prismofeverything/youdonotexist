@@ -435,7 +435,6 @@ var flux = function() {
 
         addOp: function(newop) {
             this.ops.push(op(newop));
-            console.log(this.ops.map(function(o) {return o.to.toString();}));
         },
 
         updateColor: function(newcolor) {
@@ -454,8 +453,8 @@ var flux = function() {
                 try {
                     context[vertex.method].apply(context, vertex.args());
                 } catch(err) {
-                    console.log(vertex.method);
-                    console.log(vertex.args());
+                    // console.log(vertex.method);
+                    // console.log(vertex.args());
                 }
             });
 
