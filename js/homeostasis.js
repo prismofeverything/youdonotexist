@@ -1349,6 +1349,7 @@ var homeostasis = function(id) {
             color: [0, 0, 0, 1],
             transform: 'screen'
         };
+
         var key = flux.mote(keyspec);
 
         var description = function(spec) {
@@ -1504,9 +1505,9 @@ var homeostasis = function(id) {
 
         var hideTick = 7;
 
-            divider.hide = function() {
-                key.tweenPos([0.72, -0.9], hideTick);
-            };
+        divider.hide = function() {
+            key.tweenPos([0.72, -0.9], hideTick);
+        };
 
         divider.show = function() {
             key.tweenPos([0.72, 0.1], hideTick);
@@ -1574,6 +1575,7 @@ var homeostasis = function(id) {
     };
 
     world = flux.canvas(spec);
+
     world.activeDescription = null;
 
     world.addActiveDescription = function(description) {

@@ -113,7 +113,7 @@ var flux = function() {
         union: function(other) {
             this.low = Math.min(this.low, other.low);
             this.high = Math.max(this.high, other.high);
-            },
+        },
 
         include: function(value) {
             this.low = Math.min(this.low, value);
@@ -275,13 +275,15 @@ var flux = function() {
             },
 
             prod: function(box) {
+                var size = this.size;
                 var renderLength = function(string) {
-                    return CanvasTextFunctions.measure(true, this.size, string);
+                    return CanvasTextFunctions.measure(true, size, string);
                 };
 
                 // find the longest line to use as the outermost horizontal boundary
                 var lines = this.string.split('\n');
                 var longest = {length: renderLength(lines[0]), line: lines[0]};
+                
                 for (var index = 1; index < lines.length; index++) {
                     var possible = renderLength(line[index]);
                     if (possible > longest.length) {
@@ -683,7 +685,7 @@ var flux = function() {
 
             this.box = box;
             return box;
-            },
+        },
 
         findIn: function(mouse, pos) {
             if (this.contains(pos) && !mouse.inside.include(this)) {
@@ -986,7 +988,7 @@ var flux = function() {
         },
 
         draw: function(context) {
-            var q, len
+            var q, len;
             // drawing lines to neighbors
             if (this.visible && this.neighbors.length > 1) {
                     context.save();
@@ -1387,6 +1389,8 @@ var flux = function() {
             // timer
             setInterval(update, 100);
         };
+
+        that.mouse = mouse;
 
         return that;
     };
