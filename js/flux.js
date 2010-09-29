@@ -880,7 +880,7 @@ var flux = function() {
         },
 
         angleFrom: function(other) {
-                return this.pos.angleFrom(other.pos);
+            return this.pos.angleFrom(other.pos);
         },
 
             // this finds the closest mote from a list of possible motes.
@@ -964,14 +964,14 @@ var flux = function() {
             if (this.bounds) {
                 var check = this.bounds.check(this.pos);
 
-                len = check.length
+                len = check.length;
                 for (dim = 0; dim < len; dim++) {
                     if (!(check[dim] === 0)) {
                         this.velocity[dim] = -this.velocity[dim];
                     }
                 };
             }
-                // -------------------------------------------------
+            // -------------------------------------------------
 
         },
 

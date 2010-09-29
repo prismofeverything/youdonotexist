@@ -617,7 +617,7 @@ Object.extend(Array.prototype, {
   // Returns the scalar product of the vector with the argument
   // Both vectors must have equal dimensionality
   dot: function(vector) {
-    var V = vector
+    var V = vector;
     var i, product = 0, n = this.length;
     if (n != V.length) { return null; }
     do { product += this[n-1] * V[n-1]; } while (--n);
@@ -625,7 +625,7 @@ Object.extend(Array.prototype, {
   },
 
   // Returns the vector's distance from the argument, when considered as a point in space
-  distanceFrom: function(obj) {
+  distanceSquared: function(obj) {
     if (obj.anchor) { return obj.distanceFrom(this); }
     var V = obj;
     if (V.length != this.length) { return null; }
@@ -634,7 +634,11 @@ Object.extend(Array.prototype, {
       part = x - V[i];
       sum += part * part;
     });
-    return Math.sqrt(sum);
+    return sum;
+  },
+
+  distanceFrom: function(obj) {
+      return Math.sqrt(this.distanceSquared(obj));
   },
 
   // Returns a new vector created by normalizing the receiver

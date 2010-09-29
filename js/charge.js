@@ -1,15 +1,74 @@
 var charge = function(id) {
+    var numberOfParticles = 100;
+    var forceFactor = 100;
+    var colorBasis = 50;
+    var colorFactor = 17;
+
+    var chargeColor = function(charge) {
+        var color = [colorBasis, colorBasis, colorBasis, 255];
+        var hue = colorBasis + (Math.abs(charge) * colorFactor);
+        var spectrum = (charge < 0) ? 2 : 0; // blue is less than 0, red greater than 0
+        color[spectrum] = hue;
+
+        return color;
+    };
+
+    var particles = [];
+
     var particle = linkage.type([flux.mote], {
         init: function(spec) {
-            arguments.callee.uber.call(this, spec);
+            this.charge = spec.charge || 0;
+            this.mass = spec.mass || 1;
+            this.velocity = spec.momentum || [0, 0];
 
-            this.charge = spec.charge;
-            this.mass = spec.mass;
+            spec.shapes = spec.shapes || [flux.shape({
+                color: chargeColor(this.charge),
+                ops: [{op: 'arc', to: [0, 0], radius: this.mass}]
+            })];
+
+            spec.pos = [Math.random() * 500, Math.random() * 500];
+
+            arguments.callee.uber.call(this, spec);
+        },
+
+        forceOn: function(other) {
+            var unit = other.pos.subtract(this.pos).toUnitVector();
+            var strength = this.charge * other.charge;
+            var distance = this.pos.distanceSquared(other.pos);
+
+            return unit.multiply(strength / distance);
+        },
+
+        perceive: function(env) {
+            var force = [0, 0];
+
+            for (var v = 0; v < particles.length; v++) {
+                var other = particles[v];
+                if (!(other === this)) {
+                    var subforce = other.forceOn(this);
+                    for (var f = 0; f < force.length; f++) {
+                        force[f] += subforce[f];
+                    }
+                }
+            }
+
+            for (var f = 0; f < force.length; f++) {
+                this.velocity[f] += (force[f] * forceFactor / this.mass);
+            }
         }
     });
 
+    for (var i = 0; i < numberOfParticles; i++) {
+        particles.push(particle({
+            charge: (Math.random() * 20) - 10,
+            mass: Math.random() * 20,
+            velocity: [Math.random() - 0.5, Math.random() - 0.5]
+        }));
+    }
+
     var world = flux.canvas({
-        id: 'charge'
+        id: 'charge',
+        motes: particles
     });
     
     return {
