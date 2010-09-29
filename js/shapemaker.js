@@ -143,10 +143,6 @@ var shapemaker = function () {
         }
     };
 
-    var start = function () {
-        world.init();
-    };
-
     var potentialMoteElaboration = {
         name: 'potential',
         cycles: {
@@ -176,12 +172,16 @@ var shapemaker = function () {
                 // same here...
             }
         },
+
         submotes: []
     };
 
     return {
         world: world,
-        start: start
+
+        init: function() {
+            world.init();
+        }
     };
 }();
 

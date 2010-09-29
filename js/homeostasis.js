@@ -1,4 +1,4 @@
-var homeostasis = function(id) {
+var homeostasis = function() {
     var above = flux.bounds(-1700, 1700, -450, 250);
     var below = flux.bounds(-1700, 1700, 1700, 2400);
     var all = above.copy();
@@ -1537,7 +1537,7 @@ var homeostasis = function(id) {
     var world;
 
     var spec = {
-        id: id,
+        id: 'homeostasis',
         motes: membranes.concat(ligands.attractant).concat(ligands.repellent).push(moleculeKey),
         scale: [0.17, 0.17],
 
@@ -1597,8 +1597,12 @@ var homeostasis = function(id) {
     world.key = moleculeKey;
 
 
-    //  return {init: function () {}};
-    return world;
-};
+    return {
+        world: world,
+        init: function () {
+            world.init();
+        }
+    };
+}();
 
 
