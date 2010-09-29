@@ -1,6 +1,8 @@
 var charge = function(id) {
     var numberOfParticles = 100;
     var forceFactor = 100;
+    var forceMax = 1;
+    var permittivity = 1;
     var colorBasis = 50;
     var colorFactor = 17;
 
@@ -33,7 +35,7 @@ var charge = function(id) {
 
         forceOn: function(other) {
             var unit = other.pos.subtract(this.pos).toUnitVector();
-            var strength = this.charge * other.charge;
+            var strength = this.charge * other.charge * permittivity;
             var distance = this.pos.distanceSquared(other.pos);
 
             return unit.multiply(strength / distance);
@@ -41,6 +43,7 @@ var charge = function(id) {
 
         perceive: function(env) {
             var force = [0, 0];
+            var forcePartial = 0;
 
             for (var v = 0; v < particles.length; v++) {
                 var other = particles[v];
@@ -53,7 +56,8 @@ var charge = function(id) {
             }
 
             for (var f = 0; f < force.length; f++) {
-                this.velocity[f] += (force[f] * forceFactor / this.mass);
+                forcePartial = (force[f] * forceFactor / this.mass);
+                this.velocity[f] += forcePartial > forceMax ? forceMax : forcePartial;
             }
         }
     });
@@ -68,7 +72,9 @@ var charge = function(id) {
 
     var world = flux.canvas({
         id: 'charge',
-        motes: particles
+        motes: particles,
+        trace: true,
+        translation: [400, 200]
     });
     
     return {

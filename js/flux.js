@@ -1069,6 +1069,7 @@ var flux = function() {
 
         that.predraw = spec.predraw || function(context) {};
         that.postdraw = spec.postdraw || function(context) {};
+        that.trace = spec.trace;
 
         that.resize = spec.resize || function(browser, canvas) {
             canvas.width = width || browser.w;
@@ -1191,7 +1192,10 @@ var flux = function() {
         };
 
         var draw = function() {
-            context.clearRect(0, 0, browser.w, browser.h);
+            if (!that.trace) {
+                context.clearRect(0, 0, browser.w, browser.h);
+            }
+
             that.predraw(context);
 
             context.save();
