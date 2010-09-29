@@ -87,16 +87,16 @@ var linkage = function() {
             find = arguments[1];
         }
 
-	        var value = null;
+	    var value = null;
 
 	    var that = function() {
-	            if (value === null) {
-		                value = obj ? find.call(obj) : find();
-	            }
+	        if (value === null) {
+		        value = obj ? find.call(obj) : find();
+	        }
 	        return value;
 	    };
 
-            that.expiring = function() {};
+        that.expiring = function() {};
 	    that.expire = function() {
 	        value = null;
             obj ? that.expiring.call(obj) : that.expiring();
@@ -111,7 +111,7 @@ var linkage = function() {
     // a link is a single value which can be watched for changes.
     var link = function() {
 	    var value = arguments.length === 0 ? null : arguments[0];
-	        var index = 1;
+	    var index = 1;
 	    var keys = [];
 	    var observers = [];
 
