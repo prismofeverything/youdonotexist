@@ -1,7 +1,6 @@
 var charge = function(id) {
     var numberOfParticles = 100;
-    var forceFactor = 100;
-    var forceMax = 1;
+    var forceFactor = 33;
     var permittivity = 1;
     var colorBasis = 50;
     var colorFactor = 17;
@@ -21,7 +20,6 @@ var charge = function(id) {
         init: function(spec) {
             this.charge = spec.charge || 0;
             this.mass = spec.mass || 1;
-            this.velocity = spec.momentum || [0, 0];
 
             spec.shapes = spec.shapes || [flux.shape({
                 color: chargeColor(this.charge),
@@ -57,7 +55,7 @@ var charge = function(id) {
 
             for (var f = 0; f < force.length; f++) {
                 forcePartial = (force[f] * forceFactor / this.mass);
-                this.velocity[f] += forcePartial > forceMax ? forceMax : forcePartial;
+                this.velocity[f] += forcePartial;
             }
         }
     });
