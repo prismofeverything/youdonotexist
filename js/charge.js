@@ -8,8 +8,11 @@ var charge = function(id) {
     var chargeColor = function(charge) {
         var color = [colorBasis, colorBasis, colorBasis, 255];
         var hue = colorBasis + (Math.abs(charge) * colorFactor);
+
         var spectrum = (charge < 0) ? 2 : 0; // blue is less than 0, red greater than 0
         color[spectrum] = hue;
+
+//        color[1] = hue;
 
         return color;
     };
@@ -73,13 +76,8 @@ var charge = function(id) {
         motes: particles,
         trace: true,
         translation: [400, 200]
+        // background: "#eeeeee"
     });
     
-    return {
-        world: world,
-
-        init: function() {
-            world.init();
-        }
-    };
+    return world.generator();
 }();

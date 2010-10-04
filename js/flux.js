@@ -1087,6 +1087,15 @@ var flux = function() {
 
         };
 
+        that.generator = function() {
+            return {
+                world: that,
+                init: function() {
+                    that.init();
+                }
+            };
+        };
+
         var keys = {};
 
         keys.pressed = {};
@@ -1382,6 +1391,10 @@ var flux = function() {
 
             // set initial sizes
             resize();
+
+            if (spec.background) {
+                canvas.style.background = spec.background;
+            }
 
             // provide a reference to the actual canvas object
             that.canvas = canvas;
