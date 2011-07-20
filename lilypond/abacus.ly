@@ -18,10 +18,10 @@ trombone =
   fis,\p\< g fis e fis
   gis a gis fis gis
   r\mf e'8 f g4 e g\p\<
-  f, g e e8[ e e b']
-  r4\mf\> c c c c
+  f, g e e8[ e e b'\mf]
+  r4 c\p\> c c c
   c des c c b
-  r\p\< bes bes bes bes
+  r\pp\< bes bes bes bes
   bes b bes a g\mf
   r aes\mp\< aes a aes 
   bes c r cis cis
