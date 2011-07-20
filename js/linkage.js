@@ -52,7 +52,7 @@ var linkage = function() {
         var fn = function(args) {
             if (!(this instanceof arguments.callee)) {
                 return new arguments.callee(arguments);
-            } 
+            }
 
             if (typeof this.init == 'function') {
                 var ultimate_args = args.callee ? args : arguments;
@@ -66,7 +66,7 @@ var linkage = function() {
         var y, len = ancestors.length;
         for (y = 0; y < len; y++) {
             extend(fn.prototype, ancestors[y].prototype);
-            }
+        }
 
         // add the methods
         extend(fn.prototype, methods);
