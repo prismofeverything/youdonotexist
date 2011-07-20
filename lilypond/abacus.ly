@@ -12,31 +12,31 @@ trombone =
   \clef bass
   \time 5/4
 
-  c4 g'2 d4 a'
-  b2 cis4 a cis
-  e1 f4
-  fis, g fis e fis
+  c4\mp\< g'2 d4 a'
+  b2 cis4\mf a cis
+  e1\p\< f4\mf
+  fis,\p\< g fis e fis
   gis a gis fis gis
-  r e'8 f g4 e g
+  r\mf e'8 f g4 e g\p\<
   f, g e e8[ e e b']
-  r4 c c c c
+  r4\mf\> c c c c
   c des c c b
-  r bes bes bes bes
-  bes b bes a g
-  r aes aes a aes 
+  r\p\< bes bes bes bes
+  bes b bes a g\mf
+  r aes\mp\< aes a aes 
   bes c r cis cis
-  \time 4/4 cis8 d cis4 cis e
-  \time 5/4 r fis8[ fis fis fis fis fis] g4
+  \time 4/4 cis8\mf d cis4\< cis e
+  \time 5/4 r\f fis8[ fis fis fis fis fis] g4
   r fis g a g
-  e, e e f e
-  r e f g f
+  e,\mp e e f e
+  r e f g f\<
   r ais8[ ais ais ais] b4 ais
-  \time 3/4 r gis8[ a b cis]
+  \time 3/4 r\f gis8[ a b cis]
   \time 4/4 d4 ees e fis
-  \time 5/4 r cis8[ cis cis cis cis cis] d4
-  cis r cis8[ cis cis cis] d4
+  \time 5/4 r\mp cis8[ cis cis cis cis cis] d4
+  cis r cis8\<[ cis cis cis] d4
   \time 3/4 r cis8 cis e4
-  \time 4/4 r2 f--
+  \time 4/4 r2\f f--
   \time 5/4 r4 f-- r f-- f--
 }
 
@@ -70,8 +70,8 @@ bassclarinet =
   r fis'8[ fis fis fis g g g gis]
   r a,[ a a] bes[ a a bes bes bes]
   b[ bes bes bes] c4
-  r2 des
-  r4 des r d d
+  r2 des--
+  r4 des-- r d-- d--
 }
 
 << 
