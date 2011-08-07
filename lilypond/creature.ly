@@ -2,6 +2,7 @@
 CREATURE
 %}
 
+\version "2.14.1"
 \header{
   title = "CREATURE"
 }
@@ -30,10 +31,28 @@ trombone =
   \time 5/8 c,[ d f c d]
   \time 7/8 f[ ges f c f c f]
   \time 6/8 e[ b e b e b]
+
+  \override NoteHead #'color = #(rgb-color 0.1 0.2 1)
+  \override Stem #'color = #(rgb-color 0.1 0.2 1)
+  \override Beam #'color = #(rgb-color 0.1 0.2 1)
+  \override Accidental #'color = #(rgb-color 0.9 0.2 0.1)
+  \override DynamicText #'color = #(rgb-color 0.3 0.7 0.4)
+  \override Hairpin #'color = #(rgb-color 0.3 0.7 0.4)
+
   \time 7/8 fis''\mp[ d b a fis a b]
   \time 8/8 g'\<[ ees] fis[ d b g b d]
+
+  \revert NoteHead #'color
+  \revert Stem #'color
+  \revert Beam #'color
+
   \time 7/8 ees2 f4.
   \time 12/8 g1.\f\>
+
+  \revert Accidental #'color
+  \revert DynamicText #'color
+  \revert Hairpin #'color
+
   \time 2/4 r2\p
   r
   r4 g,
@@ -52,11 +71,29 @@ trombone =
   \time 4/4 a1
   \time 6/8 b8[ ees g] ees[ g ees]
   ais2.
+
+  \override NoteHead #'color = #(rgb-color 1 0.2 0.1)
+  \override Stem #'color = #(rgb-color 1 0.2 0.1)
+  \override Beam #'color = #(rgb-color 1 0.2 0.1)
+  \override Accidental #'color = #(rgb-color 0.1 0.2 0.9)
+  \override Script #'color = #(rgb-color 0.1 0.2 0.9)
+  \override DynamicText #'color = #(rgb-color 0.9 0.9 0.5)
+  \override Hairpin #'color = #(rgb-color 0.9 0.9 0.5)
+
   \time 9/8 b8-^\mf\<[ b-^ b-^ b-^ b-^] b[ b b b]
   b-^[ b-^ b-^ b-^ b-^] b[ b b b]
   b-^[ b-^ b-^ b-^ b-^] b[ b b b]
   b-^[ b-^ b-^ b-^ b-^] b[ b b b]
   b-^[ b-^ b-^ b-^ b-^] b[ b b b]
+
+  \revert NoteHead #'color
+  \revert Stem #'color
+  \revert Beam #'color
+  \revert Accidental #'color
+  \revert Script #'color
+  \revert DynamicText #'color
+  \revert Hairpin #'color
+
   \time 2/4 a,16\p\<[ b cis] dis[ e f a c]
   \time 5/8 e4\f e4.
 }
@@ -85,10 +122,18 @@ bassclarinet =
   e2 ees8
   g2 des4 f8
   a2 bes4
+  \override NoteHead #'color = #(rgb-color 0.1 0.2 1)
+  \override Stem #'color = #(rgb-color 0.1 0.2 1)
+  \override Beam #'color = #(rgb-color 0.1 0.2 1)
+  \override Accidental #'color = #(rgb-color 0.9 0.2 0.1)
   a,,8[ c e g e c a]
   fis[ a c a c e g e]
   bes'[ g e c a fis d]
   c''[ a f des a f des f des f des f]
+  \revert NoteHead #'color
+  \revert Stem #'color
+  \revert Beam #'color
+  \revert Accidental #'color
   a[ c e a]
   a,[ c e a]
   a,[ c e bes']
@@ -107,8 +152,18 @@ bassclarinet =
   gis4 e cis bis
   a'2~ a8 d,
   ais'4 f d
+  \override NoteHead #'color = #(rgb-color 1 0.2 0.1)
+  \override Stem #'color = #(rgb-color 1 0.2 0.1)
+  \override Beam #'color = #(rgb-color 1 0.2 0.1)
+  \override Accidental #'color = #(rgb-color 0.1 0.2 0.9)
+  \override Script #'color = #(rgb-color 0.1 0.2 0.9)
   cis,8-^[ cis-^ cis-^ cis-^ cis-^] c[ c c c]
   cis8-^[ cis-^ cis-^ cis-^ cis-^] c[ c c c]
+  \revert NoteHead #'color
+  \revert Stem #'color
+  \revert Beam #'color
+  \revert Accidental #'color
+  \revert Script #'color
   e4 b fis' a e8~
   e c'1
   des8[ c des ees b] f'4 fis
@@ -116,13 +171,41 @@ bassclarinet =
   d'4 d8[ cis ees]
 }
 
-<< 
-  \new Staff \trombone {
-
+\score { 
+  <<
+  \new Staff {
+    \set Staff.instrumentName = #"trombone"
+    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.TimeSignature #'style = #'numbered
+    \override Staff.TimeSignature #'font-size = #-1
+    \override Staff.Accidental #'color = #(rgb-color 0.1 0.5 0.3)
+    \override Staff.Rest #'color = #(rgb-color 0.1 0.5 0.3)
+    \override Staff.StaffSymbol #'color = #(rgb-color 0.7 0.7 0.5)
+    \override Staff.BarLine #'color = #(rgb-color 0.5 0.5 0.5)
+    \override Staff.Clef #'color = #(rgb-color 0.5 0.5 0.5)
+    \override Staff.DynamicText #'color = #(rgb-color 0.3 0.5 0.7)
+    \override Staff.Hairpin #'color = #(rgb-color 0.3 0.5 0.7)
+    \new Voice {
+      \trombone
+    }
   }
-  \new Staff \bassclarinet {
-
+  \new Staff {
+    \set Staff.instrumentName = #"bass clarinet"
+    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.TimeSignature #'style = #'numbered
+    \override Staff.TimeSignature #'font-size = #-1
+    \override Staff.Accidental #'color = #(rgb-color 0.1 0.5 0.3)
+    \override Staff.Rest #'color = #(rgb-color 0.1 0.5 0.3)
+    \override Staff.StaffSymbol #'color = #(rgb-color 0.7 0.7 0.5)
+    \override Staff.BarLine #'color = #(rgb-color 0.5 0.5 0.5)
+    \override Staff.Clef #'color = #(rgb-color 0.5 0.5 0.5)
+    \override Staff.DynamicText #'color = #(rgb-color 0.3 0.5 0.7)
+    \override Staff.Hairpin #'color = #(rgb-color 0.3 0.5 0.7)
+    \new Voice {
+      \bassclarinet
+    }
   }
->>
+  >>
+}
 
-\version "2.14.1"
+
