@@ -175,12 +175,14 @@ bassclarinet =
   <<
   \new Staff {
     \set Staff.instrumentName = #"trombone"
+    \override Staff.InstrumentName #'color = #(rgb-color 0.7 0.5 0.3)
     \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
     \override Staff.TimeSignature #'style = #'numbered
     \override Staff.TimeSignature #'font-size = #-1
     \override Staff.Accidental #'color = #(rgb-color 0.1 0.5 0.3)
     \override Staff.Rest #'color = #(rgb-color 0.1 0.5 0.3)
     \override Staff.StaffSymbol #'color = #(rgb-color 0.7 0.7 0.6)
+    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.7 0.7 0.6)
     \override Staff.BarLine #'color = #(rgb-color 0.5 0.5 0.5)
     \override Staff.Clef #'color = #(rgb-color 0.5 0.5 0.5)
     \override Staff.DynamicText #'color = #(rgb-color 0.3 0.5 0.7)
@@ -191,12 +193,14 @@ bassclarinet =
   }
   \new Staff {
     \set Staff.instrumentName = #"bass clarinet"
+    \override Staff.InstrumentName #'color = #(rgb-color 0.5 0.3 0.7)
     \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
     \override Staff.TimeSignature #'style = #'numbered
     \override Staff.TimeSignature #'font-size = #-1
     \override Staff.Accidental #'color = #(rgb-color 0.1 0.5 0.3)
     \override Staff.Rest #'color = #(rgb-color 0.1 0.5 0.3)
     \override Staff.StaffSymbol #'color = #(rgb-color 0.7 0.7 0.6)
+    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.7 0.7 0.6)
     \override Staff.BarLine #'color = #(rgb-color 0.5 0.5 0.5)
     \override Staff.Clef #'color = #(rgb-color 0.5 0.5 0.5)
     \override Staff.DynamicText #'color = #(rgb-color 0.3 0.5 0.7)

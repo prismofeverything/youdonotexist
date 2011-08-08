@@ -8,7 +8,6 @@ KALEIDOSCOPE
 
 trombone = 
 \relative c {
-  \set fontSize = #-1
   \clef bass
   
   \time 2/4 e4\f b'
@@ -40,7 +39,6 @@ trombone =
 
 bassclarinet = 
 \relative c, {
-  \set fontSize = #-1
   \clef bass
 
   \time 2/4 fis2~
@@ -70,13 +68,47 @@ bassclarinet =
   \time 1/4 r4
 }
 
-<< 
-  \new Staff \trombone {
-    \override StaffSymbol #'staff-space = #(magstep -3)
+\score {
+  << 
+  \new Staff {
+    \set Staff.instrumentName = #"trombone"
+    \override Staff.InstrumentName #'color = #(rgb-color 0.3 0.7 0.5)
+    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.TimeSignature #'style = #'numbered
+    \override Staff.TimeSignature #'font-size = #-1
+    \override Staff.Accidental #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.Rest #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.Dots #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.StaffSymbol #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.BarLine #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.Clef #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.DynamicText #'color = #(rgb-color 0.8 0.8 0.5)
+    \override Staff.Hairpin #'color = #(rgb-color 0.8 0.8 0.5)
+    \new Voice {
+      \trombone
+    }
   }
-  \new Staff \bassclarinet {
-    \override StaffSymbol #'staff-space = #(magstep -3)
+  \new Staff {
+    \set Staff.instrumentName = #"bass clarinet"
+    \override Staff.InstrumentName #'color = #(rgb-color 0.5 0.3 0.7)
+    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.TimeSignature #'style = #'numbered
+    \override Staff.TimeSignature #'font-size = #-1
+    \override Staff.Accidental #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.Rest #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.Dots #'color = #(rgb-color 0.7 0.3 0.1)
+    \override Staff.StaffSymbol #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.BarLine #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.Clef #'color = #(rgb-color 0.4 0.4 0.4)
+    \override Staff.DynamicText #'color = #(rgb-color 0.8 0.8 0.5)
+    \override Staff.Hairpin #'color = #(rgb-color 0.8 0.8 0.5)
+    \new Voice {
+      \bassclarinet
+    }
   }
->>
+  >>
+}
 
 \version "2.14.1"
