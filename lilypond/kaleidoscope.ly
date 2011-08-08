@@ -68,42 +68,50 @@ bassclarinet =
   \time 1/4 r4
 }
 
+trombonecolor     = #(rgb-color 0.3 0.7 0.5)
+bassclarinetcolor = #(rgb-color 0.5 0.3 0.7)
+timecolor         = #(rgb-color 0.4 0.2 0.5)
+accidentalcolor   = #(rgb-color 0.8 0.2 0.1)
+staffcolor        = #(rgb-color 0.4 0.4 0.4)
+clefcolor         = #(rgb-color 0.4 0.4 0.4)
+dynamicscolor     = #(rgb-color 0.8 0.8 0.2)
+
 \score {
   << 
   \new Staff {
     \set Staff.instrumentName = #"trombone"
-    \override Staff.InstrumentName #'color = #(rgb-color 0.3 0.7 0.5)
-    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.InstrumentName #'color = #trombonecolor
+    \override Staff.TimeSignature #'color = #timecolor
     \override Staff.TimeSignature #'style = #'numbered
     \override Staff.TimeSignature #'font-size = #-1
-    \override Staff.Accidental #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.Rest #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.Dots #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.StaffSymbol #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.BarLine #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.Clef #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.DynamicText #'color = #(rgb-color 0.8 0.8 0.5)
-    \override Staff.Hairpin #'color = #(rgb-color 0.8 0.8 0.5)
+    \override Staff.Accidental #'color = #accidentalcolor
+    \override Staff.Rest #'color = #accidentalcolor
+    \override Staff.Dots #'color = #accidentalcolor
+    \override Staff.StaffSymbol #'color = #staffcolor
+    \override Staff.LedgerLineSpanner #'color = #staffcolor
+    \override Staff.BarLine #'color = #clefcolor
+    \override Staff.Clef #'color = #clefcolor
+    \override Staff.DynamicText #'color = #dynamicscolor
+    \override Staff.Hairpin #'color = #dynamicscolor
     \new Voice {
       \trombone
     }
   }
   \new Staff {
     \set Staff.instrumentName = #"bass clarinet"
-    \override Staff.InstrumentName #'color = #(rgb-color 0.5 0.3 0.7)
-    \override Staff.TimeSignature #'color = #(rgb-color 0.4 0.2 0.5)
+    \override Staff.InstrumentName #'color = #bassclarinetcolor
+    \override Staff.TimeSignature #'color = #timecolor
     \override Staff.TimeSignature #'style = #'numbered
     \override Staff.TimeSignature #'font-size = #-1
-    \override Staff.Accidental #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.Rest #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.Dots #'color = #(rgb-color 0.7 0.3 0.1)
-    \override Staff.StaffSymbol #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.LedgerLineSpanner #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.BarLine #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.Clef #'color = #(rgb-color 0.4 0.4 0.4)
-    \override Staff.DynamicText #'color = #(rgb-color 0.8 0.8 0.5)
-    \override Staff.Hairpin #'color = #(rgb-color 0.8 0.8 0.5)
+    \override Staff.Accidental #'color = #accidentalcolor
+    \override Staff.Rest #'color = #accidentalcolor
+    \override Staff.Dots #'color = #accidentalcolor
+    \override Staff.StaffSymbol #'color = #staffcolor
+    \override Staff.LedgerLineSpanner #'color = #staffcolor
+    \override Staff.BarLine #'color = #clefcolor
+    \override Staff.Clef #'color = #clefcolor
+    \override Staff.DynamicText #'color = #dynamicscolor
+    \override Staff.Hairpin #'color = #dynamicscolor
     \new Voice {
       \bassclarinet
     }
