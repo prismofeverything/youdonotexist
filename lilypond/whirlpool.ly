@@ -10,7 +10,7 @@ trombonecolor     = #(rgb-color 0.2 0.2 0.8)
 bassclarinetcolor = #(rgb-color 0.7 0.5 0.3)
 timecolor         = #(rgb-color 0.6 0.6 0.6)
 accidentalcolor   = #(rgb-color 0.4 0.2 0.5)
-staffcolor        = #(rgb-color 0.7 0.7 0.9)
+staffcolor        = #(rgb-color 0.4 0.4 0.6)
 clefcolor         = #(rgb-color 0.8 0.2 0.2)
 dynamicscolor     = #(rgb-color 0.1 0.5 0.5)
 
