@@ -1228,13 +1228,12 @@ var homeostasis = function() {
         spec.shape = spec.revertingshape.clone();
 
         var that = molecule(spec);
-        var tick = 3;
+        var tick = 5;
         var theta = 0;
 
-//        var phases = ['waning'];
-        var phases = ['waxing', 'inverting', 'waning', 'reverting'];
+        //// var phases = ['waxing', 'inverting', 'waning', 'reverting'];
 
-//        var phases = ['inverting', 'reverting'];
+        var phases = ['inverting', 'reverting'];
         var phase = 0;
 
         that.state = phases[phase];
